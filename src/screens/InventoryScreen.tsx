@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  FlatList,
 } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { STONES_BY_ID } from '../data/stones';
@@ -26,7 +25,7 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
   if (!resourceData) {
     return (
       <View style={styles.resourceItem}>
-        <View style={[styles.colorSwatch, { backgroundColor: '#ccc' }]} />
+        <View style={[styles.colorSwatch, styles.colorSwatchUnknown]} />
         <View style={styles.resourceInfo}>
           <Text style={styles.resourceName}>{stack.resourceId}</Text>
           <Text style={styles.quantity}>x{stack.quantity}</Text>
@@ -233,6 +232,9 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 8,
     marginRight: 12,
+  },
+  colorSwatchUnknown: {
+    backgroundColor: '#ccc',
   },
   resourceInfo: {
     flex: 1,

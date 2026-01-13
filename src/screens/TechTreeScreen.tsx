@@ -115,10 +115,12 @@ export default function TechTreeScreen() {
           onPress: () => {
             // Deduct resources
             tech.resourceCost.forEach((cost) => {
-              // Try each category
-              removeResource('stones', cost.resourceId, cost.quantity) ||
-              removeResource('woods', cost.resourceId, cost.quantity) ||
-              removeResource('ores', cost.resourceId, cost.quantity);
+              // Try each category until one succeeds
+              const removed =
+                removeResource('stones', cost.resourceId, cost.quantity) ||
+                removeResource('woods', cost.resourceId, cost.quantity) ||
+                removeResource('ores', cost.resourceId, cost.quantity);
+              void removed; // Result intentionally unused after deduction
             });
             unlockTech(tech.id);
             Alert.alert('Unlocked!', `${tech.name} is now available.`);

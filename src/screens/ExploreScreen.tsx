@@ -1,5 +1,5 @@
 // Explore Screen - Main walking/gathering interface
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -38,29 +38,16 @@ export default function ExploreScreen() {
   const { state, addResource, discoverZone, addDistance } = useGameState();
 
   const [spawnedResources, setSpawnedResources] = useState<SpawnedResource[]>([]);
-  const [currentZone, setCurrentZone] = useState<string | null>(null);
+  const lastProcessedZoneRef = useRef<string | null>(null);
 
-  // Track distance changes
-  useEffect(() => {
-    if (totalDistance > 0) {
-      addDistance(totalDistance);
-    }
-  }, [totalDistance]);
-
-  // Update zone when location changes
-  useEffect(() => {
-    if (location) {
-      const zoneId = getZoneId(location.latitude, location.longitude);
-      if (zoneId !== currentZone) {
-        setCurrentZone(zoneId);
-        discoverZone(zoneId);
-        spawnResourcesInZone(location.latitude, location.longitude);
-      }
-    }
+  // Compute current zone from location (derived state)
+  const currentZone = useMemo(() => {
+    if (!location) return null;
+    return getZoneId(location.latitude, location.longitude);
   }, [location]);
 
   // Spawn resources based on location (simplified - will use real data later)
-  const spawnResourcesInZone = (lat: number, lng: number) => {
+  const spawnResourcesInZone = useCallback((lat: number, lng: number) => {
     const newResources: SpawnedResource[] = [];
 
     // Spawn 3-5 random resources nearby
@@ -85,7 +72,25 @@ export default function ExploreScreen() {
     }
 
     setSpawnedResources((prev) => [...prev.slice(-20), ...newResources]);
-  };
+  }, []);
+
+  // Track distance changes
+  useEffect(() => {
+    if (totalDistance > 0) {
+      addDistance(totalDistance);
+    }
+  }, [totalDistance, addDistance]);
+
+  // Handle zone changes - trigger side effects when entering new zone
+  // Spawning resources on zone entry is intentional reactive behavior
+  useEffect(() => {
+    if (location && currentZone && currentZone !== lastProcessedZoneRef.current) {
+      lastProcessedZoneRef.current = currentZone;
+      discoverZone(currentZone);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      spawnResourcesInZone(location.latitude, location.longitude);
+    }
+  }, [location, currentZone, discoverZone, spawnResourcesInZone]);
 
   // Collect a resource
   const collectResource = (resource: SpawnedResource) => {

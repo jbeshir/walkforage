@@ -48,23 +48,3 @@ export interface TechProgress {
   currentResearch: string | null;
   researchProgress: number;  // 0-100%
 }
-
-// Tool quality affects gathering and crafting
-export type ToolTier = 'none' | 'stone' | 'copper' | 'bronze' | 'iron' | 'steel';
-
-export interface ToolSet {
-  pickaxe: ToolTier;
-  axe: ToolTier;
-  hammer: ToolTier;
-  saw: ToolTier;
-  chisel: ToolTier;
-}
-
-export const TOOL_MULTIPLIERS: Record<ToolTier, number> = {
-  none: 0.25,
-  stone: 1.0,
-  copper: 1.5,
-  bronze: 2.0,
-  iron: 3.0,
-  steel: 4.0,
-};

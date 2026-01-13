@@ -46,7 +46,6 @@ export function useLocation(): LocationHookResult {
   const [isTracking, setIsTracking] = useState(false);
   const [totalDistance, setTotalDistance] = useState(0);
   const [subscription, setSubscription] = useState<Location.LocationSubscription | null>(null);
-  const [lastLocation, setLastLocation] = useState<LocationState | null>(null);
 
   const startTracking = useCallback(async () => {
     try {

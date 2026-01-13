@@ -5,11 +5,12 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 
 // Import screens
 import ExploreScreen from './src/screens/ExploreScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
+import CraftingScreen from './src/screens/CraftingScreen';
 import TechTreeScreen from './src/screens/TechTreeScreen';
 import VillageScreen from './src/screens/VillageScreen';
 
@@ -20,6 +21,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
     Explore: '🗺️',
     Inventory: '🎒',
+    Crafting: '🔨',
     Tech: '⚙️',
     Village: '🏠',
   };
@@ -57,6 +59,11 @@ export default function App() {
           name="Inventory"
           component={InventoryScreen}
           options={{ title: 'Inventory' }}
+        />
+        <Tab.Screen
+          name="Crafting"
+          component={CraftingScreen}
+          options={{ title: 'Crafting' }}
         />
         <Tab.Screen
           name="Tech"
