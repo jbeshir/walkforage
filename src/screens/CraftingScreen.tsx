@@ -1,13 +1,6 @@
 // Crafting Screen - Tool and component crafting interface
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { TOOLS, COMPONENTS, getToolById, getComponentById } from '../data/tools';
 import { Tool, CraftedComponent, OwnedTool, MaterialTier } from '../types/tools';
@@ -34,8 +27,7 @@ function OwnedToolItem({ owned, onRepair }: OwnedToolItemProps) {
 
   const durabilityPercent = (owned.currentDurability / tool.stats.maxDurability) * 100;
   const durabilityColor =
-    durabilityPercent > 50 ? '#4CAF50' :
-    durabilityPercent > 25 ? '#FF9800' : '#F44336';
+    durabilityPercent > 50 ? '#4CAF50' : durabilityPercent > 25 ? '#FF9800' : '#F44336';
 
   return (
     <View style={styles.ownedToolItem}>
@@ -58,10 +50,7 @@ function OwnedToolItem({ owned, onRepair }: OwnedToolItemProps) {
         </Text>
       </View>
       {tool.stats.canRepair && durabilityPercent < 100 && (
-        <TouchableOpacity
-          style={styles.repairButton}
-          onPress={() => onRepair(owned.instanceId)}
-        >
+        <TouchableOpacity style={styles.repairButton} onPress={() => onRepair(owned.instanceId)}>
           <Text style={styles.repairButtonText}>Repair</Text>
         </TouchableOpacity>
       )}
@@ -90,17 +79,23 @@ function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRe
         <View style={styles.requirementsContainer}>
           {tool.requiredTools.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Tools: {tool.requiredTools.map(r => r.toolId.replace(/_/g, ' ')).join(', ')}
+              Tools: {tool.requiredTools.map((r) => r.toolId.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {tool.requiredComponents.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Components: {tool.requiredComponents.map(c => `${c.quantity}x ${c.componentId.replace(/_/g, ' ')}`).join(', ')}
+              Components:{' '}
+              {tool.requiredComponents
+                .map((c) => `${c.quantity}x ${c.componentId.replace(/_/g, ' ')}`)
+                .join(', ')}
             </Text>
           )}
           {tool.materials.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Materials: {tool.materials.map(m => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`).join(', ')}
+              Materials:{' '}
+              {tool.materials
+                .map((m) => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`)
+                .join(', ')}
             </Text>
           )}
         </View>
@@ -108,7 +103,9 @@ function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRe
           <View style={styles.missingContainer}>
             <Text style={styles.missingLabel}>Missing:</Text>
             {missingRequirements.map((req, i) => (
-              <Text key={i} style={styles.missingText}>{req}</Text>
+              <Text key={i} style={styles.missingText}>
+                {req}
+              </Text>
             ))}
           </View>
         )}
@@ -134,7 +131,13 @@ interface ComponentRecipeItemProps {
   onCraft: () => void;
 }
 
-function ComponentRecipeItem({ component, canCraft, missingRequirements, ownedCount, onCraft }: ComponentRecipeItemProps) {
+function ComponentRecipeItem({
+  component,
+  canCraft,
+  missingRequirements,
+  ownedCount,
+  onCraft,
+}: ComponentRecipeItemProps) {
   return (
     <View style={styles.recipeItem}>
       <View style={[styles.tierBadge, { backgroundColor: TIER_COLORS[component.tier] }]}>
@@ -143,9 +146,7 @@ function ComponentRecipeItem({ component, canCraft, missingRequirements, ownedCo
       <View style={styles.recipeInfo}>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeName}>{component.name}</Text>
-          {ownedCount > 0 && (
-            <Text style={styles.ownedCount}>x{ownedCount}</Text>
-          )}
+          {ownedCount > 0 && <Text style={styles.ownedCount}>x{ownedCount}</Text>}
         </View>
         <Text style={styles.recipeDescription} numberOfLines={2}>
           {component.description}
@@ -153,12 +154,15 @@ function ComponentRecipeItem({ component, canCraft, missingRequirements, ownedCo
         <View style={styles.requirementsContainer}>
           {component.requiredTools.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Tools: {component.requiredTools.map(r => r.toolId.replace(/_/g, ' ')).join(', ')}
+              Tools: {component.requiredTools.map((r) => r.toolId.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {component.materials.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Materials: {component.materials.map(m => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`).join(', ')}
+              Materials:{' '}
+              {component.materials
+                .map((m) => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`)
+                .join(', ')}
             </Text>
           )}
         </View>
@@ -166,7 +170,9 @@ function ComponentRecipeItem({ component, canCraft, missingRequirements, ownedCo
           <View style={styles.missingContainer}>
             <Text style={styles.missingLabel}>Missing:</Text>
             {missingRequirements.map((req, i) => (
-              <Text key={i} style={styles.missingText}>{req}</Text>
+              <Text key={i} style={styles.missingText}>
+                {req}
+              </Text>
             ))}
           </View>
         )}
@@ -185,109 +191,84 @@ function ComponentRecipeItem({ component, canCraft, missingRequirements, ownedCo
 }
 
 export default function CraftingScreen() {
-  const {
-    state,
-    canCraftTool,
-    canCraftComponent,
-    craftTool,
-    craftComponent,
-    repairTool,
-    hasTech,
-  } = useGameState();
+  const { state, canCraftTool, canCraftComponent, craftTool, craftComponent, repairTool, hasTech } =
+    useGameState();
   const [activeTab, setActiveTab] = useState<TabType>('owned');
 
   const handleCraftTool = (toolId: string) => {
     const tool = getToolById(toolId);
     if (!tool) return;
 
-    Alert.alert(
-      'Craft Tool',
-      `Craft ${tool.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Craft',
-          onPress: () => {
-            const success = craftTool(toolId);
-            if (success) {
-              Alert.alert('Success', `Crafted ${tool.name}!`);
-            } else {
-              Alert.alert('Failed', 'Could not craft tool. Check requirements.');
-            }
-          },
+    Alert.alert('Craft Tool', `Craft ${tool.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Craft',
+        onPress: () => {
+          const success = craftTool(toolId);
+          if (success) {
+            Alert.alert('Success', `Crafted ${tool.name}!`);
+          } else {
+            Alert.alert('Failed', 'Could not craft tool. Check requirements.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCraftComponent = (componentId: string) => {
     const component = getComponentById(componentId);
     if (!component) return;
 
-    Alert.alert(
-      'Craft Component',
-      `Craft ${component.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Craft',
-          onPress: () => {
-            const success = craftComponent(componentId);
-            if (success) {
-              Alert.alert('Success', `Crafted ${component.name}!`);
-            } else {
-              Alert.alert('Failed', 'Could not craft component. Check requirements.');
-            }
-          },
+    Alert.alert('Craft Component', `Craft ${component.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Craft',
+        onPress: () => {
+          const success = craftComponent(componentId);
+          if (success) {
+            Alert.alert('Success', `Crafted ${component.name}!`);
+          } else {
+            Alert.alert('Failed', 'Could not craft component. Check requirements.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleRepairTool = (instanceId: string) => {
-    const owned = state.toolInventory.ownedTools.find(t => t.instanceId === instanceId);
+    const owned = state.toolInventory.ownedTools.find((t) => t.instanceId === instanceId);
     if (!owned) return;
     const tool = getToolById(owned.toolId);
     if (!tool) return;
 
-    Alert.alert(
-      'Repair Tool',
-      `Repair ${tool.name}? Requires ${tool.stats.repairMaterial}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Repair',
-          onPress: () => {
-            const success = repairTool(instanceId);
-            if (success) {
-              Alert.alert('Success', `Repaired ${tool.name}!`);
-            } else {
-              Alert.alert('Failed', 'Could not repair. Check materials.');
-            }
-          },
+    Alert.alert('Repair Tool', `Repair ${tool.name}? Requires ${tool.stats.repairMaterial}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Repair',
+        onPress: () => {
+          const success = repairTool(instanceId);
+          if (success) {
+            Alert.alert('Success', `Repaired ${tool.name}!`);
+          } else {
+            Alert.alert('Failed', 'Could not repair. Check materials.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Filter tools by unlocked tech
-  const availableTools = TOOLS.filter(tool => hasTech(tool.requiredTech));
-  const availableComponents = COMPONENTS.filter(comp => hasTech(comp.requiredTech));
+  const availableTools = TOOLS.filter((tool) => hasTech(tool.requiredTech));
+  const availableComponents = COMPONENTS.filter((comp) => hasTech(comp.requiredTech));
 
   const renderOwnedTools = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>
-        Owned Tools ({state.toolInventory.ownedTools.length})
-      </Text>
+      <Text style={styles.sectionTitle}>Owned Tools ({state.toolInventory.ownedTools.length})</Text>
       {state.toolInventory.ownedTools.length === 0 ? (
         <Text style={styles.emptyText}>No tools owned yet. Craft your first tool!</Text>
       ) : (
-        state.toolInventory.ownedTools.map(owned => (
-          <OwnedToolItem
-            key={owned.instanceId}
-            owned={owned}
-            onRepair={handleRepairTool}
-          />
+        state.toolInventory.ownedTools.map((owned) => (
+          <OwnedToolItem key={owned.instanceId} owned={owned} onRepair={handleRepairTool} />
         ))
       )}
 
@@ -319,7 +300,7 @@ export default function CraftingScreen() {
       {availableTools.length === 0 ? (
         <Text style={styles.emptyText}>Research more tech to unlock tool recipes.</Text>
       ) : (
-        availableTools.map(tool => {
+        availableTools.map((tool) => {
           const { canCraft, missingRequirements } = canCraftTool(tool.id);
           return (
             <ToolRecipeItem
@@ -341,7 +322,7 @@ export default function CraftingScreen() {
       {availableComponents.length === 0 ? (
         <Text style={styles.emptyText}>Research more tech to unlock component recipes.</Text>
       ) : (
-        availableComponents.map(comp => {
+        availableComponents.map((comp) => {
           const { canCraft, missingRequirements } = canCraftComponent(comp.id);
           const ownedCount = state.toolInventory.componentInventory[comp.id] || 0;
           return (
@@ -367,17 +348,13 @@ export default function CraftingScreen() {
           style={[styles.tab, activeTab === 'owned' && styles.tabActive]}
           onPress={() => setActiveTab('owned')}
         >
-          <Text style={[styles.tabText, activeTab === 'owned' && styles.tabTextActive]}>
-            Owned
-          </Text>
+          <Text style={[styles.tabText, activeTab === 'owned' && styles.tabTextActive]}>Owned</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'tools' && styles.tabActive]}
           onPress={() => setActiveTab('tools')}
         >
-          <Text style={[styles.tabText, activeTab === 'tools' && styles.tabTextActive]}>
-            Tools
-          </Text>
+          <Text style={[styles.tabText, activeTab === 'tools' && styles.tabTextActive]}>Tools</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'components' && styles.tabActive]}

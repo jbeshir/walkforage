@@ -68,11 +68,39 @@ function normalizeLithology(lith: string): string {
   const lower = lith.toLowerCase().trim();
 
   const directMatches = [
-    'sandstone', 'siltstone', 'shale', 'mudstone', 'claystone', 'conglomerate', 'breccia',
-    'limestone', 'dolomite', 'dolostone', 'chalk', 'marl', 'chert', 'novaculite',
-    'granite', 'granodiorite', 'diorite', 'gabbro', 'basalt', 'andesite',
-    'rhyolite', 'dacite', 'tuff', 'pumice', 'obsidian', 'ignimbrite',
-    'marble', 'slate', 'phyllite', 'schist', 'gneiss', 'quartzite', 'amphibolite'
+    'sandstone',
+    'siltstone',
+    'shale',
+    'mudstone',
+    'claystone',
+    'conglomerate',
+    'breccia',
+    'limestone',
+    'dolomite',
+    'dolostone',
+    'chalk',
+    'marl',
+    'chert',
+    'novaculite',
+    'granite',
+    'granodiorite',
+    'diorite',
+    'gabbro',
+    'basalt',
+    'andesite',
+    'rhyolite',
+    'dacite',
+    'tuff',
+    'pumice',
+    'obsidian',
+    'ignimbrite',
+    'marble',
+    'slate',
+    'phyllite',
+    'schist',
+    'gneiss',
+    'quartzite',
+    'amphibolite',
   ];
 
   for (const match of directMatches) {
@@ -92,10 +120,12 @@ function normalizeLithology(lith: string): string {
   if (lower.includes('sedimentary') && lower.includes('volcanic')) return 'tuff';
   if (lower.includes('volcaniclastic')) return 'tuff';
   if (lower.includes('alluvium') || lower.includes('alluvial')) return 'conglomerate';
-  if (lower.includes('glacial') || lower.includes('drift') || lower.includes('till')) return 'conglomerate';
+  if (lower.includes('glacial') || lower.includes('drift') || lower.includes('till'))
+    return 'conglomerate';
   if (lower.includes('sand') && !lower.includes('sandstone')) return 'sandstone';
   if (lower.includes('clay') && !lower.includes('claystone')) return 'clay';
-  if (lower.includes('iron') || lower.includes('hematite') || lower.includes('magnetite')) return 'iron_formation';
+  if (lower.includes('iron') || lower.includes('hematite') || lower.includes('magnetite'))
+    return 'iron_formation';
   if (lower.includes('sedimentary')) return 'mixed_sedimentary';
   if (lower.includes('metamorphic')) return 'mixed_metamorphic';
   if (lower.includes('igneous')) return 'mixed_igneous';
@@ -361,7 +391,7 @@ async function main() {
   console.log('\nBuilding coarse indexes...');
 
   if (geologyRecords.length > 0) {
-    const geologyIndexData = geologyRecords.map(r => ({
+    const geologyIndexData = geologyRecords.map((r) => ({
       geohash: r.geohash,
       value: normalizeLithology(r.primaryLithology),
       confidence: r.confidence,
@@ -377,14 +407,19 @@ async function main() {
         generatedAt: new Date().toISOString(),
       },
       data: Object.fromEntries(
-        Object.entries(geologyIndex).map(([k, v]) => [k, { primaryLithology: v.value, confidence: v.confidence }])
+        Object.entries(geologyIndex).map(([k, v]) => [
+          k,
+          { primaryLithology: v.value, confidence: v.confidence },
+        ])
       ),
     });
-    console.log(`  Geology index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(geologyIndex).length} cells)`);
+    console.log(
+      `  Geology index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(geologyIndex).length} cells)`
+    );
   }
 
   if (biomeRecords.length > 0) {
-    const biomeIndexData = biomeRecords.map(r => ({
+    const biomeIndexData = biomeRecords.map((r) => ({
       geohash: r.geohash,
       value: r.biomeCode,
       confidence: r.confidence,
@@ -403,7 +438,9 @@ async function main() {
         Object.entries(biomeIndex).map(([k, v]) => [k, { type: v.value, confidence: v.confidence }])
       ),
     });
-    console.log(`  Biome index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(biomeIndex).length} cells)`);
+    console.log(
+      `  Biome index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(biomeIndex).length} cells)`
+    );
   }
 
   // Write manifest
@@ -421,7 +458,7 @@ async function main() {
       biomeRecords: biomeRecords.length,
       totalTiles: allGeohashes.size,
       databaseSizeBytes: dbStats.size,
-      databaseSizeMB: Math.round(dbStats.size / 1024 / 1024 * 100) / 100,
+      databaseSizeMB: Math.round((dbStats.size / 1024 / 1024) * 100) / 100,
     },
     files: {
       database: 'assets/gis/tiles.db',

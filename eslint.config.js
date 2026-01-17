@@ -6,14 +6,7 @@ const reactNativePlugin = require('eslint-plugin-react-native');
 
 module.exports = [
   {
-    ignores: [
-      'node_modules/**',
-      '.expo/**',
-      'dist/**',
-      'build/**',
-      'coverage/**',
-      '*.config.js',
-    ],
+    ignores: ['node_modules/**', '.expo/**', 'dist/**', 'build/**', 'coverage/**', '*.config.js'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -49,7 +42,7 @@ module.exports = [
     },
     plugins: {
       '@typescript-eslint': typescriptEslint,
-      'react': reactPlugin,
+      react: reactPlugin,
       'react-hooks': reactHooksPlugin,
       'react-native': reactNativePlugin,
     },

@@ -65,8 +65,8 @@ function validateResources(): ValidationResult {
     info: [],
   };
 
-  const allWoodIds = new Set(WOODS.map(w => w.id));
-  const allStoneIds = new Set(STONES.map(s => s.id));
+  const allWoodIds = new Set(WOODS.map((w) => w.id));
+  const allStoneIds = new Set(STONES.map((s) => s.id));
   const validBiomeSet = new Set<string>(VALID_BIOMES);
 
   // Get mapping data (filter out metadata keys)
@@ -99,14 +99,18 @@ function validateResources(): ValidationResult {
 
     // Check rarity is valid
     if (wood.properties.rarity < 0 || wood.properties.rarity > 1) {
-      result.errors.push(`Wood "${wood.id}" has invalid rarity ${wood.properties.rarity} (should be 0-1)`);
+      result.errors.push(
+        `Wood "${wood.id}" has invalid rarity ${wood.properties.rarity} (should be 0-1)`
+      );
     }
 
     // Check realm-biome codes are valid format
     if (wood.realmBiomes) {
       for (const rb of wood.realmBiomes) {
         if (!/^[A-Z]{2}\d{2}$/.test(rb)) {
-          result.errors.push(`Wood "${wood.id}" has invalid realmBiome format "${rb}" (expected XX##)`);
+          result.errors.push(
+            `Wood "${wood.id}" has invalid realmBiome format "${rb}" (expected XX##)`
+          );
         }
       }
     }
@@ -126,16 +130,20 @@ function validateResources(): ValidationResult {
     }
 
     if (!foundInMapping) {
-      result.errors.push(`Stone "${stone.id}" is not referenced in any lithologyToStones.json mapping`);
+      result.errors.push(
+        `Stone "${stone.id}" is not referenced in any lithologyToStones.json mapping`
+      );
     }
 
     // Check rarity is valid
     if (stone.properties.rarity < 0 || stone.properties.rarity > 1) {
-      result.errors.push(`Stone "${stone.id}" has invalid rarity ${stone.properties.rarity} (should be 0-1)`);
+      result.errors.push(
+        `Stone "${stone.id}" has invalid rarity ${stone.properties.rarity} (should be 0-1)`
+      );
     }
 
     // Check if at least one of the stone's lithologies exists in the mapping
-    const hasValidMapping = stone.lithologies.some(lith => mappedLithologies.has(lith));
+    const hasValidMapping = stone.lithologies.some((lith) => mappedLithologies.has(lith));
     if (!hasValidMapping) {
       result.errors.push(
         `Stone "${stone.id}" has no lithologies that exist in lithologyToStones.json: [${stone.lithologies.join(', ')}]`
@@ -166,7 +174,6 @@ function validateResources(): ValidationResult {
       result.errors.push(`Biome "${biome}" has no wood types in WOODS.biomes array`);
     }
   }
-
 
   // ========== 4. Check All Lithologies Have Stones ==========
   result.info.push('--- Checking Lithology Coverage ---');
@@ -241,12 +248,12 @@ function validateResources(): ValidationResult {
   result.info.push('--- Validating Toolstone Coverage ---');
 
   const toolstones = getToolstones();
-  const toolstoneIds = new Set(toolstones.map(t => t.id));
+  const toolstoneIds = new Set(toolstones.map((t) => t.id));
   const lithologiesWithToolstones: string[] = [];
   const lithologiesWithoutToolstones: string[] = [];
 
   for (const [lithology, mapping] of lithologyMappings) {
-    const hasToolstone = mapping.stoneIds.some(id => toolstoneIds.has(id));
+    const hasToolstone = mapping.stoneIds.some((id) => toolstoneIds.has(id));
     if (hasToolstone) {
       lithologiesWithToolstones.push(lithology);
     } else {
@@ -254,7 +261,7 @@ function validateResources(): ValidationResult {
     }
   }
 
-  result.info.push(`Toolstones available: ${toolstones.map(t => t.id).join(', ')}`);
+  result.info.push(`Toolstones available: ${toolstones.map((t) => t.id).join(', ')}`);
   result.info.push(
     `Lithologies with toolstones: ${lithologiesWithToolstones.length}/${lithologyMappings.length}`
   );
@@ -262,7 +269,9 @@ function validateResources(): ValidationResult {
   // Every lithology must have at least one toolstone available
   if (lithologiesWithoutToolstones.length > 0) {
     for (const lithology of lithologiesWithoutToolstones) {
-      result.errors.push(`Lithology "${lithology}" has no toolstone - add at least one with low spawn weight`);
+      result.errors.push(
+        `Lithology "${lithology}" has no toolstone - add at least one with low spawn weight`
+      );
     }
   }
 
@@ -274,7 +283,9 @@ function validateResources(): ValidationResult {
   result.info.push(`Mapped lithologies: ${lithologyMappings.length}`);
   result.info.push(`Realm-biome mappings: ${realmBiomeMappings.length}`);
   result.info.push(`Biomes with wood: ${biomesWithWoods.size}/${VALID_BIOMES.length}`);
-  result.info.push(`Lithologies with stones: ${lithologiesWithStones.size}/${lithologyMappings.length}`);
+  result.info.push(
+    `Lithologies with stones: ${lithologiesWithStones.size}/${lithologyMappings.length}`
+  );
 
   // Wood category distribution
   const woodCategories: Record<string, number> = {};

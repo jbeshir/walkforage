@@ -1,9 +1,4 @@
-import {
-  TECHNOLOGIES,
-  TECH_BY_ID,
-  getTechsByEra,
-  getAvailableTechs,
-} from '../src/data/techTree';
+import { TECHNOLOGIES, TECH_BY_ID, getTechsByEra, getAvailableTechs } from '../src/data/techTree';
 import { TechEra } from '../src/types/tech';
 
 describe('Tech Tree Data', () => {
@@ -144,7 +139,12 @@ describe('Tech Tree Data', () => {
 
     it('should not unlock pottery without both prerequisites', () => {
       // Pottery requires fire_making and clay_gathering
-      const withoutClay = getAvailableTechs(['flint_knapping', 'stone_tools', 'woodworking', 'fire_making']);
+      const withoutClay = getAvailableTechs([
+        'flint_knapping',
+        'stone_tools',
+        'woodworking',
+        'fire_making',
+      ]);
       expect(withoutClay.some((t) => t.id === 'pottery')).toBe(false);
 
       const withoutFire = getAvailableTechs(['flint_knapping', 'basket_weaving', 'clay_gathering']);

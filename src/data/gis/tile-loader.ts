@@ -94,7 +94,6 @@ function rowToTile(row: TileRow): GeoTile {
     type: row.biome_type as BiomeCode,
     confidence: row.biome_confidence,
     ...(row.ecoregion_id != null && { ecoregionId: row.ecoregion_id }),
-    ...(row.realm_biome != null && { realmBiome: row.realm_biome }),
     ...(row.realm != null && { realm: row.realm }),
   };
 
@@ -119,10 +118,9 @@ export async function getTile(geohash: string): Promise<GeoTile | null> {
   try {
     const database = await initDatabase();
 
-    const row = await database.getFirstAsync<TileRow>(
-      'SELECT * FROM tiles WHERE geohash = ?',
-      [geohash]
-    );
+    const row = await database.getFirstAsync<TileRow>('SELECT * FROM tiles WHERE geohash = ?', [
+      geohash,
+    ]);
 
     if (!row) {
       tileCache.set(geohash, null);
@@ -148,10 +146,9 @@ export async function loadTilesByPrefix(prefix: string): Promise<Record<string, 
   try {
     const database = await initDatabase();
 
-    const rows = await database.getAllAsync<TileRow>(
-      'SELECT * FROM tiles WHERE prefix = ?',
-      [prefix]
-    );
+    const rows = await database.getAllAsync<TileRow>('SELECT * FROM tiles WHERE prefix = ?', [
+      prefix,
+    ]);
 
     if (!rows || rows.length === 0) {
       return null;

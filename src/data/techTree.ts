@@ -14,7 +14,16 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [{ resourceId: 'flint', quantity: 5 }],
     unlocks: ['stone_tools', 'basket_weaving'],
     enablesBuildings: [],
-    enablesRecipes: ['hammerstone', 'grinding_stone', 'pressure_flaker', 'stone_knife', 'stone_scraper', 'flint_blade', 'crude_handle', 'fiber_binding'],
+    enablesRecipes: [
+      'hammerstone',
+      'grinding_stone',
+      'pressure_flaker',
+      'stone_knife',
+      'stone_scraper',
+      'flint_blade',
+      'crude_handle',
+      'fiber_binding',
+    ],
     icon: 'hammer',
     position: { x: 0, y: 0 },
   },
@@ -30,7 +39,14 @@ export const TECHNOLOGIES: Technology[] = [
     ],
     unlocks: ['woodworking', 'hunting_tools'],
     enablesBuildings: [],
-    enablesRecipes: ['stone_axe', 'stone_adze', 'stone_hammer', 'stone_axe_head', 'shaped_handle', 'leather_binding'],
+    enablesRecipes: [
+      'stone_axe',
+      'stone_adze',
+      'stone_hammer',
+      'stone_axe_head',
+      'shaped_handle',
+      'leather_binding',
+    ],
     gatheringBonus: { resourceType: 'wood', multiplier: 1.5 },
     icon: 'axe',
     position: { x: 1, y: 0 },
@@ -172,7 +188,17 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [{ resourceId: 'copper_ingot', quantity: 10 }],
     unlocks: ['hardwood_working', 'soft_stone_quarrying'],
     enablesBuildings: [],
-    enablesRecipes: ['copper_knife', 'copper_axe', 'copper_adze', 'copper_chisel', 'copper_hammer', 'copper_pickaxe', 'tongs', 'copper_axe_head', 'copper_band'],
+    enablesRecipes: [
+      'copper_knife',
+      'copper_axe',
+      'copper_adze',
+      'copper_chisel',
+      'copper_hammer',
+      'copper_pickaxe',
+      'tongs',
+      'copper_axe_head',
+      'copper_band',
+    ],
     gatheringBonus: { resourceType: 'stone', multiplier: 1.5 },
     icon: 'tools',
     position: { x: 7, y: -1 },
@@ -305,7 +331,19 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [{ resourceId: 'bronze_ingot', quantity: 15 }],
     unlocks: ['advanced_carpentry', 'monument_building'],
     enablesBuildings: [],
-    enablesRecipes: ['bronze_knife', 'bronze_adze', 'bronze_axe', 'bronze_chisel', 'bronze_saw', 'bronze_rasp', 'bronze_hammer', 'bronze_pickaxe', 'anvil', 'bronze_axe_head', 'precision_handle'],
+    enablesRecipes: [
+      'bronze_knife',
+      'bronze_adze',
+      'bronze_axe',
+      'bronze_chisel',
+      'bronze_saw',
+      'bronze_rasp',
+      'bronze_hammer',
+      'bronze_pickaxe',
+      'anvil',
+      'bronze_axe_head',
+      'precision_handle',
+    ],
     gatheringBonus: { resourceType: 'all', multiplier: 1.3 },
     craftingBonus: { category: 'all', speedMultiplier: 1.5 },
     icon: 'tools',
@@ -405,7 +443,20 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [{ resourceId: 'iron_bar', quantity: 20 }],
     unlocks: ['advanced_quarrying'],
     enablesBuildings: [],
-    enablesRecipes: ['iron_knife', 'iron_adze', 'iron_hammer', 'iron_anvil', 'iron_axe', 'iron_chisel', 'iron_pickaxe', 'iron_saw', 'flint_and_steel', 'iron_axe_head', 'reinforced_handle', 'iron_ferrule'],
+    enablesRecipes: [
+      'iron_knife',
+      'iron_adze',
+      'iron_hammer',
+      'iron_anvil',
+      'iron_axe',
+      'iron_chisel',
+      'iron_pickaxe',
+      'iron_saw',
+      'flint_and_steel',
+      'iron_axe_head',
+      'reinforced_handle',
+      'iron_ferrule',
+    ],
     gatheringBonus: { resourceType: 'all', multiplier: 1.5 },
     craftingBonus: { category: 'all', speedMultiplier: 2.0 },
     icon: 'tools',
@@ -474,22 +525,18 @@ export const TECHNOLOGIES: Technology[] = [
   },
 ];
 
-export const TECH_BY_ID = Object.fromEntries(
-  TECHNOLOGIES.map(t => [t.id, t])
-);
+export const TECH_BY_ID = Object.fromEntries(TECHNOLOGIES.map((t) => [t.id, t]));
 
 export function getTechsByEra(era: TechEra): Technology[] {
-  return TECHNOLOGIES.filter(t => t.era === era);
+  return TECHNOLOGIES.filter((t) => t.era === era);
 }
 
 export function getAvailableTechs(unlockedTechs: string[]): Technology[] {
-  return TECHNOLOGIES.filter(tech => {
+  return TECHNOLOGIES.filter((tech) => {
     // Already unlocked
     if (unlockedTechs.includes(tech.id)) return false;
 
     // Check all prerequisites are met
-    return tech.prerequisites.every(prereq =>
-      unlockedTechs.includes(prereq.techId)
-    );
+    return tech.prerequisites.every((prereq) => unlockedTechs.includes(prereq.techId));
   });
 }

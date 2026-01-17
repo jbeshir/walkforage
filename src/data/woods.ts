@@ -51,7 +51,8 @@ export const WOODS: WoodType[] = [
     name: 'Norway Spruce',
     scientificName: 'Picea abies',
     category: 'softwood',
-    description: 'Strong for its weight. Traditional Christmas tree and resonant wood for instruments.',
+    description:
+      'Strong for its weight. Traditional Christmas tree and resonant wood for instruments.',
     properties: { hardness: 4, workability: 7, durability: 4, rarity: 0.6 },
     biomes: ['boreal', 'temperate_conifer', 'montane'],
     realmBiomes: ['PA05', 'PA06', 'PA10'],
@@ -790,7 +791,13 @@ export const WOODS: WoodType[] = [
     category: 'softwood',
     description: 'Flexible wood ideal for weaving and basketry. Grows near water worldwide.',
     properties: { hardness: 2, workability: 8, durability: 3, rarity: 0.5 },
-    biomes: ['temperate_broadleaf_mixed', 'flooded_grassland', 'temperate_grassland', 'boreal', 'tundra'],
+    biomes: [
+      'temperate_broadleaf_mixed',
+      'flooded_grassland',
+      'temperate_grassland',
+      'boreal',
+      'tundra',
+    ],
     realmBiomes: ['PA11', 'NE11'],
     nativeRealms: ['Palearctic', 'Nearctic', 'Neotropic'],
     color: '#9CAF88',
@@ -824,44 +831,51 @@ export const WOODS: WoodType[] = [
     category: 'tropical',
     description: 'Tropical tree-like plants. Fibrous trunk, many species worldwide.',
     properties: { hardness: 4, workability: 4, durability: 4, rarity: 0.4 },
-    biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf', 'tropical_grassland', 'flooded_grassland', 'mangrove'],
+    biomes: [
+      'tropical_moist_broadleaf',
+      'tropical_dry_broadleaf',
+      'tropical_grassland',
+      'flooded_grassland',
+      'mangrove',
+    ],
     nativeRealms: ['Neotropic', 'Afrotropic', 'Indomalayan'],
     color: '#8B7355',
   },
 ];
 
 // Lookup tables
-export const WOODS_BY_ID = Object.fromEntries(
-  WOODS.map(w => [w.id, w])
-) as Record<string, WoodType>;
+export const WOODS_BY_ID = Object.fromEntries(WOODS.map((w) => [w.id, w])) as Record<
+  string,
+  WoodType
+>;
 
 // Helper functions
 export function getWoodsByBiome(biome: BiomeCode | string): WoodType[] {
-  return WOODS.filter(w => w.biomes.includes(biome as BiomeCode));
+  return WOODS.filter((w) => w.biomes.includes(biome as BiomeCode));
 }
 
 export function getWoodsByRealmBiome(realmBiome: string): WoodType[] {
-  return WOODS.filter(w => w.realmBiomes?.includes(realmBiome));
+  return WOODS.filter((w) => w.realmBiomes?.includes(realmBiome));
 }
 
 export function getWoodsByRealm(realm: string): WoodType[] {
-  return WOODS.filter(w => w.nativeRealms?.includes(realm));
+  return WOODS.filter((w) => w.nativeRealms?.includes(realm));
 }
 
 export function getWoodsByCategory(category: string): WoodType[] {
-  return WOODS.filter(w => w.category === category);
+  return WOODS.filter((w) => w.category === category);
 }
 
 // Get all biomes that have wood-producing trees
 export function getWoodedBiomes(): BiomeCode[] {
   const biomes = new Set<BiomeCode>();
-  WOODS.forEach(w => w.biomes.forEach(b => biomes.add(b)));
+  WOODS.forEach((w) => w.biomes.forEach((b) => biomes.add(b)));
   return Array.from(biomes);
 }
 
 // Get all realm-biome codes that have mappings
 export function getMappedRealmBiomes(): string[] {
   const realmBiomes = new Set<string>();
-  WOODS.forEach(w => w.realmBiomes?.forEach(rb => realmBiomes.add(rb)));
+  WOODS.forEach((w) => w.realmBiomes?.forEach((rb) => realmBiomes.add(rb)));
   return Array.from(realmBiomes);
 }

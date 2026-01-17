@@ -1,11 +1,6 @@
 // Inventory Screen - View collected resources
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
@@ -18,9 +13,7 @@ interface ResourceItemProps {
 
 function ResourceItem({ stack, type }: ResourceItemProps) {
   const resourceData =
-    type === 'stone'
-      ? STONES_BY_ID[stack.resourceId]
-      : WOODS_BY_ID[stack.resourceId];
+    type === 'stone' ? STONES_BY_ID[stack.resourceId] : WOODS_BY_ID[stack.resourceId];
 
   if (!resourceData) {
     return (
@@ -43,15 +36,9 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
           {resourceData.description}
         </Text>
         <View style={styles.propertiesRow}>
-          <Text style={styles.property}>
-            H:{resourceData.properties.hardness}
-          </Text>
-          <Text style={styles.property}>
-            W:{resourceData.properties.workability}
-          </Text>
-          <Text style={styles.property}>
-            D:{resourceData.properties.durability}
-          </Text>
+          <Text style={styles.property}>H:{resourceData.properties.hardness}</Text>
+          <Text style={styles.property}>W:{resourceData.properties.workability}</Text>
+          <Text style={styles.property}>D:{resourceData.properties.durability}</Text>
         </View>
       </View>
       <Text style={styles.quantity}>x{stack.quantity}</Text>
@@ -62,18 +49,9 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
 export default function InventoryScreen() {
   const { state } = useGameState();
 
-  const totalStones = state.inventory.stones.reduce(
-    (sum, s) => sum + s.quantity,
-    0
-  );
-  const totalWoods = state.inventory.woods.reduce(
-    (sum, s) => sum + s.quantity,
-    0
-  );
-  const totalOres = state.inventory.ores.reduce(
-    (sum, s) => sum + s.quantity,
-    0
-  );
+  const totalStones = state.inventory.stones.reduce((sum, s) => sum + s.quantity, 0);
+  const totalWoods = state.inventory.woods.reduce((sum, s) => sum + s.quantity, 0);
+  const totalOres = state.inventory.ores.reduce((sum, s) => sum + s.quantity, 0);
 
   return (
     <ScrollView style={styles.container}>
@@ -93,14 +71,6 @@ export default function InventoryScreen() {
             <Text style={styles.summaryValue}>{totalOres}</Text>
             <Text style={styles.summaryLabel}>Ores</Text>
           </View>
-        </View>
-        <View style={styles.distanceRow}>
-          <Text style={styles.distanceText}>
-            Total Distance: {(state.totalDistanceWalked / 1000).toFixed(2)} km
-          </Text>
-          <Text style={styles.distanceText}>
-            Zones Discovered: {state.discoveredZones.length}
-          </Text>
         </View>
       </View>
 
@@ -184,16 +154,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
-  },
-  distanceRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 15,
-  },
-  distanceText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
   },
   section: {
     backgroundColor: '#fff',

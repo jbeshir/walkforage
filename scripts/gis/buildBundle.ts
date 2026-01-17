@@ -84,11 +84,39 @@ function normalizeLithology(lith: string): string {
 
   // Direct matches to existing mapping keys (order matters - more specific first)
   const directMatches = [
-    'sandstone', 'siltstone', 'shale', 'mudstone', 'claystone', 'conglomerate', 'breccia',
-    'limestone', 'dolomite', 'dolostone', 'chalk', 'marl', 'chert', 'novaculite',
-    'granite', 'granodiorite', 'diorite', 'gabbro', 'basalt', 'andesite',
-    'rhyolite', 'dacite', 'tuff', 'pumice', 'obsidian', 'ignimbrite',
-    'marble', 'slate', 'phyllite', 'schist', 'gneiss', 'quartzite', 'amphibolite'
+    'sandstone',
+    'siltstone',
+    'shale',
+    'mudstone',
+    'claystone',
+    'conglomerate',
+    'breccia',
+    'limestone',
+    'dolomite',
+    'dolostone',
+    'chalk',
+    'marl',
+    'chert',
+    'novaculite',
+    'granite',
+    'granodiorite',
+    'diorite',
+    'gabbro',
+    'basalt',
+    'andesite',
+    'rhyolite',
+    'dacite',
+    'tuff',
+    'pumice',
+    'obsidian',
+    'ignimbrite',
+    'marble',
+    'slate',
+    'phyllite',
+    'schist',
+    'gneiss',
+    'quartzite',
+    'amphibolite',
   ];
 
   // Check for direct rock type matches
@@ -102,7 +130,8 @@ function normalizeLithology(lith: string): string {
   if (lower.includes('volcanic') && lower.includes('intermediate')) return 'andesite';
   if (lower.includes('mafic volcanic') || lower.includes('mafic-volcanic')) return 'basalt';
   if (lower.includes('felsic volcanic') || lower.includes('felsic-volcanic')) return 'rhyolite';
-  if (lower.includes('intermediate volcanic') || lower.includes('intermediate-volcanic')) return 'andesite';
+  if (lower.includes('intermediate volcanic') || lower.includes('intermediate-volcanic'))
+    return 'andesite';
   if (lower.includes('flood basalt')) return 'basalt';
   if (lower.includes('basalt group')) return 'basalt';
   if (lower.includes('plutonic') && lower.includes('granit')) return 'granite';
@@ -111,10 +140,12 @@ function normalizeLithology(lith: string): string {
   if (lower.includes('sedimentary') && lower.includes('volcanic')) return 'tuff';
   if (lower.includes('volcaniclastic')) return 'tuff';
   if (lower.includes('alluvium') || lower.includes('alluvial')) return 'conglomerate';
-  if (lower.includes('glacial') || lower.includes('drift') || lower.includes('till')) return 'conglomerate';
+  if (lower.includes('glacial') || lower.includes('drift') || lower.includes('till'))
+    return 'conglomerate';
   if (lower.includes('sand') && !lower.includes('sandstone')) return 'sandstone';
   if (lower.includes('clay') && !lower.includes('claystone')) return 'clay';
-  if (lower.includes('iron') || lower.includes('hematite') || lower.includes('magnetite')) return 'iron_formation';
+  if (lower.includes('iron') || lower.includes('hematite') || lower.includes('magnetite'))
+    return 'iron_formation';
   if (lower.includes('sedimentary')) return 'mixed_sedimentary';
   if (lower.includes('metamorphic')) return 'mixed_metamorphic';
   if (lower.includes('igneous')) return 'mixed_igneous';
@@ -251,7 +282,9 @@ function buildCoarseBiomeIndex(records: BiomeRecord[]): Record<string, BiomeInde
 /**
  * Build detailed geology tiles (precision 4)
  */
-function buildGeologyTiles(records: GeologyRecord[]): Map<string, Record<string, GeoTile['geology']>> {
+function buildGeologyTiles(
+  records: GeologyRecord[]
+): Map<string, Record<string, GeoTile['geology']>> {
   const tiles = new Map<string, Record<string, GeoTile['geology']>>();
 
   // Group by precision-3 prefix for file organization
@@ -519,8 +552,4 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-export {
-  buildCoarseGeologyIndex,
-  buildCoarseBiomeIndex,
-  buildCombinedTiles,
-};
+export { buildCoarseGeologyIndex, buildCoarseBiomeIndex, buildCombinedTiles };

@@ -29,9 +29,9 @@ function validateRecipes(): ValidationResult {
     info: [],
   };
 
-  const allToolIds = new Set(TOOLS.map(t => t.id));
-  const allComponentIds = new Set(COMPONENTS.map(c => c.id));
-  const allTechIds = new Set(TECHNOLOGIES.map(t => t.id));
+  const allToolIds = new Set(TOOLS.map((t) => t.id));
+  const allComponentIds = new Set(COMPONENTS.map((c) => c.id));
+  const allTechIds = new Set(TECHNOLOGIES.map((t) => t.id));
 
   // Track usage
   const toolsUsedAsPrereq = new Set<string>();
@@ -58,7 +58,9 @@ function validateRecipes(): ValidationResult {
     // Check required components exist
     for (const comp of tool.requiredComponents) {
       if (!allComponentIds.has(comp.componentId)) {
-        result.errors.push(`Tool "${tool.id}" requires non-existent component "${comp.componentId}"`);
+        result.errors.push(
+          `Tool "${tool.id}" requires non-existent component "${comp.componentId}"`
+        );
       } else {
         componentsUsed.add(comp.componentId);
       }
@@ -76,7 +78,9 @@ function validateRecipes(): ValidationResult {
     if (tool.upgradesTo) {
       const upgradedTool = TOOLS_BY_ID[tool.upgradesTo];
       if (upgradedTool && upgradedTool.upgradesFrom !== tool.id) {
-        result.warnings.push(`Tool "${tool.id}" upgradesTo "${tool.upgradesTo}" but that tool's upgradesFrom is "${upgradedTool.upgradesFrom}"`);
+        result.warnings.push(
+          `Tool "${tool.id}" upgradesTo "${tool.upgradesTo}" but that tool's upgradesFrom is "${upgradedTool.upgradesFrom}"`
+        );
       }
     }
   }
@@ -85,7 +89,9 @@ function validateRecipes(): ValidationResult {
   for (const comp of COMPONENTS) {
     // Check requiredTech exists
     if (!allTechIds.has(comp.requiredTech)) {
-      result.errors.push(`Component "${comp.id}" requires non-existent tech "${comp.requiredTech}"`);
+      result.errors.push(
+        `Component "${comp.id}" requires non-existent tech "${comp.requiredTech}"`
+      );
     }
 
     // Check required tools exist
@@ -108,10 +114,17 @@ function validateRecipes(): ValidationResult {
       } else {
         // Could be a non-tool recipe (like 'charcoal', 'clay_pot', etc.)
         // Only warn if it looks like it should be a tool/component
-        if (recipeId.includes('_hammer') || recipeId.includes('_axe') ||
-            recipeId.includes('_chisel') || recipeId.includes('_handle') ||
-            recipeId.includes('_head') || recipeId.includes('_binding')) {
-          result.warnings.push(`Tech "${tech.id}" enables recipe "${recipeId}" which doesn't exist as tool or component`);
+        if (
+          recipeId.includes('_hammer') ||
+          recipeId.includes('_axe') ||
+          recipeId.includes('_chisel') ||
+          recipeId.includes('_handle') ||
+          recipeId.includes('_head') ||
+          recipeId.includes('_binding')
+        ) {
+          result.warnings.push(
+            `Tech "${tech.id}" enables recipe "${recipeId}" which doesn't exist as tool or component`
+          );
         }
       }
     }
@@ -127,7 +140,9 @@ function validateRecipes(): ValidationResult {
     const hasMechanicalEffect = hasSpecialAbilities || enablesCrafting || enablesGathering;
 
     if (!isUsedAsPrereq && !hasMechanicalEffect) {
-      result.warnings.push(`Tool "${tool.id}" is never used as a prerequisite and has no special abilities or enables`);
+      result.warnings.push(
+        `Tool "${tool.id}" is never used as a prerequisite and has no special abilities or enables`
+      );
     }
 
     if (!isInTechTree) {
@@ -152,7 +167,7 @@ function validateRecipes(): ValidationResult {
   // ========== 6. Check for Circular Dependencies ==========
   for (const tool of TOOLS) {
     const visited = new Set<string>();
-    const queue = tool.requiredTools.map(r => r.toolId);
+    const queue = tool.requiredTools.map((r) => r.toolId);
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -165,21 +180,20 @@ function validateRecipes(): ValidationResult {
 
       const dep = TOOLS_BY_ID[current];
       if (dep) {
-        queue.push(...dep.requiredTools.map(r => r.toolId));
+        queue.push(...dep.requiredTools.map((r) => r.toolId));
       }
     }
   }
 
   // ========== 7. Check Starting Tools ==========
-  const startingTools = TOOLS.filter(t =>
-    t.requiredTools.length === 0 &&
-    t.requiredComponents.length === 0
+  const startingTools = TOOLS.filter(
+    (t) => t.requiredTools.length === 0 && t.requiredComponents.length === 0
   );
 
   if (startingTools.length === 0) {
     result.errors.push('No starting tools found! Players cannot craft anything.');
   } else {
-    result.info.push(`Starting tools (no prereqs): ${startingTools.map(t => t.id).join(', ')}`);
+    result.info.push(`Starting tools (no prereqs): ${startingTools.map((t) => t.id).join(', ')}`);
   }
 
   // ========== 8. Summary Statistics ==========
@@ -195,7 +209,11 @@ function validateRecipes(): ValidationResult {
   for (const tool of TOOLS) {
     tierCounts[tool.tier] = (tierCounts[tool.tier] || 0) + 1;
   }
-  result.info.push(`Tool tier distribution: ${Object.entries(tierCounts).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+  result.info.push(
+    `Tool tier distribution: ${Object.entries(tierCounts)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ')}`
+  );
 
   return result;
 }

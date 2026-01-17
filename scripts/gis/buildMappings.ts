@@ -104,10 +104,7 @@ function loadGeologyData(): GeologyRecord[] | null {
  * Normalize lithology name for matching
  */
 function normalizeLithology(lith: string): string {
-  return lith.toLowerCase()
-    .replace(/[_-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return lith.toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -152,8 +149,7 @@ function analyzeGeologyData(records: GeologyRecord[]) {
   }
 
   // Sort by frequency
-  const sortedLiths = Object.entries(lithCounts)
-    .sort((a, b) => b[1] - a[1]);
+  const sortedLiths = Object.entries(lithCounts).sort((a, b) => b[1] - a[1]);
 
   console.log(`\nTop 20 lithologies (${sortedLiths.length} total):`);
   for (const [lith, count] of sortedLiths.slice(0, 20)) {
@@ -175,7 +171,9 @@ function analyzeGeologyData(records: GeologyRecord[]) {
 /**
  * Generate updated lithology mapping file
  */
-function generateLithologyMappings(lithCounts: Record<string, number>): Record<string, LithologyMapping> {
+function generateLithologyMappings(
+  lithCounts: Record<string, number>
+): Record<string, LithologyMapping> {
   const mappings: Record<string, LithologyMapping> = {};
 
   for (const lith of Object.keys(lithCounts)) {

@@ -4,31 +4,36 @@
 // Biomes: Resolve Ecoregions 2017 (14 biomes)
 
 // Stone categories aligned with Macrostrat lithology classes
-export type StoneCategory = 'sedimentary' | 'igneous_plutonic' | 'igneous_volcanic' | 'metamorphic' | 'ore';
+export type StoneCategory =
+  | 'sedimentary'
+  | 'igneous_plutonic'
+  | 'igneous_volcanic'
+  | 'metamorphic'
+  | 'ore';
 export type WoodCategory = 'softwood' | 'hardwood' | 'tropical' | 'fruit';
 
 // Resolve Ecoregions 2017 biome codes
 export type BiomeCode =
-  | 'tropical_moist_broadleaf'    // 1: Tropical & Subtropical Moist Broadleaf Forests
-  | 'tropical_dry_broadleaf'      // 2: Tropical & Subtropical Dry Broadleaf Forests
-  | 'tropical_conifer'            // 3: Tropical & Subtropical Coniferous Forests
-  | 'temperate_broadleaf_mixed'   // 4: Temperate Broadleaf & Mixed Forests
-  | 'temperate_conifer'           // 5: Temperate Conifer Forests
-  | 'boreal'                      // 6: Boreal Forests/Taiga
-  | 'tropical_grassland'          // 7: Tropical & Subtropical Grasslands/Savannas
-  | 'temperate_grassland'         // 8: Temperate Grasslands/Savannas
-  | 'flooded_grassland'           // 9: Flooded Grasslands & Savannas
-  | 'montane'                     // 10: Montane Grasslands & Shrublands
-  | 'tundra'                      // 11: Tundra
-  | 'mediterranean'               // 12: Mediterranean Forests, Woodlands & Scrub
-  | 'desert'                      // 13: Deserts & Xeric Shrublands
-  | 'mangrove';                   // 14: Mangroves
+  | 'tropical_moist_broadleaf' // 1: Tropical & Subtropical Moist Broadleaf Forests
+  | 'tropical_dry_broadleaf' // 2: Tropical & Subtropical Dry Broadleaf Forests
+  | 'tropical_conifer' // 3: Tropical & Subtropical Coniferous Forests
+  | 'temperate_broadleaf_mixed' // 4: Temperate Broadleaf & Mixed Forests
+  | 'temperate_conifer' // 5: Temperate Conifer Forests
+  | 'boreal' // 6: Boreal Forests/Taiga
+  | 'tropical_grassland' // 7: Tropical & Subtropical Grasslands/Savannas
+  | 'temperate_grassland' // 8: Temperate Grasslands/Savannas
+  | 'flooded_grassland' // 9: Flooded Grasslands & Savannas
+  | 'montane' // 10: Montane Grasslands & Shrublands
+  | 'tundra' // 11: Tundra
+  | 'mediterranean' // 12: Mediterranean Forests, Woodlands & Scrub
+  | 'desert' // 13: Deserts & Xeric Shrublands
+  | 'mangrove'; // 14: Mangroves
 
 export interface ResourceProperties {
-  hardness: number;      // 1-10 scale (Mohs-inspired)
-  workability: number;   // 1-10 scale (ease of working)
-  durability: number;    // 1-10 scale
-  rarity: number;        // 0-1 probability weight
+  hardness: number; // 1-10 scale (Mohs-inspired)
+  workability: number; // 1-10 scale (ease of working)
+  durability: number; // 1-10 scale
+  rarity: number; // 0-1 probability weight
 }
 
 export interface StoneType {
@@ -37,21 +42,21 @@ export interface StoneType {
   category: StoneCategory;
   description: string;
   properties: ResourceProperties;
-  lithologies: string[];   // Macrostrat lithology names this stone maps to
-  isToolstone?: boolean;   // Can be knapped for tools (flint, chert, obsidian, etc.)
-  color: string;           // Display color
+  lithologies: string[]; // Macrostrat lithology names this stone maps to
+  isToolstone?: boolean; // Can be knapped for tools (flint, chert, obsidian, etc.)
+  color: string; // Display color
 }
 
 export interface WoodType {
   id: string;
   name: string;
-  scientificName?: string;         // Latin/botanical name
+  scientificName?: string; // Latin/botanical name
   category: WoodCategory;
   description: string;
   properties: ResourceProperties;
-  biomes: BiomeCode[];             // Resolve Ecoregions 2017 biome codes (fallback)
-  realmBiomes?: string[];          // Realm+biome codes (e.g., ["PA04", "PA05"])
-  nativeRealms?: string[];         // Biogeographic realms (e.g., ["Palearctic"])
+  biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
+  realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])
+  nativeRealms?: string[]; // Biogeographic realms (e.g., ["Palearctic"])
   color: string;
 }
 
@@ -73,17 +78,17 @@ export interface GeologicalZone {
   centerLat: number;
   centerLng: number;
   radiusMeters: number;
-  primaryStone: string;      // Most common stone type
+  primaryStone: string; // Most common stone type
   secondaryStones: string[]; // Other available stones
-  oreDeposits: string[];     // Available ores
-  biome: string;             // Vegetation biome
-  woodTypes: string[];       // Available wood types
+  oreDeposits: string[]; // Available ores
+  biome: string; // Vegetation biome
+  woodTypes: string[]; // Available wood types
 }
 
 // Player location and exploration state
 export interface ExplorationState {
   currentZone: GeologicalZone | null;
   discoveredZones: string[];
-  totalDistanceWalked: number;  // meters
+  totalDistanceWalked: number; // meters
   explorationPoints: number;
 }

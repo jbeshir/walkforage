@@ -25,11 +25,11 @@ export interface GeohashBounds {
  * Geological data for a geohash tile
  */
 export interface GeologyData {
-  primaryLithology: string;        // Most common lithology (e.g., "sandstone", "granite")
-  secondaryLithologies: string[];  // Other lithologies present
-  lithClass?: string;              // Macrostrat lith_class (sedimentary, igneous, metamorphic)
-  age?: string;                    // Geological age/period
-  confidence: number;              // 0-1 data quality score
+  primaryLithology: string; // Most common lithology (e.g., "sandstone", "granite")
+  secondaryLithologies: string[]; // Other lithologies present
+  lithClass?: string; // Macrostrat lith_class (sedimentary, igneous, metamorphic)
+  age?: string; // Geological age/period
+  confidence: number; // 0-1 data quality score
 }
 
 /**
@@ -44,18 +44,17 @@ export interface CoarseGeologyEntry {
  * Biome data for a geohash tile
  */
 export interface BiomeData {
-  type: BiomeCode;                 // Primary biome type
-  ecoregionId?: number;            // Resolve Ecoregions 2017 ID (1-847)
-  realmBiome?: string;             // Realm+biome code (e.g., "PA04", "NT01")
-  realm?: string;                  // Biogeographic realm (e.g., "Palearctic")
-  confidence: number;              // 0-1 data quality score
+  type: BiomeCode; // Primary biome type
+  ecoregionId?: number; // Resolve Ecoregions 2017 ID (1-847)
+  realm?: string; // Biogeographic realm (e.g., "Palearctic")
+  confidence: number; // 0-1 data quality score
 }
 
 /**
  * Pre-processed tile containing geology and biome data
  */
 export interface GeoTile {
-  geohash: string;                 // e.g., "u4pr" (precision 4)
+  geohash: string; // e.g., "u4pr" (precision 4)
   geology: GeologyData;
   biome: BiomeData;
 }
@@ -65,8 +64,8 @@ export interface GeoTile {
  */
 export interface GeoIndex {
   precision: GeohashPrecision;
-  lastUpdated: string;             // ISO date string
-  tiles: Record<string, GeoTile>;  // geohash -> tile data
+  lastUpdated: string; // ISO date string
+  tiles: Record<string, GeoTile>; // geohash -> tile data
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -86,13 +85,12 @@ export interface LocationGeoData {
   };
   biome: {
     type: BiomeCode;
-    ecoregionId?: number;          // Resolve Ecoregions 2017 ID (1-847)
-    realmBiome?: string;           // Realm+biome code (e.g., "PA04", "NT01")
-    realm?: string;                // Biogeographic realm (e.g., "Palearctic")
+    ecoregionId?: number; // Resolve Ecoregions 2017 ID (1-847)
+    realm?: string; // Biogeographic realm (e.g., "Palearctic")
     confidence: number;
   };
   dataSource: DataSource;
-  geohash?: string;                // The geohash used for lookup
+  geohash?: string; // The geohash used for lookup
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -103,9 +101,9 @@ export interface LocationGeoData {
  * Maps a Macrostrat lithology to game stone types
  */
 export interface LithologyMapping {
-  lithology: string;               // Macrostrat lithology name
-  stoneIds: string[];              // Game stone IDs that can spawn
-  weights: number[];               // Spawn probability weights (should sum to 1)
+  lithology: string; // Macrostrat lithology name
+  stoneIds: string[]; // Game stone IDs that can spawn
+  weights: number[]; // Spawn probability weights (should sum to 1)
 }
 
 /**
@@ -113,11 +111,11 @@ export interface LithologyMapping {
  * Uses realm+biome codes (e.g., "PA04") for continent-specific trees
  */
 export interface RealmBiomeMapping {
-  realmBiome: string;              // e.g., "PA04", "NT01"
-  realm: string;                   // e.g., "Palearctic", "Neotropic"
-  biome: BiomeCode;                // The biome type
-  woodIds: string[];               // Game wood IDs that can spawn
-  weights: number[];               // Spawn probability weights (should sum to 1)
+  realmBiome: string; // e.g., "PA04", "NT01"
+  realm: string; // e.g., "Palearctic", "Neotropic"
+  biome: BiomeCode; // The biome type
+  woodIds: string[]; // Game wood IDs that can spawn
+  weights: number[]; // Spawn probability weights (should sum to 1)
 }
 
 /**
@@ -136,11 +134,11 @@ export interface GeoMappings {
  * Configuration for resource spawning
  */
 export interface SpawnConfig {
-  stoneRatio: number;              // 0-1, probability of spawning stone vs wood
-  countMin: number;                // Minimum resources to spawn per zone
-  countMax: number;                // Maximum resources to spawn per zone
-  useRarity: boolean;              // Whether to factor in resource rarity
-  useGeoData: boolean;             // Whether to use GIS data (false = random)
+  stoneRatio: number; // 0-1, probability of spawning stone vs wood
+  countMin: number; // Minimum resources to spawn per zone
+  countMax: number; // Maximum resources to spawn per zone
+  useRarity: boolean; // Whether to factor in resource rarity
+  useGeoData: boolean; // Whether to use GIS data (false = random)
 }
 
 /**
@@ -166,12 +164,12 @@ export interface MacrostratMapResponse {
 }
 
 export interface MacrostratUnit {
-  lith: string;                    // Lithology name
-  lith_type: string;               // Rock subtype
-  lith_class: string;              // Primary class (sedimentary/igneous/metamorphic)
-  lith_id: number;                 // Macrostrat lithology ID
-  age: string;                     // Geological age
-  strat_name?: string;             // Stratigraphic unit name
+  lith: string; // Lithology name
+  lith_type: string; // Rock subtype
+  lith_class: string; // Primary class (sedimentary/igneous/metamorphic)
+  lith_id: number; // Macrostrat lithology ID
+  age: string; // Geological age
+  strat_name?: string; // Stratigraphic unit name
 }
 
 /**

@@ -33,8 +33,17 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Run tests
         run: npm run test
 
       - name: Validate recipes
         run: npm run validate:recipes
+
+      - name: Run Expo doctor
+        run: npm run doctor
+
+      - name: Check dependency versions
+        run: npm run deps:check

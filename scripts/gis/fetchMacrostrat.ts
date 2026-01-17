@@ -16,8 +16,10 @@ import * as path from 'path';
 const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
 
 function encodeGeohash(lat: number, lng: number, precision: number = 6): string {
-  let latMin = -90, latMax = 90;
-  let lngMin = -180, lngMax = 180;
+  let latMin = -90,
+    latMax = 90;
+  let lngMin = -180,
+    lngMax = 180;
   let hash = '';
   let isEven = true;
   let bit = 0;
@@ -27,7 +29,7 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
     if (isEven) {
       const lngMid = (lngMin + lngMax) / 2;
       if (lng >= lngMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         lngMin = lngMid;
       } else {
         lngMax = lngMid;
@@ -35,7 +37,7 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
     } else {
       const latMid = (latMin + latMax) / 2;
       if (lat >= latMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         latMin = latMid;
       } else {
         latMax = latMid;
@@ -56,8 +58,10 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
 }
 
 function decodeGeohash(hash: string): { lat: number; lng: number } {
-  let latMin = -90, latMax = 90;
-  let lngMin = -180, lngMax = 180;
+  let latMin = -90,
+    latMax = 90;
+  let lngMin = -180,
+    lngMax = 180;
   let isEven = true;
 
   for (const char of hash) {
@@ -123,7 +127,7 @@ interface GeologyRecord {
 
 // Rate limiting
 const RATE_LIMIT_MS = 100; // 10 requests per second
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Query Macrostrat API for a specific location
@@ -138,7 +142,7 @@ async function queryMacrostrat(lat: number, lng: number): Promise<string[]> {
       return [];
     }
 
-    const data = await response.json() as MacrostratResponse;
+    const data = (await response.json()) as MacrostratResponse;
 
     if (!data.success?.data || !Array.isArray(data.success.data)) {
       return [];
@@ -149,15 +153,23 @@ async function queryMacrostrat(lat: number, lng: number): Promise<string[]> {
     for (const unit of data.success.data) {
       if (unit.lith && unit.lith.trim()) {
         // Macrostrat returns lithology as a string (may be semicolon-separated)
-        const liths = unit.lith.split(';').map(l => l.trim().toLowerCase()).filter(l => l);
+        const liths = unit.lith
+          .split(';')
+          .map((l) => l.trim().toLowerCase())
+          .filter((l) => l);
         lithologies.push(...liths);
       }
       // Also check the name field for rock type hints
       if (unit.name && !unit.lith) {
         const nameLower = unit.name.toLowerCase();
-        if (nameLower.includes('granite') || nameLower.includes('limestone') ||
-            nameLower.includes('sandstone') || nameLower.includes('shale') ||
-            nameLower.includes('basalt') || nameLower.includes('sedimentary')) {
+        if (
+          nameLower.includes('granite') ||
+          nameLower.includes('limestone') ||
+          nameLower.includes('sandstone') ||
+          nameLower.includes('shale') ||
+          nameLower.includes('basalt') ||
+          nameLower.includes('sedimentary')
+        ) {
           lithologies.push(nameLower);
         }
       }
@@ -288,15 +300,22 @@ async function main() {
 
   // Save raw data
   const outputPath = path.join(outputDir, 'macrostrat_raw.json');
-  fs.writeFileSync(outputPath, JSON.stringify({
-    _meta: {
-      source: 'Macrostrat API',
-      fetchedAt: new Date().toISOString(),
-      precision,
-      totalRecords: allRecords.length,
-    },
-    records: allRecords,
-  }, null, 2));
+  fs.writeFileSync(
+    outputPath,
+    JSON.stringify(
+      {
+        _meta: {
+          source: 'Macrostrat API',
+          fetchedAt: new Date().toISOString(),
+          precision,
+          totalRecords: allRecords.length,
+        },
+        records: allRecords,
+      },
+      null,
+      2
+    )
+  );
 
   console.log(`\nSaved ${allRecords.length} records to ${outputPath}`);
 

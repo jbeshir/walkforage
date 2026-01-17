@@ -1,12 +1,7 @@
 // Tool and Component Definitions for WalkForage
 // Realistic tool hierarchy with tool-to-tool prerequisites
 
-import {
-  Tool,
-  CraftedComponent,
-  MaterialTier,
-  ToolCategory,
-} from '../types/tools';
+import { Tool, CraftedComponent, MaterialTier, ToolCategory } from '../types/tools';
 
 // ===== COMPONENTS (17 total) =====
 
@@ -518,11 +513,10 @@ export const TOOLS: Tool[] = [
     category: 'fire',
     tier: 'primitive',
     era: 'stone',
-    description: 'A simple spindle and fireboard. Spin between your palms to create friction and ember.',
+    description:
+      'A simple spindle and fireboard. Spin between your palms to create friction and ember.',
     requiredTech: 'fire_making',
-    requiredTools: [
-      { toolId: 'stone_knife', minTier: 'stone', consumesDurability: 3 },
-    ],
+    requiredTools: [{ toolId: 'stone_knife', minTier: 'stone', consumesDurability: 3 }],
     requiredComponents: [],
     materials: [
       { resourceId: 'willow', quantity: 1 },
@@ -553,7 +547,8 @@ export const TOOLS: Tool[] = [
     category: 'fire',
     tier: 'stone',
     era: 'stone',
-    description: 'A bow-driven spindle for reliable fire starting. The bow provides consistent rotation speed.',
+    description:
+      'A bow-driven spindle for reliable fire starting. The bow provides consistent rotation speed.',
     requiredTech: 'fire_making',
     requiredTools: [
       { toolId: 'stone_knife', minTier: 'stone', consumesDurability: 5 },
@@ -1178,11 +1173,10 @@ export const TOOLS: Tool[] = [
     category: 'fire',
     tier: 'iron',
     era: 'iron',
-    description: 'Strike a steel striker against flint to create sparks. Fast and reliable in any weather.',
+    description:
+      'Strike a steel striker against flint to create sparks. Fast and reliable in any weather.',
     requiredTech: 'iron_tools',
-    requiredTools: [
-      { toolId: 'iron_hammer', minTier: 'iron', consumesDurability: 5 },
-    ],
+    requiredTools: [{ toolId: 'iron_hammer', minTier: 'iron', consumesDurability: 5 }],
     requiredComponents: [],
     materials: [
       { resourceId: 'iron_bar', quantity: 1 },
@@ -1679,13 +1673,12 @@ export const TOOLS: Tool[] = [
 
 // ===== HELPER FUNCTIONS =====
 
-export const TOOLS_BY_ID = Object.fromEntries(
-  TOOLS.map(t => [t.id, t])
-) as Record<string, Tool>;
+export const TOOLS_BY_ID = Object.fromEntries(TOOLS.map((t) => [t.id, t])) as Record<string, Tool>;
 
-export const COMPONENTS_BY_ID = Object.fromEntries(
-  COMPONENTS.map(c => [c.id, c])
-) as Record<string, CraftedComponent>;
+export const COMPONENTS_BY_ID = Object.fromEntries(COMPONENTS.map((c) => [c.id, c])) as Record<
+  string,
+  CraftedComponent
+>;
 
 export function getToolById(toolId: string): Tool | undefined {
   return TOOLS_BY_ID[toolId];
@@ -1696,17 +1689,17 @@ export function getComponentById(componentId: string): CraftedComponent | undefi
 }
 
 export function getToolsByTier(tier: MaterialTier): Tool[] {
-  return TOOLS.filter(t => t.tier === tier);
+  return TOOLS.filter((t) => t.tier === tier);
 }
 
 export function getToolsByCategory(category: ToolCategory): Tool[] {
-  return TOOLS.filter(t => t.category === category);
+  return TOOLS.filter((t) => t.category === category);
 }
 
 export function getToolPrerequisites(toolId: string): string[] {
   const tool = TOOLS_BY_ID[toolId];
   if (!tool) return [];
-  return tool.requiredTools.map(rt => rt.toolId);
+  return tool.requiredTools.map((rt) => rt.toolId);
 }
 
 export function getToolChain(toolId: string): Tool[] {
