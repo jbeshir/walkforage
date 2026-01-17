@@ -43,7 +43,14 @@
   "PA04": {
     "realm": "Palearctic",
     "biome": "temperate_broadleaf_mixed",
-    "woodIds": ["european_oak", "european_beech", "silver_birch", "european_ash", "willow", "poplar"],
+    "woodIds": [
+      "european_oak",
+      "european_beech",
+      "silver_birch",
+      "european_ash",
+      "willow",
+      "poplar"
+    ],
     "weights": [0.25, 0.2, 0.2, 0.15, 0.1, 0.1]
   },
   "PA05": {
@@ -121,13 +128,27 @@
   "NE04": {
     "realm": "Nearctic",
     "biome": "temperate_broadleaf_mixed",
-    "woodIds": ["american_oak", "sugar_maple", "american_hickory", "american_beech", "black_walnut", "paper_birch", "eastern_white_pine"],
+    "woodIds": [
+      "american_oak",
+      "sugar_maple",
+      "american_hickory",
+      "american_beech",
+      "black_walnut",
+      "paper_birch",
+      "eastern_white_pine"
+    ],
     "weights": [0.2, 0.2, 0.15, 0.15, 0.1, 0.1, 0.1]
   },
   "NE05": {
     "realm": "Nearctic",
     "biome": "temperate_conifer",
-    "woodIds": ["douglas_fir", "western_red_cedar", "coast_redwood", "eastern_white_pine", "balsam_fir"],
+    "woodIds": [
+      "douglas_fir",
+      "western_red_cedar",
+      "coast_redwood",
+      "eastern_white_pine",
+      "balsam_fir"
+    ],
     "weights": [0.25, 0.25, 0.2, 0.15, 0.15]
   },
   "NE06": {
@@ -181,7 +202,15 @@
   "NO01": {
     "realm": "Neotropic",
     "biome": "tropical_moist_broadleaf",
-    "woodIds": ["mahogany", "brazil_nut", "ceiba", "balsa", "brazilian_rosewood", "rubber_tree", "guadua_bamboo"],
+    "woodIds": [
+      "mahogany",
+      "brazil_nut",
+      "ceiba",
+      "balsa",
+      "brazilian_rosewood",
+      "rubber_tree",
+      "guadua_bamboo"
+    ],
     "weights": [0.2, 0.15, 0.15, 0.15, 0.1, 0.15, 0.1]
   },
   "NO02": {
@@ -295,7 +324,15 @@
   "IN01": {
     "realm": "Indomalayan",
     "biome": "tropical_moist_broadleaf",
-    "woodIds": ["teak", "sal", "dipterocarp", "asian_bamboo", "banyan", "coconut_palm", "burmese_teak"],
+    "woodIds": [
+      "teak",
+      "sal",
+      "dipterocarp",
+      "asian_bamboo",
+      "banyan",
+      "coconut_palm",
+      "burmese_teak"
+    ],
     "weights": [0.2, 0.15, 0.2, 0.15, 0.1, 0.1, 0.1]
   },
   "IN02": {

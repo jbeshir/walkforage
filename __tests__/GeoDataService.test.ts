@@ -82,16 +82,6 @@ describe('GeoDataService', () => {
       expect(typeof data.biome.type).toBe('string');
     });
 
-    it('should include realmBiome when available', async () => {
-      // Paris - likely PA04 (Palearctic Temperate Broadleaf)
-      const data = await geoDataService.getLocationData(48.8566, 2.3522);
-
-      // If realmBiome is present, it should follow the expected format
-      if (data.biome.realmBiome) {
-        expect(data.biome.realmBiome).toMatch(/^[A-Z]{2}\d{2}$/);
-      }
-    });
-
     it('should include realm name when available', async () => {
       const data = await geoDataService.getLocationData(48.8566, 2.3522);
 
@@ -130,12 +120,10 @@ describe('GeoDataService', () => {
       expect(europe.biome.type).toBeDefined();
       expect(northAmerica.biome.type).toBeDefined();
 
-      // If both have realmBiome, they should have different realm prefixes
-      if (europe.biome.realmBiome && northAmerica.biome.realmBiome) {
-        const europeRealm = europe.biome.realmBiome.substring(0, 2);
-        const naRealm = northAmerica.biome.realmBiome.substring(0, 2);
-        // PA (Palearctic) vs NE (Nearctic)
-        expect(europeRealm).not.toBe(naRealm);
+      // If both have realm, they should be different
+      if (europe.biome.realm && northAmerica.biome.realm) {
+        // Palearctic vs Nearctic
+        expect(europe.biome.realm).not.toBe(northAmerica.biome.realm);
       }
     });
   });
@@ -183,7 +171,6 @@ describe('GeoDataService', () => {
       const data1 = await geoDataService.getLocationData(48.8566, 2.3522);
       const data2 = await geoDataService.getLocationData(48.8566, 2.3522);
 
-      expect(data1.biome.realmBiome).toBe(data2.biome.realmBiome);
       expect(data1.biome.realm).toBe(data2.biome.realm);
       expect(data1.biome.ecoregionId).toBe(data2.biome.ecoregionId);
     });
@@ -191,13 +178,13 @@ describe('GeoDataService', () => {
 
   describe('global coverage', () => {
     const testLocations = [
-      { name: 'New York (Nearctic)', lat: 40.7128, lng: -74.006, expectedRealm: 'NE' },
-      { name: 'London (Palearctic)', lat: 51.5074, lng: -0.1278, expectedRealm: 'PA' },
-      { name: 'Tokyo (Palearctic)', lat: 35.6762, lng: 139.6503, expectedRealm: 'PA' },
-      { name: 'Sydney (Australasia)', lat: -33.8688, lng: 151.2093, expectedRealm: 'AU' },
-      { name: 'Amazon (Neotropic)', lat: -3.4653, lng: -62.2159, expectedRealm: 'NO' },
-      { name: 'Nairobi (Afrotropic)', lat: -1.2921, lng: 36.8219, expectedRealm: 'AF' },
-      { name: 'Mumbai (Indomalayan)', lat: 19.076, lng: 72.8777, expectedRealm: 'IN' },
+      { name: 'New York (Nearctic)', lat: 40.7128, lng: -74.006, expectedRealm: 'Nearctic' },
+      { name: 'London (Palearctic)', lat: 51.5074, lng: -0.1278, expectedRealm: 'Palearctic' },
+      { name: 'Tokyo (Palearctic)', lat: 35.6762, lng: 139.6503, expectedRealm: 'Palearctic' },
+      { name: 'Sydney (Australasia)', lat: -33.8688, lng: 151.2093, expectedRealm: 'Australasia' },
+      { name: 'Amazon (Neotropic)', lat: -3.4653, lng: -62.2159, expectedRealm: 'Neotropic' },
+      { name: 'Nairobi (Afrotropic)', lat: -1.2921, lng: 36.8219, expectedRealm: 'Afrotropic' },
+      { name: 'Mumbai (Indomalayan)', lat: 19.076, lng: 72.8777, expectedRealm: 'Indomalayan' },
     ];
 
     it.each(testLocations)(
@@ -209,9 +196,9 @@ describe('GeoDataService', () => {
         expect(data.biome.type).toBeDefined();
         expect(data.geology.primaryLithology).toBeDefined();
 
-        // If realmBiome is available, check it matches expected realm
-        if (data.biome.realmBiome) {
-          expect(data.biome.realmBiome.substring(0, 2)).toBe(expectedRealm);
+        // If realm is available, check it matches expected realm
+        if (data.biome.realm) {
+          expect(data.biome.realm).toBe(expectedRealm);
         }
       }
     );

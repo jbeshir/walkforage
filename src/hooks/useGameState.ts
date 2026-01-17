@@ -1,7 +1,15 @@
 // Game state management hook for WalkForage
 // Handles inventory, tech progress, and village state
+// Uses React Context to share state across all components
 
-import { useState, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+  createContext,
+  ReactNode,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Inventory, ResourceStack } from '../types/resources';
 import { TechProgress } from '../types/tech';
@@ -41,6 +49,17 @@ function getResourceCategory(resourceId: string): keyof Inventory {
 
 const STORAGE_KEY = 'walkforage_gamestate';
 
+export interface StepGatheringState {
+  /** Steps available for gathering */
+  availableSteps: number;
+  /** Timestamp of last step sync from health service */
+  lastSyncTimestamp: number;
+  /** Timestamp of last gather action */
+  lastGatherTimestamp: number;
+  /** Total steps ever used for gathering */
+  totalStepsGathered: number;
+}
+
 export interface GameState {
   inventory: Inventory;
   techProgress: TechProgress;
@@ -48,9 +67,8 @@ export interface GameState {
   craftingQueue: CraftingJob[];
   village: Village;
   explorationPoints: number;
-  totalDistanceWalked: number;
-  discoveredZones: string[];
   lastSaveTime: number;
+  stepGathering: StepGatheringState;
 }
 
 const INITIAL_STATE: GameState = {
@@ -78,9 +96,13 @@ const INITIAL_STATE: GameState = {
     gridSize: { width: 10, height: 10 },
   },
   explorationPoints: 0,
-  totalDistanceWalked: 0,
-  discoveredZones: [],
   lastSaveTime: Date.now(),
+  stepGathering: {
+    availableSteps: 0,
+    lastSyncTimestamp: 0,
+    lastGatherTimestamp: 0,
+    totalStepsGathered: 0,
+  },
 };
 
 export interface GameStateHook {
@@ -109,8 +131,11 @@ export interface GameStateHook {
 
   // Exploration actions
   addExplorationPoints: (points: number) => void;
-  addDistance: (meters: number) => void;
-  discoverZone: (zoneId: string) => void;
+
+  // Step gathering actions
+  syncSteps: (newSteps: number) => void;
+  spendSteps: (amount: number) => void;
+  getStepGatheringState: () => StepGatheringState;
 
   // Village actions
   placeBuilding: (building: PlacedBuilding) => void;
@@ -122,7 +147,16 @@ export interface GameStateHook {
   resetGame: () => Promise<void>;
 }
 
-export function useGameState(): GameStateHook {
+// Create context with undefined default (will be provided by GameStateProvider)
+const GameStateContext = createContext<GameStateHook | undefined>(undefined);
+
+// Provider component props
+interface GameStateProviderProps {
+  children: ReactNode;
+}
+
+// Provider component that holds the shared state
+export function GameStateProvider({ children }: GameStateProviderProps) {
   const [state, setState] = useState<GameState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -144,6 +178,7 @@ export function useGameState(): GameStateHook {
           },
           craftingQueue: parsed.craftingQueue || INITIAL_STATE.craftingQueue,
           village: { ...INITIAL_STATE.village, ...parsed.village },
+          stepGathering: { ...INITIAL_STATE.stepGathering, ...parsed.stepGathering },
         });
       }
     } catch (error) {
@@ -189,10 +224,7 @@ export function useGameState(): GameStateHook {
   }, [saveGame]);
 
   // Inventory helpers
-  const findResourceIndex = (
-    stacks: ResourceStack[],
-    resourceId: string
-  ): number => {
+  const findResourceIndex = (stacks: ResourceStack[], resourceId: string): number => {
     return stacks.findIndex((s) => s.resourceId === resourceId);
   };
 
@@ -553,22 +585,33 @@ export function useGameState(): GameStateHook {
     }));
   }, []);
 
-  const addDistance = useCallback((meters: number) => {
+  // Step gathering helpers
+  const syncSteps = useCallback((newSteps: number) => {
     setState((prev) => ({
       ...prev,
-      totalDistanceWalked: prev.totalDistanceWalked + meters,
+      stepGathering: {
+        ...prev.stepGathering,
+        availableSteps: prev.stepGathering.availableSteps + newSteps,
+        lastSyncTimestamp: Date.now(),
+      },
     }));
   }, []);
 
-  const discoverZone = useCallback((zoneId: string) => {
-    setState((prev) => {
-      if (prev.discoveredZones.includes(zoneId)) return prev;
-      return {
-        ...prev,
-        discoveredZones: [...prev.discoveredZones, zoneId],
-      };
-    });
+  const spendSteps = useCallback((amount: number) => {
+    setState((prev) => ({
+      ...prev,
+      stepGathering: {
+        ...prev.stepGathering,
+        availableSteps: Math.max(0, prev.stepGathering.availableSteps - amount),
+        totalStepsGathered: prev.stepGathering.totalStepsGathered + amount,
+        lastGatherTimestamp: Date.now(),
+      },
+    }));
   }, []);
+
+  const getStepGatheringState = useCallback((): StepGatheringState => {
+    return state.stepGathering;
+  }, [state.stepGathering]);
 
   // Village helpers
   const placeBuilding = useCallback((building: PlacedBuilding) => {
@@ -593,7 +636,7 @@ export function useGameState(): GameStateHook {
     }));
   }, []);
 
-  return {
+  const value: GameStateHook = {
     state,
     isLoading,
     addResource,
@@ -611,12 +654,24 @@ export function useGameState(): GameStateHook {
     useTool,
     repairTool,
     addExplorationPoints,
-    addDistance,
-    discoverZone,
+    syncSteps,
+    spendSteps,
+    getStepGatheringState,
     placeBuilding,
     upgradeBuilding,
     saveGame,
     loadGame,
     resetGame,
   };
+
+  return React.createElement(GameStateContext.Provider, { value }, children);
+}
+
+// Hook to consume game state from context
+export function useGameState(): GameStateHook {
+  const context = useContext(GameStateContext);
+  if (context === undefined) {
+    throw new Error('useGameState must be used within a GameStateProvider');
+  }
+  return context;
 }

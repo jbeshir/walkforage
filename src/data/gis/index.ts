@@ -16,7 +16,8 @@ const filterMetadata = <T>(obj: Record<string, unknown>): Record<string, T> => {
 };
 
 // Type-safe mapping exports
-export const LITHOLOGY_MAPPINGS: Record<string, LithologyMapping> = filterMetadata<LithologyMapping>(lithologyToStones);
+export const LITHOLOGY_MAPPINGS: Record<string, LithologyMapping> =
+  filterMetadata<LithologyMapping>(lithologyToStones);
 
 // Helper to get stone mapping for a lithology
 export function getLithologyMapping(lithology: string): LithologyMapping | null {
@@ -26,5 +27,5 @@ export function getLithologyMapping(lithology: string): LithologyMapping | null 
 
 // Get all known lithologies
 export function getKnownLithologies(): string[] {
-  return Object.keys(LITHOLOGY_MAPPINGS).filter(k => !k.startsWith('_'));
+  return Object.keys(LITHOLOGY_MAPPINGS).filter((k) => !k.startsWith('_'));
 }

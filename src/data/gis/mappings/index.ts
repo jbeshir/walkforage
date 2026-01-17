@@ -7,6 +7,35 @@ import { RealmBiomeMapping } from '../../../types/gis';
 import { BiomeCode } from '../../../types/resources';
 import realmBiomeMappings from './realmBiomesToWoods.json';
 
+// Realm name to code mapping
+const REALM_CODES: Record<string, string> = {
+  Palearctic: 'PA',
+  Nearctic: 'NE',
+  Neotropic: 'NO',
+  Afrotropic: 'AF',
+  Indomalayan: 'IN',
+  Australasia: 'AU',
+  Oceania: 'OC',
+};
+
+// Biome type to number mapping
+const BIOME_NUMBERS: Record<BiomeCode, string> = {
+  tropical_moist_broadleaf: '01',
+  tropical_dry_broadleaf: '02',
+  tropical_conifer: '03',
+  temperate_broadleaf_mixed: '04',
+  temperate_conifer: '05',
+  boreal: '06',
+  tropical_grassland: '07',
+  temperate_grassland: '08',
+  flooded_grassland: '09',
+  montane: '10',
+  tundra: '11',
+  mediterranean: '12',
+  desert: '13',
+  mangrove: '14',
+};
+
 // Type for the raw JSON structure
 interface RawRealmBiomeMapping {
   realm: string;
@@ -46,20 +75,41 @@ export function getRealmBiomeMappings(): Record<string, RealmBiomeMapping> {
 }
 
 /**
- * Get mapping for a specific realm+biome code
- * @param realmBiome e.g., "PA04", "NT01"
+ * Build a realm+biome code from realm name and biome type (internal)
+ * @param realm e.g., "Palearctic"
+ * @param biome e.g., "temperate_broadleaf_mixed"
+ * @returns e.g., "PA04" or null if invalid
  */
-export function getRealmBiomeMapping(realmBiome: string): RealmBiomeMapping | null {
-  const mappings = getRealmBiomeMappings();
-  return mappings[realmBiome] || null;
+function buildRealmBiomeCode(realm: string, biome: BiomeCode): string | null {
+  const realmCode = REALM_CODES[realm];
+  const biomeNumber = BIOME_NUMBERS[biome];
+
+  if (!realmCode || !biomeNumber) {
+    return null;
+  }
+
+  return `${realmCode}${biomeNumber}`;
 }
 
 /**
- * Check if a realm+biome code has a mapping
+ * Get mapping for a realm and biome type
+ * @param realm e.g., "Palearctic"
+ * @param biome e.g., "temperate_broadleaf_mixed"
  */
-export function hasRealmBiomeMapping(realmBiome: string): boolean {
+export function getRealmBiomeMapping(realm: string, biome: BiomeCode): RealmBiomeMapping | null {
+  const code = buildRealmBiomeCode(realm, biome);
+  if (!code) {
+    return null;
+  }
   const mappings = getRealmBiomeMappings();
-  return realmBiome in mappings;
+  return mappings[code] || null;
+}
+
+/**
+ * Check if a realm and biome type has a mapping
+ */
+export function hasRealmBiomeMapping(realm: string, biome: BiomeCode): boolean {
+  return getRealmBiomeMapping(realm, biome) !== null;
 }
 
 /**

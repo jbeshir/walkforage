@@ -25,6 +25,39 @@ Run all discovered validation scripts systematically:
 - Note the exit codes and capture both stdout and stderr
 - If a script fails, continue running other scripts to get a complete picture
 
+## WalkForage Project Validation Scripts
+
+This project has the following validation scripts configured in `package.json`:
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `typecheck` | `npm run typecheck` | TypeScript type checking with `tsc --noEmit` |
+| `lint` | `npm run lint` | ESLint for TypeScript/React code |
+| `format:check` | `npm run format:check` | Prettier formatting check |
+| `test` | `npm run test` | Jest unit tests |
+| `validate:recipes` | `npm run validate:recipes` | Crafting recipe validation |
+| `doctor` | `npm run doctor` | Expo project health check (`npx expo-doctor`) |
+| `deps:check` | `npm run deps:check` | Expo SDK dependency compatibility (`npx expo install --check`) |
+| `validate` | `npm run validate` | **Runs all of the above in sequence** |
+
+**Recommended execution order:**
+```bash
+npm run typecheck
+npm run lint
+npm run format:check
+npm run test
+npm run validate:recipes
+npm run doctor
+npm run deps:check
+```
+
+Or run all at once:
+```bash
+npm run validate
+```
+
+All these scripts are also integrated into `.github/workflows/ci.yml`.
+
 ### 3. Integration Audit
 Verify proper integration between local scripts and CI:
 - Compare scripts in `package.json` with commands in GitHub Actions workflows

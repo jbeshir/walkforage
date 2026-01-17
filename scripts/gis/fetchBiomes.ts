@@ -22,8 +22,10 @@ import * as path from 'path';
 const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
 
 function encodeGeohash(lat: number, lng: number, precision: number = 6): string {
-  let latMin = -90, latMax = 90;
-  let lngMin = -180, lngMax = 180;
+  let latMin = -90,
+    latMax = 90;
+  let lngMin = -180,
+    lngMax = 180;
   let hash = '';
   let isEven = true;
   let bit = 0;
@@ -33,7 +35,7 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
     if (isEven) {
       const lngMid = (lngMin + lngMax) / 2;
       if (lng >= lngMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         lngMin = lngMid;
       } else {
         lngMax = lngMid;
@@ -41,7 +43,7 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
     } else {
       const latMid = (latMin + latMax) / 2;
       if (lat >= latMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         latMin = latMid;
       } else {
         latMax = latMid;
@@ -62,8 +64,10 @@ function encodeGeohash(lat: number, lng: number, precision: number = 6): string 
 }
 
 function decodeGeohash(hash: string): { lat: number; lng: number } {
-  let latMin = -90, latMax = 90;
-  let lngMin = -180, lngMax = 180;
+  let latMin = -90,
+    latMax = 90;
+  let lngMin = -180,
+    lngMax = 180;
   let isEven = true;
 
   for (const char of hash) {
@@ -144,10 +148,10 @@ const RESOLVE_BIOME_NAMES: Record<string, BiomeCode> = {
   'temperate grasslands, savannas & shrublands': 'temperate_grassland',
   'flooded grasslands & savannas': 'flooded_grassland',
   'montane grasslands & shrublands': 'montane',
-  'tundra': 'tundra',
+  tundra: 'tundra',
   'mediterranean forests, woodlands & scrub': 'mediterranean',
   'deserts & xeric shrublands': 'desert',
-  'mangroves': 'mangrove',
+  mangroves: 'mangrove',
 };
 
 interface BiomeRecord {
@@ -182,7 +186,10 @@ interface GeoJSON {
 /**
  * Estimate biome from latitude (fallback when no GeoJSON available)
  */
-function estimateBiomeFromLatitude(lat: number, lng: number): { biomeCode: BiomeCode; biomeName: string } {
+function estimateBiomeFromLatitude(
+  lat: number,
+  lng: number
+): { biomeCode: BiomeCode; biomeName: string } {
   const absLat = Math.abs(lat);
 
   // Simplified latitude-based biome estimation
@@ -193,7 +200,10 @@ function estimateBiomeFromLatitude(lat: number, lng: number): { biomeCode: Biome
   } else if (absLat > 45) {
     return { biomeCode: 'temperate_conifer', biomeName: 'Temperate Conifer Forests' };
   } else if (absLat > 35) {
-    return { biomeCode: 'temperate_broadleaf_mixed', biomeName: 'Temperate Broadleaf & Mixed Forests' };
+    return {
+      biomeCode: 'temperate_broadleaf_mixed',
+      biomeName: 'Temperate Broadleaf & Mixed Forests',
+    };
   } else if (absLat > 23) {
     // Subtropical - varies by region
     // Mediterranean on west coasts, dry on east
@@ -215,11 +225,12 @@ function pointInPolygon(lat: number, lng: number, polygon: number[][]): boolean 
   const n = polygon.length;
 
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = polygon[i][0], yi = polygon[i][1];
-    const xj = polygon[j][0], yj = polygon[j][1];
+    const xi = polygon[i][0],
+      yi = polygon[i][1];
+    const xj = polygon[j][0],
+      yj = polygon[j][1];
 
-    if (((yi > lat) !== (yj > lat)) &&
-        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside;
     }
   }
@@ -300,8 +311,8 @@ function processGeoJSON(geojsonPath: string): Map<string, BiomeRecord> {
     if (allPoints.length === 0) continue;
 
     // Calculate bounding box
-    const lngs = allPoints.map(p => p[0]);
-    const lats = allPoints.map(p => p[1]);
+    const lngs = allPoints.map((p) => p[0]);
+    const lats = allPoints.map((p) => p[1]);
     const bbox = {
       lngMin: Math.min(...lngs),
       lngMax: Math.max(...lngs),
@@ -437,14 +448,24 @@ async function main() {
 
   // Save raw data
   const outputPath = path.join(outputDir, 'biomes_raw.json');
-  fs.writeFileSync(outputPath, JSON.stringify({
-    _meta: {
-      source: records[0]?.source === 'resolve_ecoregions' ? 'Resolve Ecoregions 2017' : 'Latitude-based estimation',
-      generatedAt: new Date().toISOString(),
-      totalRecords: records.length,
-    },
-    records,
-  }, null, 2));
+  fs.writeFileSync(
+    outputPath,
+    JSON.stringify(
+      {
+        _meta: {
+          source:
+            records[0]?.source === 'resolve_ecoregions'
+              ? 'Resolve Ecoregions 2017'
+              : 'Latitude-based estimation',
+          generatedAt: new Date().toISOString(),
+          totalRecords: records.length,
+        },
+        records,
+      },
+      null,
+      2
+    )
+  );
 
   console.log(`\nSaved ${records.length} records to ${outputPath}`);
 
@@ -455,8 +476,7 @@ async function main() {
   }
 
   console.log('\nBiome distribution:');
-  const sorted = Object.entries(biomeCounts)
-    .sort((a, b) => b[1] - a[1]);
+  const sorted = Object.entries(biomeCounts).sort((a, b) => b[1] - a[1]);
   for (const [biome, count] of sorted) {
     const pct = ((count / records.length) * 100).toFixed(1);
     console.log(`  ${biome}: ${count} (${pct}%)`);

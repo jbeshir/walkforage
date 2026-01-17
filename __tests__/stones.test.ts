@@ -27,7 +27,13 @@ describe('Stones Data', () => {
     });
 
     it('should have valid categories for all stones', () => {
-      const validCategories = ['sedimentary', 'igneous_plutonic', 'igneous_volcanic', 'metamorphic', 'ore'];
+      const validCategories = [
+        'sedimentary',
+        'igneous_plutonic',
+        'igneous_volcanic',
+        'metamorphic',
+        'ore',
+      ];
       STONES.forEach((stone) => {
         expect(validCategories).toContain(stone.category);
       });
@@ -137,23 +143,23 @@ describe('Stones Data', () => {
 
   describe('Toolstone coverage by lithology class', () => {
     it('should have sedimentary toolstones (flint, chert)', () => {
-      const sedimentaryToolstones = getToolstones().filter(s => s.category === 'sedimentary');
+      const sedimentaryToolstones = getToolstones().filter((s) => s.category === 'sedimentary');
       expect(sedimentaryToolstones.length).toBeGreaterThanOrEqual(2);
-      expect(sedimentaryToolstones.some(s => s.id === 'flint')).toBe(true);
-      expect(sedimentaryToolstones.some(s => s.id === 'chert')).toBe(true);
+      expect(sedimentaryToolstones.some((s) => s.id === 'flint')).toBe(true);
+      expect(sedimentaryToolstones.some((s) => s.id === 'chert')).toBe(true);
     });
 
     it('should have volcanic toolstone (obsidian)', () => {
-      const volcanicToolstones = getToolstones().filter(s => s.category === 'igneous_volcanic');
+      const volcanicToolstones = getToolstones().filter((s) => s.category === 'igneous_volcanic');
       expect(volcanicToolstones.length).toBeGreaterThanOrEqual(1);
-      expect(volcanicToolstones.some(s => s.id === 'obsidian')).toBe(true);
+      expect(volcanicToolstones.some((s) => s.id === 'obsidian')).toBe(true);
     });
 
     it('should have metamorphic toolstones (greenstone, quartzite)', () => {
-      const metamorphicToolstones = getToolstones().filter(s => s.category === 'metamorphic');
+      const metamorphicToolstones = getToolstones().filter((s) => s.category === 'metamorphic');
       expect(metamorphicToolstones.length).toBeGreaterThanOrEqual(2);
-      expect(metamorphicToolstones.some(s => s.id === 'greenstone')).toBe(true);
-      expect(metamorphicToolstones.some(s => s.id === 'quartzite')).toBe(true);
+      expect(metamorphicToolstones.some((s) => s.id === 'greenstone')).toBe(true);
+      expect(metamorphicToolstones.some((s) => s.id === 'quartzite')).toBe(true);
     });
   });
 });

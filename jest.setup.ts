@@ -21,12 +21,8 @@ const mockLocationSubscription = {
 };
 
 jest.mock('expo-location', () => ({
-  requestForegroundPermissionsAsync: jest.fn(() =>
-    Promise.resolve({ status: 'granted' })
-  ),
-  requestBackgroundPermissionsAsync: jest.fn(() =>
-    Promise.resolve({ status: 'granted' })
-  ),
+  requestForegroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestBackgroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   watchPositionAsync: jest.fn(() => Promise.resolve(mockLocationSubscription)),
   getCurrentPositionAsync: jest.fn(() =>
     Promise.resolve({
@@ -78,13 +74,15 @@ jest.mock('expo-sqlite', () => ({
     runSync: jest.fn(),
     execSync: jest.fn(),
   })),
-  openDatabaseAsync: jest.fn(() => Promise.resolve({
-    getAllAsync: jest.fn(() => Promise.resolve([])),
-    getFirstAsync: jest.fn(() => Promise.resolve(null)),
-    runAsync: jest.fn(() => Promise.resolve()),
-    execAsync: jest.fn(() => Promise.resolve()),
-    closeAsync: jest.fn(() => Promise.resolve()),
-  })),
+  openDatabaseAsync: jest.fn(() =>
+    Promise.resolve({
+      getAllAsync: jest.fn(() => Promise.resolve([])),
+      getFirstAsync: jest.fn(() => Promise.resolve(null)),
+      runAsync: jest.fn(() => Promise.resolve()),
+      execAsync: jest.fn(() => Promise.resolve()),
+      closeAsync: jest.fn(() => Promise.resolve()),
+    })
+  ),
   // Legacy API
   openDatabase: jest.fn(() => ({
     transaction: jest.fn(),
@@ -150,9 +148,7 @@ jest.mock('react-native-maps', () => ({
 }));
 
 // Export mocks for test files to access
-export const mockAsyncStorage = jest.requireMock(
-  '@react-native-async-storage/async-storage'
-);
+export const mockAsyncStorage = jest.requireMock('@react-native-async-storage/async-storage');
 export const mockExpoLocation = jest.requireMock('expo-location');
 export { mockLocationSubscription };
 

@@ -1,11 +1,6 @@
 // Village Screen - Placeholder for village building
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 
 export default function VillageScreen() {
@@ -15,9 +10,7 @@ export default function VillageScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{state.village.name}</Text>
-        <Text style={styles.subtitle}>
-          {state.village.buildings.length} buildings
-        </Text>
+        <Text style={styles.subtitle}>{state.village.buildings.length} buildings</Text>
       </View>
 
       <View style={styles.statsCard}>
@@ -36,9 +29,7 @@ export default function VillageScreen() {
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Technologies</Text>
-          <Text style={styles.statValue}>
-            {state.techProgress.unlockedTechs.length} unlocked
-          </Text>
+          <Text style={styles.statValue}>{state.techProgress.unlockedTechs.length} unlocked</Text>
         </View>
       </View>
 
@@ -48,8 +39,7 @@ export default function VillageScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No buildings yet</Text>
             <Text style={styles.emptyText}>
-              Unlock technologies and gather resources to start building your
-              village!
+              Unlock technologies and gather resources to start building your village!
             </Text>
             <Text style={styles.hintText}>
               Tip: Start by unlocking Flint Knapping in the Tech Tree
@@ -68,8 +58,8 @@ export default function VillageScreen() {
       <View style={styles.comingSoon}>
         <Text style={styles.comingSoonTitle}>Coming Soon</Text>
         <Text style={styles.comingSoonText}>
-          Full village building with grid placement, worker assignment, and idle
-          production mechanics.
+          Full village building with grid placement, worker assignment, and idle production
+          mechanics.
         </Text>
       </View>
 

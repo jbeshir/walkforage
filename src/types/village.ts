@@ -2,17 +2,12 @@
 
 import { ResourceRequirement } from './tech';
 
-export type BuildingCategory =
-  | 'shelter'
-  | 'workshop'
-  | 'storage'
-  | 'production'
-  | 'infrastructure';
+export type BuildingCategory = 'shelter' | 'workshop' | 'storage' | 'production' | 'infrastructure';
 
 export interface BuildingLevel {
   level: number;
-  productionRate: number;      // Base units per hour
-  storageCapacity: number;     // If applicable
+  productionRate: number; // Base units per hour
+  storageCapacity: number; // If applicable
   workerSlots: number;
   upgradeCost: ResourceRequirement[];
 }
@@ -28,7 +23,7 @@ export interface Building {
   buildCost: ResourceRequirement[];
 
   // Production
-  produces?: string;           // Resource ID
+  produces?: string; // Resource ID
   consumes?: ResourceRequirement[];
 
   // Levels
@@ -46,7 +41,7 @@ export interface PlacedBuilding {
   level: number;
   position: { x: number; y: number };
   assignedWorkers: number;
-  lastCollected: number;       // Timestamp
+  lastCollected: number; // Timestamp
   accumulatedProduction: number;
 }
 
@@ -63,7 +58,7 @@ export interface ProductionSnapshot {
   buildingId: string;
   resourceId: string;
   amountProduced: number;
-  timeElapsed: number;         // seconds
+  timeElapsed: number; // seconds
 }
 
 export function calculateOfflineProduction(
@@ -75,10 +70,7 @@ export function calculateOfflineProduction(
   if (!buildingDef.produces) return null;
 
   const now = Date.now();
-  const elapsed = Math.min(
-    (now - building.lastCollected) / 1000,
-    maxOfflineHours * 3600
-  );
+  const elapsed = Math.min((now - building.lastCollected) / 1000, maxOfflineHours * 3600);
 
   const levelDef = buildingDef.levels[building.level - 1];
   const baseRate = levelDef.productionRate / 3600; // per second

@@ -24,9 +24,9 @@ export interface Technology {
   resourceCost: ResourceRequirement[];
 
   // What this tech enables
-  unlocks: string[];           // Other tech IDs
-  enablesBuildings: string[];  // Building IDs
-  enablesRecipes: string[];    // Recipe IDs
+  unlocks: string[]; // Other tech IDs
+  enablesBuildings: string[]; // Building IDs
+  enablesRecipes: string[]; // Recipe IDs
 
   // Gameplay modifiers
   gatheringBonus?: {
@@ -40,11 +40,11 @@ export interface Technology {
 
   // Display
   icon: string;
-  position: { x: number; y: number };  // For tech tree visualization
+  position: { x: number; y: number }; // For tech tree visualization
 }
 
 export interface TechProgress {
   unlockedTechs: string[];
   currentResearch: string | null;
-  researchProgress: number;  // 0-100%
+  researchProgress: number; // 0-100%
 }

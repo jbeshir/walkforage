@@ -353,19 +353,20 @@ export const STONES: StoneType[] = [
 ];
 
 // Lookup tables
-export const STONES_BY_ID = Object.fromEntries(
-  STONES.map(s => [s.id, s])
-) as Record<string, StoneType>;
+export const STONES_BY_ID = Object.fromEntries(STONES.map((s) => [s.id, s])) as Record<
+  string,
+  StoneType
+>;
 
 // Helper functions
 export function getStonesByCategory(category: string): StoneType[] {
-  return STONES.filter(s => s.category === category);
+  return STONES.filter((s) => s.category === category);
 }
 
 export function getToolstones(): StoneType[] {
-  return STONES.filter(s => s.isToolstone === true);
+  return STONES.filter((s) => s.isToolstone === true);
 }
 
 export function getStonesByLithology(lithology: string): StoneType[] {
-  return STONES.filter(s => s.lithologies.includes(lithology));
+  return STONES.filter((s) => s.lithologies.includes(lithology));
 }

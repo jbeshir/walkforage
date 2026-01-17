@@ -30,7 +30,14 @@ describe('Tools Data', () => {
     });
 
     it('should have valid tiers for all tools', () => {
-      const validTiers: MaterialTier[] = ['primitive', 'stone', 'copper', 'bronze', 'iron', 'steel'];
+      const validTiers: MaterialTier[] = [
+        'primitive',
+        'stone',
+        'copper',
+        'bronze',
+        'iron',
+        'steel',
+      ];
       TOOLS.forEach((tool) => {
         expect(validTiers).toContain(tool.tier);
       });
@@ -108,7 +115,14 @@ describe('Tools Data', () => {
     });
 
     it('should have valid tiers for all components', () => {
-      const validTiers: MaterialTier[] = ['primitive', 'stone', 'copper', 'bronze', 'iron', 'steel'];
+      const validTiers: MaterialTier[] = [
+        'primitive',
+        'stone',
+        'copper',
+        'bronze',
+        'iron',
+        'steel',
+      ];
       COMPONENTS.forEach((component) => {
         expect(validTiers).toContain(component.tier);
       });
@@ -447,7 +461,7 @@ describe('Tools Data', () => {
         while (current) {
           expect(visited.has(current)).toBe(false);
           visited.add(current);
-          const currentTool = TOOLS_BY_ID[current] as typeof TOOLS[number] | undefined;
+          const currentTool = TOOLS_BY_ID[current] as (typeof TOOLS)[number] | undefined;
           current = currentTool?.upgradesTo || null;
         }
       });
@@ -482,7 +496,14 @@ describe('Tools Data', () => {
     });
 
     it('should have valid minTier values', () => {
-      const validTiers: MaterialTier[] = ['primitive', 'stone', 'copper', 'bronze', 'iron', 'steel'];
+      const validTiers: MaterialTier[] = [
+        'primitive',
+        'stone',
+        'copper',
+        'bronze',
+        'iron',
+        'steel',
+      ];
       TOOLS.forEach((tool) => {
         tool.requiredTools.forEach((req) => {
           expect(validTiers).toContain(req.minTier);

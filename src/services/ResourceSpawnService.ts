@@ -2,7 +2,7 @@
 // Uses GeoDataService for location lookups and mapping files for resource selection
 
 import { LocationGeoData, SpawnConfig, SpawnedResourceData } from '../types/gis';
-import { StoneType, WoodType, BiomeCode } from '../types/resources';
+import { StoneType, WoodType } from '../types/resources';
 import { STONES, STONES_BY_ID, getToolstones } from '../data/stones';
 import { WOODS, WOODS_BY_ID, getWoodsByBiome } from '../data/woods';
 import { getLithologyMapping } from '../data/gis';
@@ -11,7 +11,7 @@ import geoDataService from './GeoDataService';
 
 // Default spawn configuration
 const DEFAULT_CONFIG: SpawnConfig = {
-  stoneRatio: 0.6,     // 60% stones, 40% woods
+  stoneRatio: 0.6, // 60% stones, 40% woods
   countMin: 3,
   countMax: 5,
   useRarity: true,
@@ -57,9 +57,7 @@ class ResourceSpawnService {
       const isStone = Math.random() < this.config.stoneRatio;
 
       if (isStone) {
-        const stone = geoData
-          ? this.selectStoneFromGeo(geoData)
-          : this.selectRandomStone();
+        const stone = geoData ? this.selectStoneFromGeo(geoData) : this.selectRandomStone();
 
         if (stone) {
           resources.push({
@@ -69,9 +67,7 @@ class ResourceSpawnService {
           });
         }
       } else {
-        const wood = geoData
-          ? this.selectWoodFromGeo(geoData)
-          : this.selectRandomWood();
+        const wood = geoData ? this.selectWoodFromGeo(geoData) : this.selectRandomWood();
 
         if (wood) {
           resources.push({
@@ -125,33 +121,40 @@ class ResourceSpawnService {
 
   /**
    * Select a wood type based on biome data
-   * Uses fallback chain: realm+biome -> biome -> random
    */
   private selectWoodFromGeo(geoData: LocationGeoData): WoodType | null {
-    const { type: biomeType, realmBiome, confidence } = geoData.biome;
+    const { type: biomeType, realm, confidence } = geoData.biome;
 
     // If confidence is too low, fall back to random
     if (confidence < 0.2) {
       return this.selectRandomWood();
     }
 
-    // 1. Try realm+biome mapping (most specific, continent-aware)
-    if (realmBiome) {
-      const realmMapping = getRealmBiomeMapping(realmBiome);
+    // Try realm+biome mapping first
+    if (realm) {
+      const realmMapping = getRealmBiomeMapping(realm, biomeType);
       if (realmMapping && realmMapping.woodIds.length > 0) {
         const woodId = this.weightedRandomSelect(realmMapping.woodIds, realmMapping.weights);
         const wood = WOODS_BY_ID[woodId];
         if (wood) return wood;
       }
+
+      // If no curated mapping exists, filter biome woods by realm
+      const biomeWoods = getWoodsByBiome(biomeType);
+      const realmFiltered = biomeWoods.filter(
+        (w) => w.nativeRealms && w.nativeRealms.includes(realm)
+      );
+      if (realmFiltered.length > 0) {
+        return this.selectByRarity(realmFiltered);
+      }
     }
 
-    // 2. Fall back to woods with matching biome
+    // Fallback: biome-only (no realm info)
     const biomeWoods = getWoodsByBiome(biomeType);
     if (biomeWoods.length > 0) {
       return this.selectByRarity(biomeWoods);
     }
 
-    // 3. Ultimate fallback
     return this.selectRandomWood();
   }
 
@@ -173,9 +176,7 @@ class ResourceSpawnService {
    * Select resource weighted by rarity
    * Higher rarity value = more common (higher spawn probability)
    */
-  private selectByRarity<T extends { properties: { rarity: number } }>(
-    resources: T[]
-  ): T {
+  private selectByRarity<T extends { properties: { rarity: number } }>(resources: T[]): T {
     if (!this.config.useRarity || resources.length === 0) {
       return resources[Math.floor(Math.random() * resources.length)];
     }
@@ -245,6 +246,38 @@ class ResourceSpawnService {
    */
   getToolstones(): StoneType[] {
     return getToolstones();
+  }
+
+  /**
+   * Get a single random stone appropriate for the location's geology
+   * Used for step-based gathering
+   */
+  getRandomStoneForLocation(geoData: LocationGeoData): StoneType | null {
+    return this.selectStoneFromGeo(geoData);
+  }
+
+  /**
+   * Get a single random wood appropriate for the location's biome
+   * Used for step-based gathering
+   */
+  getRandomWoodForLocation(geoData: LocationGeoData): WoodType | null {
+    return this.selectWoodFromGeo(geoData);
+  }
+
+  /**
+   * Get a random stone (no location data)
+   * Used when geo data is not available
+   */
+  getRandomStone(): StoneType {
+    return this.selectRandomStone();
+  }
+
+  /**
+   * Get a random wood (no location data)
+   * Used when geo data is not available
+   */
+  getRandomWood(): WoodType {
+    return this.selectRandomWood();
   }
 }
 

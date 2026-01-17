@@ -1,9 +1,15 @@
+import React, { ReactNode } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useGameState } from '../src/hooks/useGameState';
+import { useGameState, GameStateProvider } from '../src/hooks/useGameState';
 
 // Get the mocked module
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+
+// Wrapper component for tests
+function TestWrapper({ children }: { children: ReactNode }) {
+  return React.createElement(GameStateProvider, null, children);
+}
 
 describe('useGameState', () => {
   beforeEach(() => {
@@ -14,13 +20,13 @@ describe('useGameState', () => {
 
   describe('Initial state', () => {
     it('should initialize with loading state', () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       expect(result.current.isLoading).toBe(true);
     });
 
     it('should complete loading after initialization', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -28,7 +34,7 @@ describe('useGameState', () => {
     });
 
     it('should have flint_knapping unlocked initially', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -38,7 +44,7 @@ describe('useGameState', () => {
     });
 
     it('should have empty inventory initially', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -51,7 +57,7 @@ describe('useGameState', () => {
     });
 
     it('should have default village settings', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -63,21 +69,19 @@ describe('useGameState', () => {
     });
 
     it('should have zero exploration points initially', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.state.explorationPoints).toBe(0);
-      expect(result.current.state.totalDistanceWalked).toBe(0);
-      expect(result.current.state.discoveredZones).toEqual([]);
     });
   });
 
   describe('Inventory management', () => {
     it('should add resources to inventory', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -94,7 +98,7 @@ describe('useGameState', () => {
     });
 
     it('should stack same resources', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -115,7 +119,7 @@ describe('useGameState', () => {
     });
 
     it('should create separate stacks for different resources', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -130,7 +134,7 @@ describe('useGameState', () => {
     });
 
     it('should remove resources from inventory', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -152,7 +156,7 @@ describe('useGameState', () => {
     });
 
     it('should remove stack when quantity reaches zero', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -170,7 +174,7 @@ describe('useGameState', () => {
     });
 
     it('should not remove resources when removing more than available', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -192,7 +196,7 @@ describe('useGameState', () => {
     });
 
     it('should check resource availability', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -211,7 +215,7 @@ describe('useGameState', () => {
 
   describe('Tech progress', () => {
     it('should unlock technologies', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -225,7 +229,7 @@ describe('useGameState', () => {
     });
 
     it('should check if tech is unlocked', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -244,7 +248,7 @@ describe('useGameState', () => {
 
   describe('Exploration', () => {
     it('should add exploration points', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -262,63 +266,11 @@ describe('useGameState', () => {
 
       expect(result.current.state.explorationPoints).toBe(150);
     });
-
-    it('should add walking distance', async () => {
-      const { result } = renderHook(() => useGameState());
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.addDistance(1000);
-      });
-
-      expect(result.current.state.totalDistanceWalked).toBe(1000);
-
-      act(() => {
-        result.current.addDistance(500);
-      });
-
-      expect(result.current.state.totalDistanceWalked).toBe(1500);
-    });
-
-    it('should discover new zones', async () => {
-      const { result } = renderHook(() => useGameState());
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.discoverZone('zone_1');
-      });
-
-      expect(result.current.state.discoveredZones).toContain('zone_1');
-    });
-
-    it('should not add duplicate zones', async () => {
-      const { result } = renderHook(() => useGameState());
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.discoverZone('zone_1');
-        result.current.discoverZone('zone_1');
-        result.current.discoverZone('zone_2');
-      });
-
-      expect(result.current.state.discoveredZones.length).toBe(2);
-      expect(result.current.state.discoveredZones).toContain('zone_1');
-      expect(result.current.state.discoveredZones).toContain('zone_2');
-    });
   });
 
   describe('Village management', () => {
     it('should place buildings', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -343,7 +295,7 @@ describe('useGameState', () => {
     });
 
     it('should upgrade buildings', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -373,7 +325,7 @@ describe('useGameState', () => {
 
   describe('Tool inventory', () => {
     it('should check tool ownership', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -384,7 +336,7 @@ describe('useGameState', () => {
     });
 
     it('should get owned tools by id', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -395,7 +347,7 @@ describe('useGameState', () => {
     });
 
     it('should get best tool when no tools owned', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -406,7 +358,7 @@ describe('useGameState', () => {
     });
 
     it('should check craft requirements for tools', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -424,25 +376,21 @@ describe('useGameState', () => {
     it('should load saved game on mount', async () => {
       const savedState = {
         explorationPoints: 500,
-        totalDistanceWalked: 10000,
-        discoveredZones: ['zone_1', 'zone_2'],
       };
 
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(savedState));
 
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.state.explorationPoints).toBe(500);
-      expect(result.current.state.totalDistanceWalked).toBe(10000);
-      expect(result.current.state.discoveredZones).toEqual(['zone_1', 'zone_2']);
     });
 
     it('should save game state', async () => {
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -464,12 +412,11 @@ describe('useGameState', () => {
     it('should reset game to initial state', async () => {
       const savedState = {
         explorationPoints: 500,
-        totalDistanceWalked: 10000,
       };
 
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(savedState));
 
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -494,7 +441,7 @@ describe('useGameState', () => {
 
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(partialSave));
 
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -510,7 +457,7 @@ describe('useGameState', () => {
     it('should handle load errors gracefully', async () => {
       mockAsyncStorage.getItem.mockRejectedValueOnce(new Error('Storage error'));
 
-      const { result } = renderHook(() => useGameState());
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);

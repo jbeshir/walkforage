@@ -346,21 +346,18 @@ describe('ResourceSpawnService', () => {
       { name: 'Mumbai (Indomalayan)', lat: 19.076, lng: 72.8777 },
     ];
 
-    it.each(testLocations)(
-      'should spawn valid resources for $name',
-      async ({ lat, lng }) => {
-        const resources = await resourceSpawnService.spawnResources(lat, lng);
+    it.each(testLocations)('should spawn valid resources for $name', async ({ lat, lng }) => {
+      const resources = await resourceSpawnService.spawnResources(lat, lng);
 
-        expect(resources.length).toBeGreaterThan(0);
+      expect(resources.length).toBeGreaterThan(0);
 
-        for (const resource of resources) {
-          if (resource.type === 'stone') {
-            expect(STONES_BY_ID[resource.resourceId]).toBeDefined();
-          } else {
-            expect(WOODS_BY_ID[resource.resourceId]).toBeDefined();
-          }
+      for (const resource of resources) {
+        if (resource.type === 'stone') {
+          expect(STONES_BY_ID[resource.resourceId]).toBeDefined();
+        } else {
+          expect(WOODS_BY_ID[resource.resourceId]).toBeDefined();
         }
       }
-    );
+    });
   });
 });

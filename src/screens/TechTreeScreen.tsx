@@ -1,13 +1,6 @@
 // Tech Tree Screen - View and unlock technologies
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
 import { Technology, TechEra } from '../types/tech';
@@ -39,8 +32,8 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress }: TechNodeProps) {
   const bgColor = isUnlocked
     ? ERA_COLORS[tech.era]
     : isAvailable
-    ? `${ERA_COLORS[tech.era]}80` // 50% opacity
-    : '#ccc';
+      ? `${ERA_COLORS[tech.era]}80` // 50% opacity
+      : '#ccc';
 
   return (
     <TouchableOpacity
@@ -50,12 +43,8 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress }: TechNodeProps) {
     >
       <Text style={styles.techName}>{tech.name}</Text>
       {isUnlocked && <Text style={styles.unlockedBadge}>UNLOCKED</Text>}
-      {!isUnlocked && isAvailable && (
-        <Text style={styles.availableBadge}>AVAILABLE</Text>
-      )}
-      {!isUnlocked && !isAvailable && (
-        <Text style={styles.lockedBadge}>LOCKED</Text>
-      )}
+      {!isUnlocked && isAvailable && <Text style={styles.availableBadge}>AVAILABLE</Text>}
+      {!isUnlocked && !isAvailable && <Text style={styles.lockedBadge}>LOCKED</Text>}
     </TouchableOpacity>
   );
 }
@@ -76,9 +65,7 @@ export default function TechTreeScreen() {
     }
 
     // Check if available
-    const isAvailable = tech.prerequisites.every((prereq) =>
-      hasTech(prereq.techId)
-    );
+    const isAvailable = tech.prerequisites.every((prereq) => hasTech(prereq.techId));
     if (!isAvailable) {
       const missing = tech.prerequisites
         .filter((p) => !hasTech(p.techId))
@@ -89,15 +76,14 @@ export default function TechTreeScreen() {
 
     // Check resources
     const missingResources = tech.resourceCost.filter(
-      (cost) => !hasResource('stones', cost.resourceId, cost.quantity) &&
-               !hasResource('woods', cost.resourceId, cost.quantity) &&
-               !hasResource('ores', cost.resourceId, cost.quantity)
+      (cost) =>
+        !hasResource('stones', cost.resourceId, cost.quantity) &&
+        !hasResource('woods', cost.resourceId, cost.quantity) &&
+        !hasResource('ores', cost.resourceId, cost.quantity)
     );
 
     if (missingResources.length > 0) {
-      const missing = missingResources
-        .map((r) => `${r.quantity}x ${r.resourceId}`)
-        .join(', ');
+      const missing = missingResources.map((r) => `${r.quantity}x ${r.resourceId}`).join(', ');
       Alert.alert('Insufficient Resources', `Need: ${missing}`);
       return;
     }

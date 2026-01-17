@@ -136,9 +136,14 @@ export function geohashNeighbors(geohash: string): string[] {
 
   const neighbors: string[] = [];
   const directions = [
-    [-1, -1], [-1, 0], [-1, 1],
-    [0, -1],           [0, 1],
-    [1, -1],  [1, 0],  [1, 1],
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, -1],
+    [0, 1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
   ];
 
   for (const [dLat, dLng] of directions) {
@@ -147,7 +152,7 @@ export function geohashNeighbors(geohash: string): string[] {
 
     // Handle edge cases at poles and date line
     if (newLat >= -90 && newLat <= 90) {
-      const wrappedLng = ((newLng + 180) % 360 + 360) % 360 - 180;
+      const wrappedLng = ((((newLng + 180) % 360) + 360) % 360) - 180;
       neighbors.push(encodeGeohash(newLat, wrappedLng, precision));
     }
   }
@@ -164,12 +169,7 @@ export function geohashNeighbors(geohash: string): string[] {
  */
 export function pointInGeohash(lat: number, lng: number, geohash: string): boolean {
   const bounds = geohashBounds(geohash);
-  return (
-    lat >= bounds.minLat &&
-    lat < bounds.maxLat &&
-    lng >= bounds.minLng &&
-    lng < bounds.maxLng
-  );
+  return lat >= bounds.minLat && lat < bounds.maxLat && lng >= bounds.minLng && lng < bounds.maxLng;
 }
 
 /**
@@ -177,7 +177,10 @@ export function pointInGeohash(lat: number, lng: number, geohash: string): boole
  * @param precision Geohash precision (1-12)
  * @returns Object with approximate width and height in kilometers
  */
-export function geohashCellSize(precision: GeohashPrecision | number): { widthKm: number; heightKm: number } {
+export function geohashCellSize(precision: GeohashPrecision | number): {
+  widthKm: number;
+  heightKm: number;
+} {
   // Approximate cell sizes at equator
   const sizes: Record<number, { widthKm: number; heightKm: number }> = {
     1: { widthKm: 5000, heightKm: 5000 },
@@ -205,7 +208,7 @@ export function geohashesInBounds(bounds: GeohashBounds, precision: number): str
   const cellSize = geohashCellSize(precision);
   // Convert km to approximate degrees (very rough, varies by latitude)
   const latStep = cellSize.heightKm / 111; // ~111km per degree latitude
-  const lngStep = cellSize.widthKm / 111;  // Varies by latitude, approximation
+  const lngStep = cellSize.widthKm / 111; // Varies by latitude, approximation
 
   for (let lat = bounds.minLat; lat <= bounds.maxLat; lat += latStep) {
     for (let lng = bounds.minLng; lng <= bounds.maxLng; lng += lngStep) {
