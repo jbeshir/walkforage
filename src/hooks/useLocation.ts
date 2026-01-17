@@ -1,7 +1,7 @@
 // Location tracking hook for WalkForage
 // Handles GPS, distance calculation, and zone detection
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Location from 'expo-location';
 
 export interface LocationState {
@@ -11,11 +11,22 @@ export interface LocationState {
   timestamp: number;
 }
 
+export interface ZoneChangeEvent {
+  zoneId: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface UseLocationOptions {
+  onZoneChange?: (event: ZoneChangeEvent) => void;
+}
+
 export interface LocationHookResult {
   location: LocationState | null;
   error: string | null;
   isTracking: boolean;
   totalDistance: number;
+  currentZone: string | null;
   startTracking: () => Promise<void>;
   stopTracking: () => void;
 }
@@ -40,12 +51,25 @@ function calculateDistance(
   return R * c;
 }
 
-export function useLocation(): LocationHookResult {
+export function useLocation(options: UseLocationOptions = {}): LocationHookResult {
+  const { onZoneChange } = options;
+
   const [location, setLocation] = useState<LocationState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [totalDistance, setTotalDistance] = useState(0);
+  const [currentZone, setCurrentZone] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<Location.LocationSubscription | null>(null);
+
+  // Ref to track the last processed zone (avoids stale closure issues)
+  const lastZoneRef = useRef<string | null>(null);
+  // Ref to hold the latest callback (avoids re-creating the location watcher)
+  const onZoneChangeRef = useRef(onZoneChange);
+
+  // Keep the callback ref up to date
+  useEffect(() => {
+    onZoneChangeRef.current = onZoneChange;
+  }, [onZoneChange]);
 
   const startTracking = useCallback(async () => {
     try {
@@ -70,6 +94,20 @@ export function useLocation(): LocationHookResult {
             accuracy: newLocation.coords.accuracy,
             timestamp: newLocation.timestamp,
           };
+
+          // Check for zone change
+          const newZone = getZoneId(newState.latitude, newState.longitude);
+          if (newZone !== lastZoneRef.current) {
+            lastZoneRef.current = newZone;
+            setCurrentZone(newZone);
+
+            // Fire callback if provided
+            onZoneChangeRef.current?.({
+              zoneId: newZone,
+              latitude: newState.latitude,
+              longitude: newState.longitude,
+            });
+          }
 
           setLocation((prevLocation) => {
             // Calculate distance from last position
@@ -127,6 +165,7 @@ export function useLocation(): LocationHookResult {
     error,
     isTracking,
     totalDistance,
+    currentZone,
     startTracking,
     stopTracking,
   };

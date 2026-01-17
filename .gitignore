@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# GIS data processing (large downloaded/generated files)
+scripts/gis/input/
+scripts/gis/output/
+
+# Note: assets/gis/tiles.db is the bundled SQLite database and should be committed
+# It is loaded at runtime via expo-sqlite

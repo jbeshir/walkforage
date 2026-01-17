@@ -1,8 +1,28 @@
 // Resource Types for WalkForage
 // Based on real geological and botanical data
+// Geology: Macrostrat API (221 lithologies) - CC-BY-4.0
+// Biomes: Resolve Ecoregions 2017 (14 biomes)
 
-export type StoneCategory = 'sedimentary' | 'igneous' | 'metamorphic' | 'ore' | 'toolstone';
+// Stone categories aligned with Macrostrat lithology classes
+export type StoneCategory = 'sedimentary' | 'igneous_plutonic' | 'igneous_volcanic' | 'metamorphic' | 'ore';
 export type WoodCategory = 'softwood' | 'hardwood' | 'tropical' | 'fruit';
+
+// Resolve Ecoregions 2017 biome codes
+export type BiomeCode =
+  | 'tropical_moist_broadleaf'    // 1: Tropical & Subtropical Moist Broadleaf Forests
+  | 'tropical_dry_broadleaf'      // 2: Tropical & Subtropical Dry Broadleaf Forests
+  | 'tropical_conifer'            // 3: Tropical & Subtropical Coniferous Forests
+  | 'temperate_broadleaf_mixed'   // 4: Temperate Broadleaf & Mixed Forests
+  | 'temperate_conifer'           // 5: Temperate Conifer Forests
+  | 'boreal'                      // 6: Boreal Forests/Taiga
+  | 'tropical_grassland'          // 7: Tropical & Subtropical Grasslands/Savannas
+  | 'temperate_grassland'         // 8: Temperate Grasslands/Savannas
+  | 'flooded_grassland'           // 9: Flooded Grasslands & Savannas
+  | 'montane'                     // 10: Montane Grasslands & Shrublands
+  | 'tundra'                      // 11: Tundra
+  | 'mediterranean'               // 12: Mediterranean Forests, Woodlands & Scrub
+  | 'desert'                      // 13: Deserts & Xeric Shrublands
+  | 'mangrove';                   // 14: Mangroves
 
 export interface ResourceProperties {
   hardness: number;      // 1-10 scale (Mohs-inspired)
@@ -17,17 +37,21 @@ export interface StoneType {
   category: StoneCategory;
   description: string;
   properties: ResourceProperties;
-  usgsCode?: string;     // USGS rock type code for mapping
-  color: string;         // Display color
+  lithologies: string[];   // Macrostrat lithology names this stone maps to
+  isToolstone?: boolean;   // Can be knapped for tools (flint, chert, obsidian, etc.)
+  color: string;           // Display color
 }
 
 export interface WoodType {
   id: string;
   name: string;
+  scientificName?: string;         // Latin/botanical name
   category: WoodCategory;
   description: string;
   properties: ResourceProperties;
-  biomes: string[];      // OpenLandMap biome codes
+  biomes: BiomeCode[];             // Resolve Ecoregions 2017 biome codes (fallback)
+  realmBiomes?: string[];          // Realm+biome codes (e.g., ["PA04", "PA05"])
+  nativeRealms?: string[];         // Biogeographic realms (e.g., ["Palearctic"])
   color: string;
 }
 

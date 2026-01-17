@@ -70,12 +70,53 @@ jest.mock('expo-sensors', () => ({
   },
 }));
 
-// Mock expo-sqlite
+// Mock expo-sqlite (new API style)
 jest.mock('expo-sqlite', () => ({
+  openDatabaseSync: jest.fn(() => ({
+    getAllSync: jest.fn(() => []),
+    getFirstSync: jest.fn(() => null),
+    runSync: jest.fn(),
+    execSync: jest.fn(),
+  })),
+  openDatabaseAsync: jest.fn(() => Promise.resolve({
+    getAllAsync: jest.fn(() => Promise.resolve([])),
+    getFirstAsync: jest.fn(() => Promise.resolve(null)),
+    runAsync: jest.fn(() => Promise.resolve()),
+    execAsync: jest.fn(() => Promise.resolve()),
+    closeAsync: jest.fn(() => Promise.resolve()),
+  })),
+  // Legacy API
   openDatabase: jest.fn(() => ({
     transaction: jest.fn(),
     exec: jest.fn(),
   })),
+}));
+
+// Mock expo-asset
+jest.mock('expo-asset', () => ({
+  Asset: {
+    fromModule: jest.fn(() => ({
+      downloadAsync: jest.fn(() => Promise.resolve()),
+      localUri: '/mock/path/to/asset.db',
+    })),
+  },
+}));
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation((path: string) => ({
+    uri: path,
+    exists: jest.fn(() => false),
+    copy: jest.fn(() => Promise.resolve()),
+  })),
+  Directory: jest.fn().mockImplementation((path: string) => ({
+    uri: path,
+    exists: false,
+  })),
+  Paths: {
+    document: '/mock/documents',
+    cache: '/mock/cache',
+  },
 }));
 
 // Mock react-native modules

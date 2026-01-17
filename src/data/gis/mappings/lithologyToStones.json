@@ -1,0 +1,275 @@
+{
+  "_comment": "Maps Macrostrat lithologies to game stone types with spawn weights",
+  "_source": "Macrostrat API (macrostrat.org) - CC-BY-4.0",
+
+  "sandstone": {
+    "lithology": "sandstone",
+    "stoneIds": ["sandstone", "siltstone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "siltstone": {
+    "lithology": "siltstone",
+    "stoneIds": ["siltstone", "sandstone", "shale", "chert"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "shale": {
+    "lithology": "shale",
+    "stoneIds": ["shale", "mudstone", "clay", "slate", "chert"],
+    "weights": [0.35, 0.25, 0.2, 0.1, 0.1]
+  },
+  "mudstone": {
+    "lithology": "mudstone",
+    "stoneIds": ["mudstone", "shale", "clay", "chert"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "claystone": {
+    "lithology": "claystone",
+    "stoneIds": ["clay", "mudstone", "shale", "chert"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "clay": {
+    "lithology": "clay",
+    "stoneIds": ["clay", "mudstone", "shale", "chert"],
+    "weights": [0.55, 0.25, 0.15, 0.05]
+  },
+  "conglomerate": {
+    "lithology": "conglomerate",
+    "stoneIds": ["conglomerate", "sandstone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "breccia": {
+    "lithology": "breccia",
+    "stoneIds": ["conglomerate", "sandstone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "limestone": {
+    "lithology": "limestone",
+    "stoneIds": ["limestone", "chalk", "flint", "chert"],
+    "weights": [0.5, 0.2, 0.2, 0.1]
+  },
+  "dolomite": {
+    "lithology": "dolomite",
+    "stoneIds": ["dolomite", "limestone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "dolostone": {
+    "lithology": "dolostone",
+    "stoneIds": ["dolomite", "limestone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "chalk": {
+    "lithology": "chalk",
+    "stoneIds": ["chalk", "limestone", "flint"],
+    "weights": [0.5, 0.3, 0.2]
+  },
+  "marl": {
+    "lithology": "marl",
+    "stoneIds": ["limestone", "clay", "chalk", "chert"],
+    "weights": [0.35, 0.35, 0.2, 0.1]
+  },
+  "chert": {
+    "lithology": "chert",
+    "stoneIds": ["chert", "flint", "quartzite"],
+    "weights": [0.5, 0.35, 0.15]
+  },
+  "granite": {
+    "lithology": "granite",
+    "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
+    "weights": [0.5, 0.2, 0.2, 0.1]
+  },
+  "granodiorite": {
+    "lithology": "granodiorite",
+    "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "diorite": {
+    "lithology": "diorite",
+    "stoneIds": ["diorite", "granite", "gabbro", "quartzite"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "gabbro": {
+    "lithology": "gabbro",
+    "stoneIds": ["gabbro", "basalt", "diorite", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "basalt": {
+    "lithology": "basalt",
+    "stoneIds": ["basalt", "gabbro", "obsidian"],
+    "weights": [0.6, 0.2, 0.2]
+  },
+  "andesite": {
+    "lithology": "andesite",
+    "stoneIds": ["andesite", "basalt", "rhyolite", "obsidian"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "rhyolite": {
+    "lithology": "rhyolite",
+    "stoneIds": ["rhyolite", "obsidian", "granite"],
+    "weights": [0.5, 0.35, 0.15]
+  },
+  "dacite": {
+    "lithology": "dacite",
+    "stoneIds": ["rhyolite", "andesite", "tuff", "obsidian"],
+    "weights": [0.4, 0.3, 0.2, 0.1]
+  },
+  "tuff": {
+    "lithology": "tuff",
+    "stoneIds": ["tuff", "rhyolite", "obsidian"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "volcanic_ash": {
+    "lithology": "volcanic_ash",
+    "stoneIds": ["tuff", "clay", "obsidian"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "ignimbrite": {
+    "lithology": "ignimbrite",
+    "stoneIds": ["tuff", "rhyolite", "obsidian"],
+    "weights": [0.5, 0.35, 0.15]
+  },
+  "obsidian": {
+    "lithology": "obsidian",
+    "stoneIds": ["obsidian", "rhyolite"],
+    "weights": [0.7, 0.3]
+  },
+  "volcanic_glass": {
+    "lithology": "volcanic_glass",
+    "stoneIds": ["obsidian", "rhyolite"],
+    "weights": [0.7, 0.3]
+  },
+  "marble": {
+    "lithology": "marble",
+    "stoneIds": ["marble", "limestone", "dolomite", "chert"],
+    "weights": [0.55, 0.25, 0.15, 0.05]
+  },
+  "slate": {
+    "lithology": "slate",
+    "stoneIds": ["slate", "phyllite", "shale", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "phyllite": {
+    "lithology": "phyllite",
+    "stoneIds": ["phyllite", "slate", "schist", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "schist": {
+    "lithology": "schist",
+    "stoneIds": ["schist", "phyllite", "gneiss", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "gneiss": {
+    "lithology": "gneiss",
+    "stoneIds": ["gneiss", "granite", "schist", "quartzite"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "quartzite": {
+    "lithology": "quartzite",
+    "stoneIds": ["quartzite", "sandstone", "chert"],
+    "weights": [0.6, 0.25, 0.15]
+  },
+  "amphibolite": {
+    "lithology": "amphibolite",
+    "stoneIds": ["amphibolite", "gneiss", "schist", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "iron_formation": {
+    "lithology": "iron_formation",
+    "stoneIds": ["hematite", "magnetite", "chert"],
+    "weights": [0.4, 0.4, 0.2]
+  },
+  "ironstone": {
+    "lithology": "ironstone",
+    "stoneIds": ["hematite", "magnetite", "sandstone", "chert"],
+    "weights": [0.35, 0.3, 0.25, 0.1]
+  },
+  "mixed_sedimentary": {
+    "lithology": "mixed_sedimentary",
+    "stoneIds": ["sandstone", "limestone", "shale", "clay", "chert"],
+    "weights": [0.25, 0.25, 0.2, 0.2, 0.1]
+  },
+  "mixed_igneous": {
+    "lithology": "mixed_igneous",
+    "stoneIds": ["granite", "basalt", "andesite", "obsidian"],
+    "weights": [0.35, 0.35, 0.2, 0.1]
+  },
+  "mixed_metamorphic": {
+    "lithology": "mixed_metamorphic",
+    "stoneIds": ["gneiss", "schist", "marble", "slate", "quartzite"],
+    "weights": [0.25, 0.25, 0.2, 0.2, 0.1]
+  },
+  "unknown": {
+    "lithology": "unknown",
+    "stoneIds": ["sandstone", "limestone", "granite", "shale", "chert"],
+    "weights": [0.25, 0.25, 0.2, 0.2, 0.1]
+  },
+  "copper_ore": {
+    "lithology": "copper_ore",
+    "stoneIds": ["malachite", "sandstone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "mineralized": {
+    "lithology": "mineralized",
+    "stoneIds": ["malachite", "hematite", "magnetite", "chert"],
+    "weights": [0.25, 0.3, 0.3, 0.15]
+  },
+  "greenstone": {
+    "lithology": "greenstone",
+    "stoneIds": ["greenstone", "basalt", "amphibolite"],
+    "weights": [0.6, 0.25, 0.15]
+  },
+  "greenschist": {
+    "lithology": "greenschist",
+    "stoneIds": ["greenstone", "schist", "slate"],
+    "weights": [0.5, 0.3, 0.2]
+  },
+  "serpentinite": {
+    "lithology": "serpentinite",
+    "stoneIds": ["serpentinite", "soapstone", "greenstone"],
+    "weights": [0.5, 0.4, 0.1]
+  },
+  "soapstone": {
+    "lithology": "soapstone",
+    "stoneIds": ["soapstone", "serpentinite", "greenstone"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "steatite": {
+    "lithology": "steatite",
+    "stoneIds": ["soapstone", "serpentinite", "greenstone"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "talc_schist": {
+    "lithology": "talc_schist",
+    "stoneIds": ["soapstone", "schist", "greenstone"],
+    "weights": [0.5, 0.4, 0.1]
+  },
+  "ultramafic": {
+    "lithology": "ultramafic",
+    "stoneIds": ["serpentinite", "soapstone", "gabbro", "greenstone"],
+    "weights": [0.35, 0.3, 0.25, 0.1]
+  },
+  "travertine": {
+    "lithology": "travertine",
+    "stoneIds": ["travertine", "limestone", "chert"],
+    "weights": [0.6, 0.3, 0.1]
+  },
+  "diabase": {
+    "lithology": "diabase",
+    "stoneIds": ["diabase", "gabbro", "basalt", "greenstone"],
+    "weights": [0.45, 0.3, 0.2, 0.05]
+  },
+  "dolerite": {
+    "lithology": "dolerite",
+    "stoneIds": ["diabase", "gabbro", "greenstone"],
+    "weights": [0.5, 0.4, 0.1]
+  },
+  "pegmatite": {
+    "lithology": "pegmatite",
+    "stoneIds": ["pegmatite", "granite", "quartzite"],
+    "weights": [0.5, 0.4, 0.1]
+  },
+  "peridotite": {
+    "lithology": "peridotite",
+    "stoneIds": ["serpentinite", "gabbro", "greenstone"],
+    "weights": [0.45, 0.45, 0.1]
+  }
+}

@@ -1,5 +1,6 @@
 // Explore Screen - Main walking/gathering interface
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+// Uses GIS data for location-appropriate resource spawning
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +10,40 @@ import {
   Dimensions,
 } from 'react-native';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useLocation, getZoneId } from '../hooks/useLocation';
+import { useLocation, ZoneChangeEvent } from '../hooks/useLocation';
 import { useGameState } from '../hooks/useGameState';
-import { STONES, STONES_BY_ID } from '../data/stones';
-import { WOODS, WOODS_BY_ID } from '../data/woods';
+import { STONES_BY_ID } from '../data/stones';
+import { WOODS_BY_ID } from '../data/woods';
+import { resourceSpawnService } from '../services/ResourceSpawnService';
+import { geoDataService } from '../services/GeoDataService';
+import { LocationGeoData } from '../types/gis';
+import { BiomeCode } from '../types/resources';
+
+// Human-readable biome names
+const BIOME_NAMES: Record<BiomeCode, string> = {
+  tropical_moist_broadleaf: 'Tropical Rainforest',
+  tropical_dry_broadleaf: 'Tropical Dry Forest',
+  tropical_conifer: 'Tropical Conifer Forest',
+  temperate_broadleaf_mixed: 'Temperate Forest',
+  temperate_conifer: 'Conifer Forest',
+  boreal: 'Boreal Forest',
+  tropical_grassland: 'Savanna',
+  temperate_grassland: 'Grassland',
+  flooded_grassland: 'Wetland',
+  montane: 'Mountain Shrubland',
+  tundra: 'Tundra',
+  mediterranean: 'Mediterranean',
+  desert: 'Desert',
+  mangrove: 'Mangrove',
+};
+
+// Format lithology name for display (capitalize, replace underscores)
+function formatLithology(lithology: string): string {
+  return lithology
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +57,40 @@ interface SpawnedResource {
 }
 
 export default function ExploreScreen() {
+  const { state, addResource, discoverZone, addDistance } = useGameState();
+
+  const [spawnedResources, setSpawnedResources] = useState<SpawnedResource[]>([]);
+  const [geoData, setGeoData] = useState<LocationGeoData | null>(null);
+
+  // Spawn resources based on location using GIS data
+  const spawnResourcesInZone = useCallback(async (lat: number, lng: number) => {
+    try {
+      // Use GIS-aware spawning service
+      const spawnedData = await resourceSpawnService.spawnResources(lat, lng);
+
+      const newResources: SpawnedResource[] = spawnedData.map((data, i) => ({
+        id: `${Date.now()}_${i}`,
+        resourceId: data.resourceId,
+        type: data.type,
+        // Spawn within ~100m radius
+        latitude: lat + (Math.random() - 0.5) * 0.002,
+        longitude: lng + (Math.random() - 0.5) * 0.002,
+        quantity: data.quantity,
+      }));
+
+      setSpawnedResources((prev) => [...prev.slice(-20), ...newResources]);
+    } catch (err) {
+      console.warn('Resource spawning failed:', err);
+      // Error is already handled in the service with fallback to random
+    }
+  }, []);
+
+  // Handle zone changes - called by useLocation when entering a new zone
+  const handleZoneChange = useCallback((event: ZoneChangeEvent) => {
+    discoverZone(event.zoneId);
+    void spawnResourcesInZone(event.latitude, event.longitude);
+  }, [discoverZone, spawnResourcesInZone]);
+
   const {
     location,
     error,
@@ -33,46 +98,7 @@ export default function ExploreScreen() {
     totalDistance,
     startTracking,
     stopTracking,
-  } = useLocation();
-
-  const { state, addResource, discoverZone, addDistance } = useGameState();
-
-  const [spawnedResources, setSpawnedResources] = useState<SpawnedResource[]>([]);
-  const lastProcessedZoneRef = useRef<string | null>(null);
-
-  // Compute current zone from location (derived state)
-  const currentZone = useMemo(() => {
-    if (!location) return null;
-    return getZoneId(location.latitude, location.longitude);
-  }, [location]);
-
-  // Spawn resources based on location (simplified - will use real data later)
-  const spawnResourcesInZone = useCallback((lat: number, lng: number) => {
-    const newResources: SpawnedResource[] = [];
-
-    // Spawn 3-5 random resources nearby
-    const count = 3 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < count; i++) {
-      const isStone = Math.random() > 0.4;
-      const resources = isStone ? STONES : WOODS;
-      const resource = resources[Math.floor(Math.random() * resources.length)];
-
-      // Spawn within ~100m radius
-      const offsetLat = (Math.random() - 0.5) * 0.002;
-      const offsetLng = (Math.random() - 0.5) * 0.002;
-
-      newResources.push({
-        id: `${Date.now()}_${i}`,
-        resourceId: resource.id,
-        type: isStone ? 'stone' : 'wood',
-        latitude: lat + offsetLat,
-        longitude: lng + offsetLng,
-        quantity: 1 + Math.floor(Math.random() * 5),
-      });
-    }
-
-    setSpawnedResources((prev) => [...prev.slice(-20), ...newResources]);
-  }, []);
+  } = useLocation({ onZoneChange: handleZoneChange });
 
   // Track distance changes
   useEffect(() => {
@@ -81,16 +107,14 @@ export default function ExploreScreen() {
     }
   }, [totalDistance, addDistance]);
 
-  // Handle zone changes - trigger side effects when entering new zone
-  // Spawning resources on zone entry is intentional reactive behavior
+  // Fetch geo data when location changes
   useEffect(() => {
-    if (location && currentZone && currentZone !== lastProcessedZoneRef.current) {
-      lastProcessedZoneRef.current = currentZone;
-      discoverZone(currentZone);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      spawnResourcesInZone(location.latitude, location.longitude);
+    if (location) {
+      geoDataService.getLocationData(location.latitude, location.longitude)
+        .then(setGeoData)
+        .catch((err) => console.warn('Failed to get geo data:', err));
     }
-  }, [location, currentZone, discoverZone, spawnResourcesInZone]);
+  }, [location]);
 
   // Collect a resource
   const collectResource = (resource: SpawnedResource) => {
@@ -202,6 +226,25 @@ export default function ExploreScreen() {
         </Text>
       </View>
 
+      {/* Terrain info overlay */}
+      {geoData && (
+        <View style={styles.terrainOverlay}>
+          <Text style={styles.terrainLabel}>Terrain</Text>
+          <View style={styles.terrainRow}>
+            <Text style={styles.terrainIcon}>🪨</Text>
+            <Text style={styles.terrainText}>
+              {formatLithology(geoData.geology.primaryLithology)}
+            </Text>
+          </View>
+          <View style={styles.terrainRow}>
+            <Text style={styles.terrainIcon}>🌲</Text>
+            <Text style={styles.terrainText}>
+              {BIOME_NAMES[geoData.biome.type] || geoData.biome.type}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Tracking button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
@@ -256,6 +299,42 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
     marginBottom: 5,
+  },
+  terrainOverlay: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 12,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    minWidth: 120,
+  },
+  terrainLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  terrainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  terrainIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  terrainText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#333',
   },
   buttonContainer: {
     position: 'absolute',

@@ -1,0 +1,427 @@
+{
+  "_meta": {
+    "description": "Maps realm+biome codes to wood species with spawn weights",
+    "format": "realmBiome -> { realm, biome, woodIds[], weights[] }",
+    "biomeNumbers": {
+      "01": "tropical_moist_broadleaf",
+      "02": "tropical_dry_broadleaf",
+      "03": "tropical_conifer",
+      "04": "temperate_broadleaf_mixed",
+      "05": "temperate_conifer",
+      "06": "boreal",
+      "07": "tropical_grassland",
+      "08": "temperate_grassland",
+      "09": "flooded_grassland",
+      "10": "montane",
+      "11": "tundra",
+      "12": "mediterranean",
+      "13": "desert",
+      "14": "mangrove"
+    },
+    "realmCodes": {
+      "PA": "Palearctic",
+      "NE": "Nearctic",
+      "NO": "Neotropic",
+      "AF": "Afrotropic",
+      "IN": "Indomalayan",
+      "AU": "Australasia",
+      "OC": "Oceania"
+    }
+  },
+  "PA01": {
+    "realm": "Palearctic",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["european_oak", "willow", "poplar"],
+    "weights": [0.4, 0.3, 0.3]
+  },
+  "PA02": {
+    "realm": "Palearctic",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["olive", "aleppo_pine", "cork_oak"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "PA04": {
+    "realm": "Palearctic",
+    "biome": "temperate_broadleaf_mixed",
+    "woodIds": ["european_oak", "european_beech", "silver_birch", "european_ash", "willow", "poplar"],
+    "weights": [0.25, 0.2, 0.2, 0.15, 0.1, 0.1]
+  },
+  "PA05": {
+    "realm": "Palearctic",
+    "biome": "temperate_conifer",
+    "woodIds": ["scots_pine", "norway_spruce", "european_larch"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "PA06": {
+    "realm": "Palearctic",
+    "biome": "boreal",
+    "woodIds": ["scots_pine", "norway_spruce", "siberian_larch", "siberian_cedar", "silver_birch"],
+    "weights": [0.25, 0.25, 0.2, 0.15, 0.15]
+  },
+  "PA07": {
+    "realm": "Palearctic",
+    "biome": "tropical_grassland",
+    "woodIds": ["willow", "poplar"],
+    "weights": [0.5, 0.5]
+  },
+  "PA08": {
+    "realm": "Palearctic",
+    "biome": "temperate_grassland",
+    "woodIds": ["willow", "poplar", "silver_birch"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "PA09": {
+    "realm": "Palearctic",
+    "biome": "flooded_grassland",
+    "woodIds": ["willow", "poplar"],
+    "weights": [0.6, 0.4]
+  },
+  "PA10": {
+    "realm": "Palearctic",
+    "biome": "montane",
+    "woodIds": ["european_larch", "siberian_larch", "scots_pine", "norway_spruce"],
+    "weights": [0.3, 0.3, 0.2, 0.2]
+  },
+  "PA11": {
+    "realm": "Palearctic",
+    "biome": "tundra",
+    "woodIds": ["willow", "silver_birch"],
+    "weights": [0.6, 0.4]
+  },
+  "PA12": {
+    "realm": "Palearctic",
+    "biome": "mediterranean",
+    "woodIds": ["olive", "aleppo_pine", "cork_oak", "european_oak"],
+    "weights": [0.3, 0.3, 0.2, 0.2]
+  },
+  "PA13": {
+    "realm": "Palearctic",
+    "biome": "desert",
+    "woodIds": ["aleppo_pine", "olive"],
+    "weights": [0.6, 0.4]
+  },
+  "NE01": {
+    "realm": "Nearctic",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["american_oak", "black_walnut", "willow"],
+    "weights": [0.4, 0.3, 0.3]
+  },
+  "NE02": {
+    "realm": "Nearctic",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["mesquite", "american_oak"],
+    "weights": [0.6, 0.4]
+  },
+  "NE03": {
+    "realm": "Nearctic",
+    "biome": "tropical_conifer",
+    "woodIds": ["eastern_white_pine", "douglas_fir"],
+    "weights": [0.5, 0.5]
+  },
+  "NE04": {
+    "realm": "Nearctic",
+    "biome": "temperate_broadleaf_mixed",
+    "woodIds": ["american_oak", "sugar_maple", "american_hickory", "american_beech", "black_walnut", "paper_birch", "eastern_white_pine"],
+    "weights": [0.2, 0.2, 0.15, 0.15, 0.1, 0.1, 0.1]
+  },
+  "NE05": {
+    "realm": "Nearctic",
+    "biome": "temperate_conifer",
+    "woodIds": ["douglas_fir", "western_red_cedar", "coast_redwood", "eastern_white_pine", "balsam_fir"],
+    "weights": [0.25, 0.25, 0.2, 0.15, 0.15]
+  },
+  "NE06": {
+    "realm": "Nearctic",
+    "biome": "boreal",
+    "woodIds": ["balsam_fir", "paper_birch", "poplar", "willow"],
+    "weights": [0.3, 0.3, 0.2, 0.2]
+  },
+  "NE07": {
+    "realm": "Nearctic",
+    "biome": "tropical_grassland",
+    "woodIds": ["mesquite", "willow"],
+    "weights": [0.7, 0.3]
+  },
+  "NE08": {
+    "realm": "Nearctic",
+    "biome": "temperate_grassland",
+    "woodIds": ["poplar", "willow", "american_oak"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "NE09": {
+    "realm": "Nearctic",
+    "biome": "flooded_grassland",
+    "woodIds": ["willow", "poplar"],
+    "weights": [0.6, 0.4]
+  },
+  "NE10": {
+    "realm": "Nearctic",
+    "biome": "montane",
+    "woodIds": ["douglas_fir", "western_red_cedar", "balsam_fir"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "NE11": {
+    "realm": "Nearctic",
+    "biome": "tundra",
+    "woodIds": ["willow", "paper_birch"],
+    "weights": [0.6, 0.4]
+  },
+  "NE12": {
+    "realm": "Nearctic",
+    "biome": "mediterranean",
+    "woodIds": ["coast_redwood", "douglas_fir", "american_oak"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "NE13": {
+    "realm": "Nearctic",
+    "biome": "desert",
+    "woodIds": ["mesquite"],
+    "weights": [1.0]
+  },
+  "NO01": {
+    "realm": "Neotropic",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["mahogany", "brazil_nut", "ceiba", "balsa", "brazilian_rosewood", "rubber_tree", "guadua_bamboo"],
+    "weights": [0.2, 0.15, 0.15, 0.15, 0.1, 0.15, 0.1]
+  },
+  "NO02": {
+    "realm": "Neotropic",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["mahogany", "ceiba", "quebracho", "jacaranda"],
+    "weights": [0.3, 0.25, 0.25, 0.2]
+  },
+  "NO03": {
+    "realm": "Neotropic",
+    "biome": "tropical_conifer",
+    "woodIds": ["parana_pine"],
+    "weights": [1.0]
+  },
+  "NO04": {
+    "realm": "Neotropic",
+    "biome": "temperate_broadleaf_mixed",
+    "woodIds": ["parana_pine", "willow", "poplar"],
+    "weights": [0.4, 0.3, 0.3]
+  },
+  "NO07": {
+    "realm": "Neotropic",
+    "biome": "tropical_grassland",
+    "woodIds": ["quebracho", "jacaranda", "palm"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "NO08": {
+    "realm": "Neotropic",
+    "biome": "temperate_grassland",
+    "woodIds": ["willow", "poplar"],
+    "weights": [0.5, 0.5]
+  },
+  "NO09": {
+    "realm": "Neotropic",
+    "biome": "flooded_grassland",
+    "woodIds": ["willow", "mangrove"],
+    "weights": [0.5, 0.5]
+  },
+  "NO10": {
+    "realm": "Neotropic",
+    "biome": "montane",
+    "woodIds": ["parana_pine", "willow"],
+    "weights": [0.6, 0.4]
+  },
+  "NO13": {
+    "realm": "Neotropic",
+    "biome": "desert",
+    "woodIds": ["quebracho"],
+    "weights": [1.0]
+  },
+  "NO14": {
+    "realm": "Neotropic",
+    "biome": "mangrove",
+    "woodIds": ["mangrove"],
+    "weights": [1.0]
+  },
+  "AF01": {
+    "realm": "Afrotropic",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["african_mahogany", "african_ebony", "iroko", "obeche", "wenge", "ceiba"],
+    "weights": [0.2, 0.1, 0.2, 0.2, 0.1, 0.2]
+  },
+  "AF02": {
+    "realm": "Afrotropic",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["african_mahogany", "iroko", "baobab", "marula"],
+    "weights": [0.3, 0.3, 0.2, 0.2]
+  },
+  "AF07": {
+    "realm": "Afrotropic",
+    "biome": "tropical_grassland",
+    "woodIds": ["african_acacia", "baobab", "marula", "palm"],
+    "weights": [0.35, 0.25, 0.25, 0.15]
+  },
+  "AF08": {
+    "realm": "Afrotropic",
+    "biome": "temperate_grassland",
+    "woodIds": ["african_acacia", "african_olive"],
+    "weights": [0.6, 0.4]
+  },
+  "AF09": {
+    "realm": "Afrotropic",
+    "biome": "flooded_grassland",
+    "woodIds": ["mangrove", "palm"],
+    "weights": [0.6, 0.4]
+  },
+  "AF10": {
+    "realm": "Afrotropic",
+    "biome": "montane",
+    "woodIds": ["african_juniper", "african_olive"],
+    "weights": [0.5, 0.5]
+  },
+  "AF12": {
+    "realm": "Afrotropic",
+    "biome": "mediterranean",
+    "woodIds": ["african_olive"],
+    "weights": [1.0]
+  },
+  "AF13": {
+    "realm": "Afrotropic",
+    "biome": "desert",
+    "woodIds": ["african_acacia"],
+    "weights": [1.0]
+  },
+  "AF14": {
+    "realm": "Afrotropic",
+    "biome": "mangrove",
+    "woodIds": ["mangrove"],
+    "weights": [1.0]
+  },
+  "IN01": {
+    "realm": "Indomalayan",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["teak", "sal", "dipterocarp", "asian_bamboo", "banyan", "coconut_palm", "burmese_teak"],
+    "weights": [0.2, 0.15, 0.2, 0.15, 0.1, 0.1, 0.1]
+  },
+  "IN02": {
+    "realm": "Indomalayan",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["teak", "sal", "indian_rosewood", "sandalwood", "asian_bamboo", "neem", "banyan"],
+    "weights": [0.2, 0.2, 0.15, 0.1, 0.15, 0.1, 0.1]
+  },
+  "IN03": {
+    "realm": "Indomalayan",
+    "biome": "tropical_conifer",
+    "woodIds": ["teak", "sal"],
+    "weights": [0.5, 0.5]
+  },
+  "IN05": {
+    "realm": "Indomalayan",
+    "biome": "temperate_conifer",
+    "woodIds": ["sal", "teak"],
+    "weights": [0.6, 0.4]
+  },
+  "IN07": {
+    "realm": "Indomalayan",
+    "biome": "tropical_grassland",
+    "woodIds": ["neem", "palm", "asian_bamboo"],
+    "weights": [0.4, 0.3, 0.3]
+  },
+  "IN09": {
+    "realm": "Indomalayan",
+    "biome": "flooded_grassland",
+    "woodIds": ["mangrove", "coconut_palm"],
+    "weights": [0.6, 0.4]
+  },
+  "IN10": {
+    "realm": "Indomalayan",
+    "biome": "montane",
+    "woodIds": ["sal", "indian_rosewood"],
+    "weights": [0.6, 0.4]
+  },
+  "IN13": {
+    "realm": "Indomalayan",
+    "biome": "desert",
+    "woodIds": ["neem"],
+    "weights": [1.0]
+  },
+  "IN14": {
+    "realm": "Indomalayan",
+    "biome": "mangrove",
+    "woodIds": ["mangrove", "coconut_palm"],
+    "weights": [0.6, 0.4]
+  },
+  "AU01": {
+    "realm": "Australasia",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["eucalyptus", "mangrove", "palm"],
+    "weights": [0.5, 0.3, 0.2]
+  },
+  "AU02": {
+    "realm": "Australasia",
+    "biome": "tropical_dry_broadleaf",
+    "woodIds": ["eucalyptus", "blackwood"],
+    "weights": [0.6, 0.4]
+  },
+  "AU04": {
+    "realm": "Australasia",
+    "biome": "temperate_broadleaf_mixed",
+    "woodIds": ["eucalyptus", "blackwood", "kauri", "nz_beech", "manuka", "rimu"],
+    "weights": [0.25, 0.2, 0.15, 0.15, 0.15, 0.1]
+  },
+  "AU05": {
+    "realm": "Australasia",
+    "biome": "temperate_conifer",
+    "woodIds": ["huon_pine", "rimu", "kauri"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "AU07": {
+    "realm": "Australasia",
+    "biome": "tropical_grassland",
+    "woodIds": ["eucalyptus"],
+    "weights": [1.0]
+  },
+  "AU08": {
+    "realm": "Australasia",
+    "biome": "temperate_grassland",
+    "woodIds": ["eucalyptus", "blackwood"],
+    "weights": [0.6, 0.4]
+  },
+  "AU10": {
+    "realm": "Australasia",
+    "biome": "montane",
+    "woodIds": ["nz_beech", "eucalyptus"],
+    "weights": [0.6, 0.4]
+  },
+  "AU11": {
+    "realm": "Australasia",
+    "biome": "tundra",
+    "woodIds": ["nz_beech"],
+    "weights": [1.0]
+  },
+  "AU12": {
+    "realm": "Australasia",
+    "biome": "mediterranean",
+    "woodIds": ["jarrah", "eucalyptus", "manuka"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "AU13": {
+    "realm": "Australasia",
+    "biome": "desert",
+    "woodIds": ["eucalyptus"],
+    "weights": [1.0]
+  },
+  "AU14": {
+    "realm": "Australasia",
+    "biome": "mangrove",
+    "woodIds": ["mangrove"],
+    "weights": [1.0]
+  },
+  "OC01": {
+    "realm": "Oceania",
+    "biome": "tropical_moist_broadleaf",
+    "woodIds": ["coconut_palm", "palm", "mangrove"],
+    "weights": [0.4, 0.35, 0.25]
+  },
+  "OC14": {
+    "realm": "Oceania",
+    "biome": "mangrove",
+    "woodIds": ["mangrove", "coconut_palm"],
+    "weights": [0.6, 0.4]
+  }
+}

@@ -31,6 +31,6 @@ module.exports = {
   },
   // Transform expo and react-native modules
   transformIgnorePatterns: [
-    'node_modules/(?!(expo-location|expo-sensors|expo-sqlite|@react-native|react-native)/)',
+    'node_modules/(?!(expo-location|expo-sensors|expo-sqlite|expo-asset|expo-file-system|expo-modules-core|@react-native|react-native)/)',
   ],
 };

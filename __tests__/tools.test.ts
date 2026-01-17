@@ -447,7 +447,7 @@ describe('Tools Data', () => {
         while (current) {
           expect(visited.has(current)).toBe(false);
           visited.add(current);
-          const currentTool = TOOLS_BY_ID[current];
+          const currentTool = TOOLS_BY_ID[current] as typeof TOOLS[number] | undefined;
           current = currentTool?.upgradesTo || null;
         }
       });

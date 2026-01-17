@@ -16,6 +16,28 @@ import {
   QUALITY_MULTIPLIERS,
 } from '../types/tools';
 import { getToolById, getComponentById } from '../data/tools';
+import { STONES_BY_ID } from '../data/stones';
+import { WOODS_BY_ID } from '../data/woods';
+
+/**
+ * Determine the inventory category for a resource ID by looking it up in the data.
+ * Falls back to 'stones' if not found (safest default for unknown resources).
+ */
+function getResourceCategory(resourceId: string): keyof Inventory {
+  // Check woods first
+  if (WOODS_BY_ID[resourceId]) {
+    return 'woods';
+  }
+
+  // Check stones - ores are a subcategory of stones with category === 'ore'
+  const stone = STONES_BY_ID[resourceId];
+  if (stone) {
+    return stone.category === 'ore' ? 'ores' : 'stones';
+  }
+
+  // Fallback for unknown resources
+  return 'stones';
+}
 
 const STORAGE_KEY = 'walkforage_gamestate';
 
@@ -320,11 +342,8 @@ export function useGameState(): GameStateHook {
 
       // Check material requirements
       for (const mat of component.materials) {
-        // Determine category based on resource type
-        const category = mat.resourceId.includes('_ore') ? 'ores' :
-          mat.resourceId.includes('wood') || mat.resourceId.includes('oak') ||
-          mat.resourceId.includes('ash') || mat.resourceId.includes('pine') ? 'woods' : 'stones';
-        if (!hasResource(category as keyof Inventory, mat.resourceId, mat.quantity)) {
+        const category = getResourceCategory(mat.resourceId);
+        if (!hasResource(category, mat.resourceId, mat.quantity)) {
           missing.push(`Material: ${mat.quantity}x ${mat.resourceId}`);
         }
       }
@@ -365,10 +384,8 @@ export function useGameState(): GameStateHook {
 
       // Check material requirements
       for (const mat of tool.materials) {
-        const category = mat.resourceId.includes('_ore') ? 'ores' :
-          mat.resourceId.includes('wood') || mat.resourceId.includes('oak') ||
-          mat.resourceId.includes('ash') || mat.resourceId.includes('pine') ? 'woods' : 'stones';
-        if (!hasResource(category as keyof Inventory, mat.resourceId, mat.quantity)) {
+        const category = getResourceCategory(mat.resourceId);
+        if (!hasResource(category, mat.resourceId, mat.quantity)) {
           missing.push(`Material: ${mat.quantity}x ${mat.resourceId}`);
         }
       }
@@ -500,11 +517,10 @@ export function useGameState(): GameStateHook {
       const tool = getToolById(owned.toolId);
       if (!tool || !tool.stats.canRepair || !tool.stats.repairMaterial) return false;
 
-      // Check if we have repair material (simplified check)
+      // Check if we have repair material
       const repairMat = tool.stats.repairMaterial;
-      const category = repairMat.includes('_ore') ? 'ores' :
-        repairMat.includes('wood') ? 'woods' : 'stones';
-      if (!hasResource(category as keyof Inventory, repairMat, 1)) return false;
+      const category = getResourceCategory(repairMat);
+      if (!hasResource(category, repairMat, 1)) return false;
 
       setState((prev) => ({
         ...prev,
