@@ -153,11 +153,13 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     }
 
     try {
-      // Get steps since last sync (or last 24 hours if no sync)
-      const syncSince = currentState.lastSyncTimestamp || Date.now() - 24 * 60 * 60 * 1000;
-      const newSteps = await healthService.getStepsSince(syncSince);
+      // Get steps since last sync
+      // On first launch (no timestamp), start fresh - don't credit historical steps
+      const isFirstSync = !currentState.lastSyncTimestamp;
+      const syncSince = currentState.lastSyncTimestamp || Date.now();
+      const newSteps = isFirstSync ? 0 : await healthService.getStepsSince(syncSince);
 
-      // Persist the new steps to game state
+      // Persist the new steps to game state (also updates lastSyncTimestamp)
       persistSyncSteps(newSteps);
 
       return {

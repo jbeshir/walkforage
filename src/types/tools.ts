@@ -164,11 +164,14 @@ export const QUALITY_TIER_THRESHOLDS = {
 };
 
 // Get quality tier from score (0-1)
+// Score is rounded to nearest 1% to ensure consistency with displayed percentages
 export function getQualityTier(score: number): QualityTier {
-  if (score < QUALITY_TIER_THRESHOLDS.poor) return 'poor';
-  if (score < QUALITY_TIER_THRESHOLDS.adequate) return 'adequate';
-  if (score < QUALITY_TIER_THRESHOLDS.good) return 'good';
-  if (score < QUALITY_TIER_THRESHOLDS.excellent) return 'excellent';
+  // Round to 2 decimal places (1% precision) to match display rounding
+  const roundedScore = Math.round(score * 100) / 100;
+  if (roundedScore < QUALITY_TIER_THRESHOLDS.poor) return 'poor';
+  if (roundedScore < QUALITY_TIER_THRESHOLDS.adequate) return 'adequate';
+  if (roundedScore < QUALITY_TIER_THRESHOLDS.good) return 'good';
+  if (roundedScore < QUALITY_TIER_THRESHOLDS.excellent) return 'excellent';
   return 'masterwork';
 }
 

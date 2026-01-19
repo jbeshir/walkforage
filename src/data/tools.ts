@@ -80,8 +80,7 @@ export const TOOLS: Tool[] = [
     name: 'Hammerstone',
     category: 'knapping',
     era: 'lower_paleolithic',
-    description:
-      'A hard, rounded stone for striking other stones. The first tool - the foundation of all stone working.',
+    description: 'A hard, rounded stone for striking. The first tool - foundation of all knapping.',
     requiredTech: 'basic_knapping',
     requiredTools: [],
     requiredComponents: [],
@@ -95,8 +94,7 @@ export const TOOLS: Tool[] = [
     name: 'Grinding Stone',
     category: 'knapping',
     era: 'lower_paleolithic',
-    description:
-      'A flat sandstone for grinding and shaping stone tools. Essential for creating polished tools.',
+    description: 'A flat sandstone for grinding and shaping. Essential for polished tools.',
     requiredTech: 'grinding',
     requiredTools: [],
     requiredComponents: [],
@@ -112,8 +110,7 @@ export const TOOLS: Tool[] = [
     name: 'Digging Stick',
     category: 'foraging',
     era: 'lower_paleolithic',
-    description:
-      'A simple pointed stick for digging roots and tubers. One of the oldest known tools.',
+    description: 'A pointed stick for digging roots and tubers. One of the oldest tools.',
     requiredTech: 'hafting',
     requiredTools: [],
     requiredComponents: [{ componentId: 'crude_handle', quantity: 1 }],
@@ -130,8 +127,7 @@ export const TOOLS: Tool[] = [
     name: 'Hand Axe',
     category: 'woodworking',
     era: 'lower_paleolithic',
-    description:
-      'A bifacially flaked stone held in the hand. Useful for chopping wood and butchering.',
+    description: 'A bifacially flaked stone held in hand. Good for chopping and butchering.',
     requiredTech: 'basic_knapping',
     requiredTools: ['hammerstone'],
     requiredComponents: [],
@@ -148,8 +144,7 @@ export const TOOLS: Tool[] = [
     name: 'Stone Knife',
     category: 'cutting',
     era: 'middle_paleolithic',
-    description:
-      'A hafted flint blade. Useful for cutting plants and preparing food, and required for finer crafts.',
+    description: 'A hafted flint blade for cutting and food prep. Required for finer crafts.',
     requiredTech: 'hafting',
     requiredTools: ['hammerstone'],
     requiredComponents: [
@@ -169,8 +164,7 @@ export const TOOLS: Tool[] = [
     name: 'Hafted Axe',
     category: 'woodworking',
     era: 'middle_paleolithic',
-    description:
-      'A stone axe head bound to a wooden handle. More powerful than hand axes for felling trees.',
+    description: 'Stone axe head bound to wooden handle. More powerful for felling trees.',
     requiredTech: 'hafting',
     requiredTools: ['hammerstone'],
     requiredComponents: [
@@ -190,8 +184,7 @@ export const TOOLS: Tool[] = [
     name: 'Pressure Flaker',
     category: 'knapping',
     era: 'upper_paleolithic',
-    description:
-      'A pointed tool for precise pressure flaking. Enables crafting refined tools like adzes.',
+    description: 'A pointed tool for precise pressure flaking. Enables finer tool crafting.',
     requiredTech: 'blade_technology',
     requiredTools: ['stone_knife'],
     requiredComponents: [],
@@ -210,8 +203,7 @@ export const TOOLS: Tool[] = [
     name: 'Stone Adze',
     category: 'woodworking',
     era: 'upper_paleolithic',
-    description:
-      'A transverse axe with blade perpendicular to handle. Excellent for hollowing and shaping wood.',
+    description: 'Transverse axe with blade perpendicular to handle. For hollowing wood.',
     requiredTech: 'composite_tools',
     requiredTools: ['hammerstone', 'pressure_flaker'],
     requiredComponents: [
@@ -231,8 +223,7 @@ export const TOOLS: Tool[] = [
     name: 'Polished Axe',
     category: 'woodworking',
     era: 'mesolithic',
-    description:
-      'A ground and polished stone axe. The cutting edge is smoother and more durable than flaked axes.',
+    description: 'A ground and polished stone axe. Smoother, more durable than flaked axes.',
     requiredTech: 'polished_stone',
     requiredTools: ['hammerstone', 'grinding_stone'],
     requiredComponents: [

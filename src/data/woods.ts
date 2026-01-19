@@ -51,8 +51,7 @@ export const WOODS: WoodType[] = [
     name: 'Norway Spruce',
     scientificName: 'Picea abies',
     category: 'softwood',
-    description:
-      'Strong for its weight. Traditional Christmas tree and resonant wood for instruments.',
+    description: 'Strong for its weight. Traditional Christmas tree and resonant instrument wood.',
     properties: { hardness: 4, workability: 7, durability: 4, rarity: 0.6 },
     biomes: ['boreal', 'temperate_conifer', 'montane'],
     realmBiomes: ['PA05', 'PA06', 'PA10'],

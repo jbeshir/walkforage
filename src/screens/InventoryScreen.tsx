@@ -37,7 +37,7 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
           <Text style={styles.resourceName}>{resourceData.name}</Text>
           {isToolstone && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
         </View>
-        <Text style={styles.resourceDescription} numberOfLines={1}>
+        <Text style={styles.resourceDescription} numberOfLines={2}>
           {resourceData.description}
         </Text>
         <View style={styles.propertiesRow}>

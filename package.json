@@ -16,9 +16,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "validate:recipes": "tsx src/scripts/validateRecipes.ts",
+    "validate:display": "tsx src/scripts/validateDisplay.ts",
     "doctor": "npx expo-doctor",
     "deps:check": "npx expo install --check",
-    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run validate:recipes && npm run doctor && npm run deps:check"
+    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run validate:recipes && npm run validate:display && npm run doctor && npm run deps:check"
   },
   "dependencies": {
     "@kingstinct/react-native-healthkit": "^13.1.0",

@@ -42,6 +42,9 @@ jobs:
       - name: Validate recipes
         run: npm run validate:recipes
 
+      - name: Validate display constraints
+        run: npm run validate:display
+
       - name: Run Expo doctor
         run: npm run doctor
 
