@@ -6,15 +6,17 @@
  * 2. Orphaned components - components never used in any recipe
  * 3. Missing references - tools/components referenced but don't exist
  * 4. Invalid tech references - requiredTech doesn't exist in tech tree
- * 5. Broken upgrade chains - upgradesTo/upgradesFrom point to non-existent tools
- * 6. Missing enablesRecipes - tech tree references non-existent tools/components
- * 7. Circular dependencies - tools that require themselves (directly or indirectly)
+ * 5. Missing enablesRecipes - tech tree references non-existent tools/components
+ * 6. Circular dependencies - tools that require themselves (directly or indirectly)
+ * 7. Tech prerequisite/unlock symmetry - if A unlocks B, B should require A (and vice versa)
+ * 8. Tech prerequisite existence - all tech prerequisites reference existing techs
+ * 9. Circular tech prerequisites - techs that require themselves (directly or indirectly)
  *
  * Run with: npx ts-node src/scripts/validateRecipes.ts
  */
 
 import { TOOLS, COMPONENTS, TOOLS_BY_ID } from '../data/tools';
-import { TECHNOLOGIES } from '../data/techTree';
+import { TECHNOLOGIES, TECH_BY_ID } from '../data/techTree';
 
 interface ValidationResult {
   errors: string[];
@@ -65,24 +67,6 @@ function validateRecipes(): ValidationResult {
         componentsUsed.add(comp.componentId);
       }
     }
-
-    // Check upgrade chain
-    if (tool.upgradesTo && !allToolIds.has(tool.upgradesTo)) {
-      result.errors.push(`Tool "${tool.id}" upgradesTo non-existent tool "${tool.upgradesTo}"`);
-    }
-    if (tool.upgradesFrom && !allToolIds.has(tool.upgradesFrom)) {
-      result.errors.push(`Tool "${tool.id}" upgradesFrom non-existent tool "${tool.upgradesFrom}"`);
-    }
-
-    // Check upgrade chain consistency
-    if (tool.upgradesTo) {
-      const upgradedTool = TOOLS_BY_ID[tool.upgradesTo];
-      if (upgradedTool && upgradedTool.upgradesFrom !== tool.id) {
-        result.warnings.push(
-          `Tool "${tool.id}" upgradesTo "${tool.upgradesTo}" but that tool's upgradesFrom is "${upgradedTool.upgradesFrom}"`
-        );
-      }
-    }
   }
 
   // ========== 2. Validate Component Definitions ==========
@@ -120,7 +104,10 @@ function validateRecipes(): ValidationResult {
           recipeId.includes('_chisel') ||
           recipeId.includes('_handle') ||
           recipeId.includes('_head') ||
-          recipeId.includes('_binding')
+          recipeId.includes('_binding') ||
+          recipeId.includes('_knife') ||
+          recipeId.includes('_scraper') ||
+          recipeId.includes('_adze')
         ) {
           result.warnings.push(
             `Tech "${tech.id}" enables recipe "${recipeId}" which doesn't exist as tool or component`
@@ -130,18 +117,89 @@ function validateRecipes(): ValidationResult {
     }
   }
 
+  // ========== 3b. Validate Tech Prerequisites Exist ==========
+  for (const tech of TECHNOLOGIES) {
+    for (const prereq of tech.prerequisites) {
+      if (!allTechIds.has(prereq.techId)) {
+        result.errors.push(`Tech "${tech.id}" has non-existent prerequisite "${prereq.techId}"`);
+      }
+    }
+  }
+
+  // ========== 3c. Validate Tech Unlocks Exist ==========
+  for (const tech of TECHNOLOGIES) {
+    for (const unlockId of tech.unlocks) {
+      if (!allTechIds.has(unlockId)) {
+        result.errors.push(`Tech "${tech.id}" unlocks non-existent tech "${unlockId}"`);
+      }
+    }
+  }
+
+  // ========== 3d. Validate Tech Prerequisite/Unlock Symmetry ==========
+  // If tech A has unlocks: ['B'], then tech B should have prerequisites containing A
+  for (const tech of TECHNOLOGIES) {
+    for (const unlockId of tech.unlocks) {
+      const unlockedTech = TECH_BY_ID[unlockId];
+      if (unlockedTech) {
+        const hasMatchingPrereq = unlockedTech.prerequisites.some(
+          (prereq) => prereq.techId === tech.id
+        );
+        if (!hasMatchingPrereq) {
+          result.errors.push(
+            `Tech "${tech.id}" unlocks "${unlockId}", but "${unlockId}" doesn't have "${tech.id}" as a prerequisite`
+          );
+        }
+      }
+    }
+  }
+
+  // If tech B has prerequisites containing A, then tech A should have unlocks containing B
+  for (const tech of TECHNOLOGIES) {
+    for (const prereq of tech.prerequisites) {
+      const prereqTech = TECH_BY_ID[prereq.techId];
+      if (prereqTech) {
+        const hasMatchingUnlock = prereqTech.unlocks.includes(tech.id);
+        if (!hasMatchingUnlock) {
+          result.errors.push(
+            `Tech "${tech.id}" requires "${prereq.techId}", but "${prereq.techId}" doesn't have "${tech.id}" in its unlocks`
+          );
+        }
+      }
+    }
+  }
+
+  // ========== 3e. Check for Circular Tech Prerequisites ==========
+  for (const tech of TECHNOLOGIES) {
+    const visited = new Set<string>();
+    const queue = tech.prerequisites.map((p) => p.techId);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === tech.id) {
+        result.errors.push(
+          `Tech "${tech.id}" has a circular prerequisite dependency (requires itself)`
+        );
+        break;
+      }
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      const dep = TECH_BY_ID[current];
+      if (dep) {
+        queue.push(...dep.prerequisites.map((p) => p.techId));
+      }
+    }
+  }
+
   // ========== 4. Check for Orphaned Tools ==========
   for (const tool of TOOLS) {
     const isUsedAsPrereq = toolsUsedAsPrereq.has(tool.id);
     const isInTechTree = toolsInTechTree.has(tool.id);
-    const hasSpecialAbilities = tool.stats.specialAbilities.length > 0;
-    const enablesCrafting = tool.enablesCrafting.length > 0;
-    const enablesGathering = tool.enablesGathering.length > 0;
-    const hasMechanicalEffect = hasSpecialAbilities || enablesCrafting || enablesGathering;
+    const hasGatheringBonus = tool.gatheringType !== undefined;
 
-    if (!isUsedAsPrereq && !hasMechanicalEffect) {
+    if (!isUsedAsPrereq && !hasGatheringBonus) {
       result.warnings.push(
-        `Tool "${tool.id}" is never used as a prerequisite and has no special abilities or enables`
+        `Tool "${tool.id}" is never used as a prerequisite and has no gathering bonus`
       );
     }
 
@@ -204,13 +262,24 @@ function validateRecipes(): ValidationResult {
   result.info.push(`Tools in tech tree: ${toolsInTechTree.size}`);
   result.info.push(`Components in tech tree: ${componentsInTechTree.size}`);
 
-  // Tier distribution
-  const tierCounts: Record<string, number> = {};
+  // Era distribution
+  const eraCounts: Record<string, number> = {};
   for (const tool of TOOLS) {
-    tierCounts[tool.tier] = (tierCounts[tool.tier] || 0) + 1;
+    eraCounts[tool.era] = (eraCounts[tool.era] || 0) + 1;
   }
   result.info.push(
-    `Tool tier distribution: ${Object.entries(tierCounts)
+    `Tool era distribution: ${Object.entries(eraCounts)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ')}`
+  );
+
+  // Category distribution
+  const categoryCounts: Record<string, number> = {};
+  for (const tool of TOOLS) {
+    categoryCounts[tool.category] = (categoryCounts[tool.category] || 0) + 1;
+  }
+  result.info.push(
+    `Tool category distribution: ${Object.entries(categoryCounts)
       .map(([k, v]) => `${k}=${v}`)
       .join(', ')}`
   );
@@ -219,7 +288,6 @@ function validateRecipes(): ValidationResult {
 }
 
 // Main execution
-/* eslint-disable no-console */
 function main() {
   console.log('='.repeat(60));
   console.log('Recipe Validation Report');
@@ -262,7 +330,6 @@ function main() {
     process.exit(1);
   }
 }
-/* eslint-enable no-console */
 
 // Export for use as module
 export { validateRecipes, ValidationResult };

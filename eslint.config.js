@@ -75,7 +75,6 @@ module.exports = [
       'react-native/no-raw-text': 'off',
 
       // General
-      'no-console': 'warn',
       'prefer-const': 'warn',
     },
   },

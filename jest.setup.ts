@@ -117,26 +117,56 @@ jest.mock('expo-file-system', () => ({
   },
 }));
 
+// Mock AppState subscription
+const mockAppStateSubscription = {
+  remove: jest.fn(),
+};
+
 // Mock react-native modules
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  return {
-    ...RN,
-    Platform: {
-      ...RN.Platform,
-      OS: 'ios',
-      select: jest.fn((obj) => obj.ios || obj.default),
-    },
-    Dimensions: {
-      get: jest.fn(() => ({ width: 375, height: 812 })),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    },
-    Alert: {
-      alert: jest.fn(),
-    },
-  };
-});
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+    select: jest.fn((obj: Record<string, unknown>) => obj.ios || obj.default),
+  },
+  Dimensions: {
+    get: jest.fn(() => ({ width: 375, height: 812 })),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  },
+  Alert: {
+    alert: jest.fn(),
+  },
+  AppState: {
+    currentState: 'active',
+    addEventListener: jest.fn(() => mockAppStateSubscription),
+  },
+  StyleSheet: {
+    create: jest.fn((styles: Record<string, unknown>) => styles),
+    flatten: jest.fn((style: unknown) => style),
+    hairlineWidth: 1,
+  },
+  View: 'View',
+  Text: 'Text',
+  TouchableOpacity: 'TouchableOpacity',
+  ScrollView: 'ScrollView',
+  Modal: 'Modal',
+  Animated: {
+    View: 'Animated.View',
+    Text: 'Animated.Text',
+    Value: jest.fn(() => ({
+      setValue: jest.fn(),
+      interpolate: jest.fn(() => 0),
+    })),
+    timing: jest.fn(() => ({
+      start: jest.fn((cb?: () => void) => cb?.()),
+    })),
+    parallel: jest.fn(() => ({
+      start: jest.fn((cb?: () => void) => cb?.()),
+    })),
+  },
+}));
+
+export { mockAppStateSubscription };
 
 // Mock react-native-maps
 jest.mock('react-native-maps', () => ({

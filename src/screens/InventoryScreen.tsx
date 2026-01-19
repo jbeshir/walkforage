@@ -1,10 +1,10 @@
-// Inventory Screen - View collected resources
+// Materials Screen - View collected resources
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
-import { ResourceStack } from '../types/resources';
+import { ResourceStack, StoneType } from '../types/resources';
 
 interface ResourceItemProps {
   stack: ResourceStack;
@@ -27,11 +27,16 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
     );
   }
 
+  const isToolstone = type === 'stone' && (resourceData as StoneType).isToolstone === true;
+
   return (
     <View style={styles.resourceItem}>
       <View style={[styles.colorSwatch, { backgroundColor: resourceData.color }]} />
       <View style={styles.resourceInfo}>
-        <Text style={styles.resourceName}>{resourceData.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.resourceName}>{resourceData.name}</Text>
+          {isToolstone && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
+        </View>
         <Text style={styles.resourceDescription} numberOfLines={1}>
           {resourceData.description}
         </Text>
@@ -199,10 +204,24 @@ const styles = StyleSheet.create({
   resourceInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   resourceName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  toolstoneBadge: {
+    fontSize: 10,
+    color: '#fff',
+    backgroundColor: '#78909C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+    fontWeight: '600',
   },
   resourceDescription: {
     fontSize: 12,

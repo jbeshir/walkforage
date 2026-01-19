@@ -328,7 +328,6 @@ function validateResources(): ValidationResult {
 }
 
 // Main execution
-/* eslint-disable no-console */
 function main() {
   console.log('='.repeat(60));
   console.log('Resource Validation Report');
@@ -371,7 +370,6 @@ function main() {
     process.exit(1);
   }
 }
-/* eslint-enable no-console */
 
 // Export for use as module
 export { validateResources, ValidationResult };

@@ -9,7 +9,9 @@ import React, {
   useContext,
   createContext,
   ReactNode,
+  useRef,
 } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Inventory, ResourceStack } from '../types/resources';
 import { TechProgress } from '../types/tech';
@@ -17,35 +19,17 @@ import { Village, PlacedBuilding } from '../types/village';
 import {
   PlayerToolInventory,
   OwnedTool,
+  OwnedComponent,
   CraftingJob,
-  MaterialTier,
-  ToolRequirement,
-  isTierAtLeast,
-  QUALITY_MULTIPLIERS,
+  Tool,
+  CraftedComponent,
 } from '../types/tools';
-import { getToolById, getComponentById } from '../data/tools';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
-
-/**
- * Determine the inventory category for a resource ID by looking it up in the data.
- * Falls back to 'stones' if not found (safest default for unknown resources).
- */
-function getResourceCategory(resourceId: string): keyof Inventory {
-  // Check woods first
-  if (WOODS_BY_ID[resourceId]) {
-    return 'woods';
-  }
-
-  // Check stones - ores are a subcategory of stones with category === 'ore'
-  const stone = STONES_BY_ID[resourceId];
-  if (stone) {
-    return stone.category === 'ore' ? 'ores' : 'stones';
-  }
-
-  // Fallback for unknown resources
-  return 'stones';
-}
+import {
+  CraftingService,
+  CraftCheckResult,
+  CraftParams,
+  CraftingState,
+} from '../services/CraftingService';
 
 const STORAGE_KEY = 'walkforage_gamestate';
 
@@ -54,8 +38,6 @@ export interface StepGatheringState {
   availableSteps: number;
   /** Timestamp of last step sync from health service */
   lastSyncTimestamp: number;
-  /** Timestamp of last gather action */
-  lastGatherTimestamp: number;
   /** Total steps ever used for gathering */
   totalStepsGathered: number;
 }
@@ -67,7 +49,6 @@ export interface GameState {
   craftingQueue: CraftingJob[];
   village: Village;
   explorationPoints: number;
-  lastSaveTime: number;
   stepGathering: StepGatheringState;
 }
 
@@ -79,13 +60,11 @@ const INITIAL_STATE: GameState = {
     other: [],
   },
   techProgress: {
-    unlockedTechs: ['flint_knapping'], // Start with basic knapping unlocked
-    currentResearch: null,
-    researchProgress: 0,
+    unlockedTechs: [], // Start with no techs unlocked
   },
   toolInventory: {
     ownedTools: [],
-    componentInventory: {},
+    ownedComponents: [],
   },
   craftingQueue: [],
   village: {
@@ -96,14 +75,20 @@ const INITIAL_STATE: GameState = {
     gridSize: { width: 10, height: 10 },
   },
   explorationPoints: 0,
-  lastSaveTime: Date.now(),
   stepGathering: {
     availableSteps: 0,
     lastSyncTimestamp: 0,
-    lastGatherTimestamp: 0,
     totalStepsGathered: 0,
   },
 };
+
+// Re-export CraftCheckResult from CraftingService for external consumers
+export type { CraftCheckResult } from '../services/CraftingService';
+
+// Parameters for crafting (used by both tools and components)
+export interface CraftItemParams extends CraftParams {
+  craftable: Tool | CraftedComponent;
+}
 
 export interface GameStateHook {
   state: GameState;
@@ -113,21 +98,21 @@ export interface GameStateHook {
   addResource: (category: keyof Inventory, resourceId: string, quantity: number) => void;
   removeResource: (category: keyof Inventory, resourceId: string, quantity: number) => boolean;
   hasResource: (category: keyof Inventory, resourceId: string, quantity: number) => boolean;
+  getResourceCount: (category: keyof Inventory, resourceId: string) => number;
 
   // Tech actions
   unlockTech: (techId: string) => void;
   hasTech: (techId: string) => boolean;
 
   // Tool inventory actions
-  hasTool: (toolId: string, minTier?: MaterialTier) => boolean;
+  hasTool: (toolId: string) => boolean;
   getOwnedTools: (toolId: string) => OwnedTool[];
-  getBestTool: (toolId: string, minTier?: MaterialTier) => OwnedTool | null;
-  canCraftTool: (toolId: string) => { canCraft: boolean; missingRequirements: string[] };
-  canCraftComponent: (componentId: string) => { canCraft: boolean; missingRequirements: string[] };
-  craftTool: (toolId: string) => boolean;
-  craftComponent: (componentId: string) => boolean;
-  useTool: (instanceId: string, durabilityLoss: number) => void;
-  repairTool: (instanceId: string) => boolean;
+  getBestTool: (toolId: string) => OwnedTool | null;
+  getOwnedComponents: (componentId: string) => OwnedComponent[];
+
+  // Unified crafting via CraftingService
+  canCraft: (craftable: Tool | CraftedComponent) => CraftCheckResult;
+  craft: (params: CraftItemParams) => { success: boolean; error?: string };
 
   // Exploration actions
   addExplorationPoints: (points: number) => void;
@@ -155,10 +140,21 @@ interface GameStateProviderProps {
   children: ReactNode;
 }
 
+// Throttle interval for auto-save (saves at most once per this interval during activity)
+const SAVE_THROTTLE_MS = 3000;
+
 // Provider component that holds the shared state
 export function GameStateProvider({ children }: GameStateProviderProps) {
   const [state, setState] = useState<GameState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(true);
+  const pendingSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaveTimeRef = useRef<number>(0);
+  const stateRef = useRef<GameState>(state);
+
+  // Keep stateRef in sync with state for use in callbacks
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const loadGame = useCallback(async () => {
     try {
@@ -173,8 +169,8 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
           inventory: { ...INITIAL_STATE.inventory, ...parsed.inventory },
           techProgress: { ...INITIAL_STATE.techProgress, ...parsed.techProgress },
           toolInventory: {
-            ...INITIAL_STATE.toolInventory,
-            ...(parsed.toolInventory || {}),
+            ownedTools: parsed.toolInventory?.ownedTools || [],
+            ownedComponents: parsed.toolInventory?.ownedComponents || [],
           },
           craftingQueue: parsed.craftingQueue || INITIAL_STATE.craftingQueue,
           village: { ...INITIAL_STATE.village, ...parsed.village },
@@ -182,29 +178,62 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
         });
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to load game:', error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Save using ref so it can be called from AppState listener without stale closure
+  const saveGameImmediate = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stateRef.current));
+      lastSaveTimeRef.current = Date.now();
+    } catch (error) {
+      console.error('Failed to save game:', error);
+    }
+  }, []);
+
+  // Public save function that uses current state
   const saveGame = useCallback(async () => {
     try {
-      const toSave = { ...state, lastSaveTime: Date.now() };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      lastSaveTimeRef.current = Date.now();
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to save game:', error);
     }
   }, [state]);
+
+  // Throttled save: saves immediately if throttle period has passed,
+  // otherwise schedules a save for the end of the throttle period
+  const throttledSave = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastSave = now - lastSaveTimeRef.current;
+
+    // Clear any pending save
+    if (pendingSaveRef.current) {
+      clearTimeout(pendingSaveRef.current);
+      pendingSaveRef.current = null;
+    }
+
+    if (timeSinceLastSave >= SAVE_THROTTLE_MS) {
+      // Enough time has passed, save immediately
+      saveGameImmediate();
+    } else {
+      // Schedule save for when throttle period ends
+      const timeUntilNextSave = SAVE_THROTTLE_MS - timeSinceLastSave;
+      pendingSaveRef.current = setTimeout(() => {
+        saveGameImmediate();
+        pendingSaveRef.current = null;
+      }, timeUntilNextSave);
+    }
+  }, [saveGameImmediate]);
 
   const resetGame = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
       setState(INITIAL_STATE);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to reset game:', error);
     }
   }, []);
@@ -214,7 +243,27 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     loadGame();
   }, [loadGame]);
 
-  // Auto-save periodically
+  // Save when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // Cancel any pending throttled save and save immediately
+        if (pendingSaveRef.current) {
+          clearTimeout(pendingSaveRef.current);
+          pendingSaveRef.current = null;
+        }
+        saveGameImmediate();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [saveGameImmediate]);
+
+  // Auto-save periodically (backup, in case throttled saves miss something)
   useEffect(() => {
     const interval = setInterval(() => {
       saveGame();
@@ -222,6 +271,20 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
     return () => clearInterval(interval);
   }, [saveGame]);
+
+  // Throttled save on state changes (after initial load)
+  // Unlike debounce, throttle guarantees saves happen during sustained activity
+  useEffect(() => {
+    if (!isLoading) {
+      throttledSave();
+    }
+
+    return () => {
+      if (pendingSaveRef.current) {
+        clearTimeout(pendingSaveRef.current);
+      }
+    };
+  }, [state, isLoading, throttledSave]);
 
   // Inventory helpers
   const findResourceIndex = (stacks: ResourceStack[], resourceId: string): number => {
@@ -289,6 +352,15 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     [state.inventory]
   );
 
+  const getResourceCount = useCallback(
+    (category: keyof Inventory, resourceId: string): number => {
+      const stacks = state.inventory[category];
+      const stack = stacks.find((s) => s.resourceId === resourceId);
+      return stack?.quantity || 0;
+    },
+    [state.inventory]
+  );
+
   // Tech helpers
   const unlockTech = useCallback((techId: string) => {
     setState((prev) => ({
@@ -316,265 +388,72 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   );
 
   const hasTool = useCallback(
-    (toolId: string, minTier?: MaterialTier): boolean => {
-      const tool = getToolById(toolId);
-      if (!tool) return false;
-
-      const owned = getOwnedTools(toolId);
-      if (owned.length === 0) return false;
-
-      if (minTier) {
-        return isTierAtLeast(tool.tier, minTier);
-      }
-      return true;
+    (toolId: string): boolean => {
+      return getOwnedTools(toolId).length > 0;
     },
     [getOwnedTools]
   );
 
   const getBestTool = useCallback(
-    (toolId: string, minTier?: MaterialTier): OwnedTool | null => {
+    (toolId: string): OwnedTool | null => {
       const owned = getOwnedTools(toolId);
       if (owned.length === 0) return null;
 
-      const tool = getToolById(toolId);
-      if (!tool) return null;
-
-      if (minTier && !isTierAtLeast(tool.tier, minTier)) {
-        return null;
-      }
-
-      // Return the one with highest durability
-      return owned.reduce((best, current) =>
-        current.currentDurability > best.currentDurability ? current : best
-      );
+      // Return the one with highest quality
+      return owned.reduce((best, current) => (current.quality > best.quality ? current : best));
     },
     [getOwnedTools]
   );
 
-  const canCraftComponent = useCallback(
-    (componentId: string): { canCraft: boolean; missingRequirements: string[] } => {
-      const component = getComponentById(componentId);
-      if (!component) {
-        return { canCraft: false, missingRequirements: [`Unknown component: ${componentId}`] };
-      }
-
-      const missing: string[] = [];
-
-      // Check tech requirement
-      if (!state.techProgress.unlockedTechs.includes(component.requiredTech)) {
-        missing.push(`Tech: ${component.requiredTech}`);
-      }
-
-      // Check tool requirements
-      for (const req of component.requiredTools) {
-        if (!hasTool(req.toolId, req.minTier)) {
-          missing.push(`Tool: ${req.toolId} (${req.minTier}+)`);
-        }
-      }
-
-      // Check material requirements
-      for (const mat of component.materials) {
-        const category = getResourceCategory(mat.resourceId);
-        if (!hasResource(category, mat.resourceId, mat.quantity)) {
-          missing.push(`Material: ${mat.quantity}x ${mat.resourceId}`);
-        }
-      }
-
-      return { canCraft: missing.length === 0, missingRequirements: missing };
+  const getOwnedComponents = useCallback(
+    (componentId: string): OwnedComponent[] => {
+      return state.toolInventory.ownedComponents.filter((c) => c.componentId === componentId);
     },
-    [state.techProgress.unlockedTechs, hasTool, hasResource]
+    [state.toolInventory.ownedComponents]
   );
 
-  const canCraftTool = useCallback(
-    (toolId: string): { canCraft: boolean; missingRequirements: string[] } => {
-      const tool = getToolById(toolId);
-      if (!tool) {
-        return { canCraft: false, missingRequirements: [`Unknown tool: ${toolId}`] };
-      }
+  // Helper to get CraftingState from GameState
+  const getCraftingState = useCallback((): CraftingState => {
+    return {
+      inventory: state.inventory,
+      techProgress: state.techProgress,
+      toolInventory: state.toolInventory,
+    };
+  }, [state.inventory, state.techProgress, state.toolInventory]);
 
-      const missing: string[] = [];
-
-      // Check tech requirement
-      if (!state.techProgress.unlockedTechs.includes(tool.requiredTech)) {
-        missing.push(`Tech: ${tool.requiredTech}`);
-      }
-
-      // Check tool requirements
-      for (const req of tool.requiredTools) {
-        if (!hasTool(req.toolId, req.minTier)) {
-          missing.push(`Tool: ${req.toolId} (${req.minTier}+)`);
-        }
-      }
-
-      // Check component requirements
-      for (const comp of tool.requiredComponents) {
-        const owned = state.toolInventory.componentInventory[comp.componentId] || 0;
-        if (owned < comp.quantity) {
-          missing.push(`Component: ${comp.quantity}x ${comp.componentId}`);
-        }
-      }
-
-      // Check material requirements
-      for (const mat of tool.materials) {
-        const category = getResourceCategory(mat.resourceId);
-        if (!hasResource(category, mat.resourceId, mat.quantity)) {
-          missing.push(`Material: ${mat.quantity}x ${mat.resourceId}`);
-        }
-      }
-
-      return { canCraft: missing.length === 0, missingRequirements: missing };
+  // Unified canCraft using CraftingService
+  const canCraft = useCallback(
+    (craftable: Tool | CraftedComponent): CraftCheckResult => {
+      return CraftingService.canCraft(craftable, getCraftingState());
     },
-    [state.techProgress.unlockedTechs, state.toolInventory.componentInventory, hasTool, hasResource]
+    [getCraftingState]
   );
 
-  const craftComponent = useCallback(
-    (componentId: string): boolean => {
-      const { canCraft } = canCraftComponent(componentId);
-      if (!canCraft) return false;
+  // Unified craft using CraftingService
+  const craft = useCallback(
+    (params: CraftItemParams): { success: boolean; error?: string } => {
+      const { craftable, selectedStoneId, selectedWoodId, selectedComponentIds } = params;
 
-      const component = getComponentById(componentId);
-      if (!component) return false;
+      const result = CraftingService.craft(
+        craftable,
+        { selectedStoneId, selectedWoodId, selectedComponentIds },
+        getCraftingState()
+      );
 
-      setState((prev) => {
-        // Consume materials (simplified - just update component inventory)
-        const newComponentInventory = { ...prev.toolInventory.componentInventory };
-        newComponentInventory[componentId] = (newComponentInventory[componentId] || 0) + 1;
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
 
-        // Use durability from required tools
-        const newOwnedTools = prev.toolInventory.ownedTools.map((t) => {
-          const req = component.requiredTools.find((r: ToolRequirement) => r.toolId === t.toolId);
-          if (req && req.consumesDurability > 0) {
-            return { ...t, currentDurability: t.currentDurability - req.consumesDurability };
-          }
-          return t;
-        });
-
-        return {
-          ...prev,
-          toolInventory: {
-            ...prev.toolInventory,
-            ownedTools: newOwnedTools.filter((t) => t.currentDurability > 0),
-            componentInventory: newComponentInventory,
-          },
-        };
-      });
-
-      return true;
-    },
-    [canCraftComponent]
-  );
-
-  const craftTool = useCallback(
-    (toolId: string): boolean => {
-      const { canCraft } = canCraftTool(toolId);
-      if (!canCraft) return false;
-
-      const tool = getToolById(toolId);
-      if (!tool) return false;
-
-      setState((prev) => {
-        // Consume components
-        const newComponentInventory = { ...prev.toolInventory.componentInventory };
-        for (const comp of tool.requiredComponents) {
-          newComponentInventory[comp.componentId] =
-            (newComponentInventory[comp.componentId] || 0) - comp.quantity;
-        }
-
-        // Use durability from required tools
-        let newOwnedTools = prev.toolInventory.ownedTools.map((t) => {
-          const req = tool.requiredTools.find((r: ToolRequirement) => r.toolId === t.toolId);
-          if (req && req.consumesDurability > 0) {
-            return { ...t, currentDurability: t.currentDurability - req.consumesDurability };
-          }
-          return t;
-        });
-
-        // Determine quality (simple RNG for now)
-        const qualityRoll = Math.random();
-        let quality: OwnedTool['quality'] = 'normal';
-        if (qualityRoll < 0.1) quality = 'poor';
-        else if (qualityRoll > 0.9) quality = 'excellent';
-        else if (qualityRoll > 0.75) quality = 'good';
-
-        // Create the new tool
-        const newTool: OwnedTool = {
-          instanceId: `${toolId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          toolId,
-          currentDurability: tool.stats.durability * QUALITY_MULTIPLIERS[quality],
-          timesRepaired: 0,
-          quality,
-          createdAt: Date.now(),
-        };
-
-        // Remove broken tools, add new tool
-        newOwnedTools = newOwnedTools.filter((t) => t.currentDurability > 0);
-        newOwnedTools.push(newTool);
-
-        return {
-          ...prev,
-          toolInventory: {
-            ...prev.toolInventory,
-            ownedTools: newOwnedTools,
-            componentInventory: newComponentInventory,
-          },
-        };
-      });
-
-      return true;
-    },
-    [canCraftTool]
-  );
-
-  const useTool = useCallback((instanceId: string, durabilityLoss: number) => {
-    setState((prev) => ({
-      ...prev,
-      toolInventory: {
-        ...prev.toolInventory,
-        ownedTools: prev.toolInventory.ownedTools
-          .map((t) =>
-            t.instanceId === instanceId
-              ? { ...t, currentDurability: t.currentDurability - durabilityLoss }
-              : t
-          )
-          .filter((t) => t.currentDurability > 0),
-      },
-    }));
-  }, []);
-
-  const repairTool = useCallback(
-    (instanceId: string): boolean => {
-      const owned = state.toolInventory.ownedTools.find((t) => t.instanceId === instanceId);
-      if (!owned) return false;
-
-      const tool = getToolById(owned.toolId);
-      if (!tool || !tool.stats.canRepair || !tool.stats.repairMaterial) return false;
-
-      // Check if we have repair material
-      const repairMat = tool.stats.repairMaterial;
-      const category = getResourceCategory(repairMat);
-      if (!hasResource(category, repairMat, 1)) return false;
-
+      // Apply the new state from CraftingService
       setState((prev) => ({
         ...prev,
-        toolInventory: {
-          ...prev.toolInventory,
-          ownedTools: prev.toolInventory.ownedTools.map((t) => {
-            if (t.instanceId !== instanceId) return t;
-            // Repair degrades max durability slightly over time
-            const degradation = 0.95 ** t.timesRepaired;
-            const maxDur = tool.stats.maxDurability * degradation * QUALITY_MULTIPLIERS[t.quality];
-            return {
-              ...t,
-              currentDurability: maxDur,
-              timesRepaired: t.timesRepaired + 1,
-            };
-          }),
-        },
+        inventory: result.newState.inventory,
+        toolInventory: result.newState.toolInventory,
       }));
 
-      return true;
+      return { success: true };
     },
-    [state.toolInventory.ownedTools, hasResource]
+    [getCraftingState]
   );
 
   // Exploration helpers
@@ -604,7 +483,6 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
         ...prev.stepGathering,
         availableSteps: Math.max(0, prev.stepGathering.availableSteps - amount),
         totalStepsGathered: prev.stepGathering.totalStepsGathered + amount,
-        lastGatherTimestamp: Date.now(),
       },
     }));
   }, []);
@@ -642,17 +520,15 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     addResource,
     removeResource,
     hasResource,
+    getResourceCount,
     unlockTech,
     hasTech,
     hasTool,
     getOwnedTools,
     getBestTool,
-    canCraftTool,
-    canCraftComponent,
-    craftTool,
-    craftComponent,
-    useTool,
-    repairTool,
+    getOwnedComponents,
+    canCraft,
+    craft,
     addExplorationPoints,
     syncSteps,
     spendSteps,

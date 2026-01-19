@@ -280,60 +280,6 @@ function buildCoarseBiomeIndex(records: BiomeRecord[]): Record<string, BiomeInde
 }
 
 /**
- * Build detailed geology tiles (precision 4)
- */
-function buildGeologyTiles(
-  records: GeologyRecord[]
-): Map<string, Record<string, GeoTile['geology']>> {
-  const tiles = new Map<string, Record<string, GeoTile['geology']>>();
-
-  // Group by precision-3 prefix for file organization
-  const groups = groupByPrefix(records, 3);
-
-  for (const [prefix, groupRecords] of groups) {
-    const tileData: Record<string, GeoTile['geology']> = {};
-
-    for (const record of groupRecords) {
-      tileData[record.geohash] = {
-        // Normalize lithology names
-        primaryLithology: normalizeLithology(record.primaryLithology),
-        secondaryLithologies: record.secondaryLithologies.map(normalizeLithology),
-        confidence: record.confidence,
-      };
-    }
-
-    tiles.set(prefix, tileData);
-  }
-
-  return tiles;
-}
-
-/**
- * Build detailed biome tiles (precision 4)
- */
-function buildBiomeTiles(records: BiomeRecord[]): Map<string, Record<string, GeoTile['biome']>> {
-  const tiles = new Map<string, Record<string, GeoTile['biome']>>();
-
-  // Group by precision-3 prefix for file organization
-  const groups = groupByPrefix(records, 3);
-
-  for (const [prefix, groupRecords] of groups) {
-    const tileData: Record<string, GeoTile['biome']> = {};
-
-    for (const record of groupRecords) {
-      tileData[record.geohash] = {
-        type: record.biomeCode,
-        confidence: record.confidence,
-      };
-    }
-
-    tiles.set(prefix, tileData);
-  }
-
-  return tiles;
-}
-
-/**
  * Build combined tiles (geology + biome)
  */
 function buildCombinedTiles(

@@ -84,11 +84,3 @@ export interface GeologicalZone {
   biome: string; // Vegetation biome
   woodTypes: string[]; // Available wood types
 }
-
-// Player location and exploration state
-export interface ExplorationState {
-  currentZone: GeologicalZone | null;
-  discoveredZones: string[];
-  totalDistanceWalked: number; // meters
-  explorationPoints: number;
-}

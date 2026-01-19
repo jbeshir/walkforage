@@ -1,161 +1,222 @@
 import {
-  MaterialTier,
-  TIER_ORDER,
-  compareTiers,
-  isTierAtLeast,
-  QUALITY_MULTIPLIERS,
+  ToolCategory,
+  ComponentCategory,
+  MaterialRequirements,
+  ToolPrerequisite,
+  UsedMaterials,
+  QualityTier,
+  getQualityTier,
+  calculateGatheringBonus,
+  QUALITY_TIER_THRESHOLDS,
 } from '../src/types/tools';
+import { LithicEra } from '../src/types/tech';
+import { TOOLS } from '../src/data/tools';
 
-describe('Tool Types Utilities', () => {
-  describe('TIER_ORDER', () => {
-    it('should contain all material tiers', () => {
-      expect(TIER_ORDER).toContain('primitive');
-      expect(TIER_ORDER).toContain('stone');
-      expect(TIER_ORDER).toContain('copper');
-      expect(TIER_ORDER).toContain('bronze');
-      expect(TIER_ORDER).toContain('iron');
-      expect(TIER_ORDER).toContain('steel');
-    });
-
-    it('should have exactly 6 tiers', () => {
-      expect(TIER_ORDER.length).toBe(6);
-    });
-
-    it('should be in correct progression order', () => {
-      expect(TIER_ORDER[0]).toBe('primitive');
-      expect(TIER_ORDER[1]).toBe('stone');
-      expect(TIER_ORDER[2]).toBe('copper');
-      expect(TIER_ORDER[3]).toBe('bronze');
-      expect(TIER_ORDER[4]).toBe('iron');
-      expect(TIER_ORDER[5]).toBe('steel');
+describe('Tool Types', () => {
+  describe('LithicEra type', () => {
+    it('should have valid lithic era values', () => {
+      const validEras: LithicEra[] = [
+        'lower_paleolithic',
+        'middle_paleolithic',
+        'upper_paleolithic',
+        'mesolithic',
+      ];
+      expect(validEras.length).toBe(4);
     });
   });
 
-  describe('compareTiers', () => {
-    it('should return 0 for same tier', () => {
-      expect(compareTiers('primitive', 'primitive')).toBe(0);
-      expect(compareTiers('stone', 'stone')).toBe(0);
-      expect(compareTiers('copper', 'copper')).toBe(0);
-      expect(compareTiers('bronze', 'bronze')).toBe(0);
-      expect(compareTiers('iron', 'iron')).toBe(0);
-      expect(compareTiers('steel', 'steel')).toBe(0);
-    });
-
-    it('should return negative when first tier is lower', () => {
-      expect(compareTiers('primitive', 'stone')).toBeLessThan(0);
-      expect(compareTiers('stone', 'copper')).toBeLessThan(0);
-      expect(compareTiers('copper', 'bronze')).toBeLessThan(0);
-      expect(compareTiers('bronze', 'iron')).toBeLessThan(0);
-      expect(compareTiers('iron', 'steel')).toBeLessThan(0);
-    });
-
-    it('should return positive when first tier is higher', () => {
-      expect(compareTiers('stone', 'primitive')).toBeGreaterThan(0);
-      expect(compareTiers('copper', 'stone')).toBeGreaterThan(0);
-      expect(compareTiers('bronze', 'copper')).toBeGreaterThan(0);
-      expect(compareTiers('iron', 'bronze')).toBeGreaterThan(0);
-      expect(compareTiers('steel', 'iron')).toBeGreaterThan(0);
-    });
-
-    it('should handle multi-step differences', () => {
-      expect(compareTiers('primitive', 'steel')).toBeLessThan(0);
-      expect(compareTiers('steel', 'primitive')).toBeGreaterThan(0);
-      expect(compareTiers('stone', 'iron')).toBeLessThan(0);
-      expect(compareTiers('iron', 'stone')).toBeGreaterThan(0);
-    });
-
-    it('should return correct index difference', () => {
-      // primitive (0) vs steel (5) = -5
-      expect(compareTiers('primitive', 'steel')).toBe(-5);
-      // steel (5) vs primitive (0) = 5
-      expect(compareTiers('steel', 'primitive')).toBe(5);
-      // stone (1) vs bronze (3) = -2
-      expect(compareTiers('stone', 'bronze')).toBe(-2);
+  describe('ToolCategory type', () => {
+    it('should have valid tool categories for lithic era', () => {
+      const validCategories: ToolCategory[] = [
+        'knapping',
+        'woodworking',
+        'foraging',
+        'cutting',
+        'general',
+      ];
+      expect(validCategories.length).toBe(5);
     });
   });
 
-  describe('isTierAtLeast', () => {
-    it('should return true when tier equals required', () => {
-      expect(isTierAtLeast('primitive', 'primitive')).toBe(true);
-      expect(isTierAtLeast('stone', 'stone')).toBe(true);
-      expect(isTierAtLeast('copper', 'copper')).toBe(true);
-      expect(isTierAtLeast('bronze', 'bronze')).toBe(true);
-      expect(isTierAtLeast('iron', 'iron')).toBe(true);
-      expect(isTierAtLeast('steel', 'steel')).toBe(true);
-    });
-
-    it('should return true when tier exceeds required', () => {
-      expect(isTierAtLeast('stone', 'primitive')).toBe(true);
-      expect(isTierAtLeast('copper', 'stone')).toBe(true);
-      expect(isTierAtLeast('bronze', 'copper')).toBe(true);
-      expect(isTierAtLeast('iron', 'bronze')).toBe(true);
-      expect(isTierAtLeast('steel', 'iron')).toBe(true);
-    });
-
-    it('should return false when tier is below required', () => {
-      expect(isTierAtLeast('primitive', 'stone')).toBe(false);
-      expect(isTierAtLeast('stone', 'copper')).toBe(false);
-      expect(isTierAtLeast('copper', 'bronze')).toBe(false);
-      expect(isTierAtLeast('bronze', 'iron')).toBe(false);
-      expect(isTierAtLeast('iron', 'steel')).toBe(false);
-    });
-
-    it('should handle multi-step comparisons', () => {
-      expect(isTierAtLeast('steel', 'primitive')).toBe(true);
-      expect(isTierAtLeast('primitive', 'steel')).toBe(false);
-      expect(isTierAtLeast('iron', 'stone')).toBe(true);
-      expect(isTierAtLeast('stone', 'iron')).toBe(false);
-    });
-
-    it('should work for typical tool requirement checks', () => {
-      // Stone knife requires hammerstone (primitive tier)
-      expect(isTierAtLeast('primitive', 'primitive')).toBe(true);
-      expect(isTierAtLeast('stone', 'primitive')).toBe(true);
-
-      // Copper tools require stone hammer (stone tier)
-      expect(isTierAtLeast('stone', 'stone')).toBe(true);
-      expect(isTierAtLeast('copper', 'stone')).toBe(true);
-      expect(isTierAtLeast('primitive', 'stone')).toBe(false);
-
-      // Iron tools require bronze hammer (bronze tier)
-      expect(isTierAtLeast('bronze', 'bronze')).toBe(true);
-      expect(isTierAtLeast('iron', 'bronze')).toBe(true);
-      expect(isTierAtLeast('copper', 'bronze')).toBe(false);
+  describe('ComponentCategory type', () => {
+    it('should have valid component categories', () => {
+      const validCategories: ComponentCategory[] = ['handle', 'binding'];
+      expect(validCategories.length).toBe(2);
     });
   });
 
-  describe('QUALITY_MULTIPLIERS', () => {
-    it('should have all quality levels', () => {
-      expect(QUALITY_MULTIPLIERS).toHaveProperty('poor');
-      expect(QUALITY_MULTIPLIERS).toHaveProperty('normal');
-      expect(QUALITY_MULTIPLIERS).toHaveProperty('good');
-      expect(QUALITY_MULTIPLIERS).toHaveProperty('excellent');
+  describe('MaterialRequirements interface', () => {
+    it('should accept valid stone material requirement', () => {
+      const req: MaterialRequirements = {
+        stone: { quantity: 2, requiresToolstone: true },
+      };
+      expect(req.stone?.quantity).toBe(2);
+      expect(req.stone?.requiresToolstone).toBe(true);
     });
 
-    it('should have correct multiplier values', () => {
-      expect(QUALITY_MULTIPLIERS.poor).toBe(0.75);
-      expect(QUALITY_MULTIPLIERS.normal).toBe(1.0);
-      expect(QUALITY_MULTIPLIERS.good).toBe(1.25);
-      expect(QUALITY_MULTIPLIERS.excellent).toBe(1.5);
+    it('should accept valid wood material requirement', () => {
+      const req: MaterialRequirements = {
+        wood: { quantity: 1 },
+      };
+      expect(req.wood?.quantity).toBe(1);
     });
 
-    it('should have increasing multipliers for better quality', () => {
-      expect(QUALITY_MULTIPLIERS.poor).toBeLessThan(QUALITY_MULTIPLIERS.normal);
-      expect(QUALITY_MULTIPLIERS.normal).toBeLessThan(QUALITY_MULTIPLIERS.good);
-      expect(QUALITY_MULTIPLIERS.good).toBeLessThan(QUALITY_MULTIPLIERS.excellent);
-    });
-
-    it('normal quality should have 1.0 multiplier (baseline)', () => {
-      expect(QUALITY_MULTIPLIERS.normal).toBe(1.0);
+    it('should accept both stone and wood requirements', () => {
+      const req: MaterialRequirements = {
+        stone: { quantity: 5 },
+        wood: { quantity: 3 },
+      };
+      expect(req.stone?.quantity).toBe(5);
+      expect(req.wood?.quantity).toBe(3);
     });
   });
 
-  describe('Type definitions consistency', () => {
-    it('MaterialTier type should match TIER_ORDER values', () => {
-      // This is more of a type-level test - verify all TIER_ORDER elements
-      // can be used as MaterialTier
-      const tiers: MaterialTier[] = [...TIER_ORDER];
-      expect(tiers.length).toBe(6);
+  describe('ToolPrerequisite interface', () => {
+    it('should accept valid tool prerequisite', () => {
+      const prereq: ToolPrerequisite = {
+        toolId: 'hammerstone',
+      };
+      expect(prereq.toolId).toBe('hammerstone');
+    });
+  });
+
+  describe('UsedMaterials interface', () => {
+    it('should accept stone-only materials', () => {
+      const materials: UsedMaterials = {
+        stoneId: 'flint',
+        stoneQuantity: 2,
+      };
+      expect(materials.stoneId).toBe('flint');
+      expect(materials.stoneQuantity).toBe(2);
+      expect(materials.woodId).toBeUndefined();
+    });
+
+    it('should accept wood-only materials', () => {
+      const materials: UsedMaterials = {
+        woodId: 'european_ash',
+        woodQuantity: 1,
+      };
+      expect(materials.woodId).toBe('european_ash');
+      expect(materials.woodQuantity).toBe(1);
+      expect(materials.stoneId).toBeUndefined();
+    });
+
+    it('should accept combined materials', () => {
+      const materials: UsedMaterials = {
+        stoneId: 'obsidian',
+        stoneQuantity: 1,
+        woodId: 'european_ash',
+        woodQuantity: 1,
+      };
+      expect(materials.stoneId).toBe('obsidian');
+      expect(materials.woodId).toBe('european_ash');
+    });
+  });
+
+  describe('QualityTier type', () => {
+    it('should have valid quality tier values', () => {
+      const validTiers: QualityTier[] = ['poor', 'adequate', 'good', 'excellent', 'masterwork'];
+      expect(validTiers.length).toBe(5);
+    });
+  });
+
+  describe('getQualityTier function', () => {
+    it('should return poor for low quality scores', () => {
+      expect(getQualityTier(0)).toBe('poor');
+      expect(getQualityTier(0.1)).toBe('poor');
+      expect(getQualityTier(0.19)).toBe('poor');
+    });
+
+    it('should return adequate for scores between 0.2 and 0.4', () => {
+      expect(getQualityTier(0.2)).toBe('adequate');
+      expect(getQualityTier(0.3)).toBe('adequate');
+      expect(getQualityTier(0.39)).toBe('adequate');
+    });
+
+    it('should return good for scores between 0.4 and 0.6', () => {
+      expect(getQualityTier(0.4)).toBe('good');
+      expect(getQualityTier(0.5)).toBe('good');
+      expect(getQualityTier(0.59)).toBe('good');
+    });
+
+    it('should return excellent for scores between 0.6 and 0.8', () => {
+      expect(getQualityTier(0.6)).toBe('excellent');
+      expect(getQualityTier(0.7)).toBe('excellent');
+      expect(getQualityTier(0.79)).toBe('excellent');
+    });
+
+    it('should return masterwork for scores 0.8 and above', () => {
+      expect(getQualityTier(0.8)).toBe('masterwork');
+      expect(getQualityTier(0.9)).toBe('masterwork');
+      expect(getQualityTier(1.0)).toBe('masterwork');
+    });
+  });
+
+  describe('QUALITY_TIER_THRESHOLDS', () => {
+    it('should have correct threshold values', () => {
+      expect(QUALITY_TIER_THRESHOLDS.poor).toBe(0.2);
+      expect(QUALITY_TIER_THRESHOLDS.adequate).toBe(0.4);
+      expect(QUALITY_TIER_THRESHOLDS.good).toBe(0.6);
+      expect(QUALITY_TIER_THRESHOLDS.excellent).toBe(0.8);
+      expect(QUALITY_TIER_THRESHOLDS.masterwork).toBe(1.0);
+    });
+  });
+
+  describe('calculateGatheringBonus function', () => {
+    // Find a gathering tool with base bonus > 0 for meaningful tests
+    const gatheringToolWithBonus = TOOLS.find(
+      (t) => t.gatheringType && t.baseStats.gatheringBonus > 0
+    );
+
+    it('should return 0 for tools without gathering type', () => {
+      const toolWithoutGathering = TOOLS.find((t) => !t.gatheringType);
+      if (toolWithoutGathering) {
+        expect(calculateGatheringBonus(toolWithoutGathering, 0.5)).toBe(0);
+      }
+    });
+
+    it('should return 0 for quality 0 (no bonus at lowest quality)', () => {
+      if (gatheringToolWithBonus) {
+        const bonus = calculateGatheringBonus(gatheringToolWithBonus, 0);
+        expect(bonus).toBe(0);
+      }
+    });
+
+    it('should return positive bonus for high quality gathering tools', () => {
+      if (gatheringToolWithBonus) {
+        const bonus = calculateGatheringBonus(gatheringToolWithBonus, 1.0);
+        expect(bonus).toBeGreaterThan(0);
+      }
+    });
+
+    it('should scale linearly with quality', () => {
+      if (gatheringToolWithBonus) {
+        const lowQuality = calculateGatheringBonus(gatheringToolWithBonus, 0.25);
+        const midQuality = calculateGatheringBonus(gatheringToolWithBonus, 0.5);
+        const highQuality = calculateGatheringBonus(gatheringToolWithBonus, 1.0);
+        // Mid quality should be half of high quality
+        expect(midQuality).toBeCloseTo(highQuality / 2, 5);
+        // Low quality should be quarter of high quality
+        expect(lowQuality).toBeCloseTo(highQuality / 4, 5);
+      }
+    });
+
+    it('should return full base bonus at quality 1.0', () => {
+      if (gatheringToolWithBonus) {
+        const bonus = calculateGatheringBonus(gatheringToolWithBonus, 1.0);
+        expect(bonus).toBe(gatheringToolWithBonus.baseStats.gatheringBonus);
+      }
+    });
+
+    it('should return 0 for any quality when base bonus is 0', () => {
+      const toolWithNoBonus = TOOLS.find(
+        (t) => t.gatheringType && t.baseStats.gatheringBonus === 0
+      );
+      if (toolWithNoBonus) {
+        expect(calculateGatheringBonus(toolWithNoBonus, 0)).toBe(0);
+        expect(calculateGatheringBonus(toolWithNoBonus, 0.5)).toBe(0);
+        expect(calculateGatheringBonus(toolWithNoBonus, 1.0)).toBe(0);
+      }
     });
   });
 });

@@ -23,8 +23,8 @@ const Tab = createBottomTabNavigator();
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
     Forage: '🗺️',
-    Inventory: '🎒',
-    Crafting: '🔨',
+    Materials: '🪨',
+    Tools: '🔨',
     Tech: '⚙️',
     Village: '🏠',
   };
@@ -59,11 +59,11 @@ export default function App() {
         >
           <Tab.Screen name="Forage" component={ForageScreen} options={{ title: 'Forage' }} />
           <Tab.Screen
-            name="Inventory"
+            name="Materials"
             component={InventoryScreen}
-            options={{ title: 'Inventory' }}
+            options={{ title: 'Materials' }}
           />
-          <Tab.Screen name="Crafting" component={CraftingScreen} options={{ title: 'Crafting' }} />
+          <Tab.Screen name="Tools" component={CraftingScreen} options={{ title: 'Tools' }} />
           <Tab.Screen name="Tech" component={TechTreeScreen} options={{ title: 'Tech Tree' }} />
           <Tab.Screen name="Village" component={VillageScreen} options={{ title: 'Village' }} />
         </Tab.Navigator>

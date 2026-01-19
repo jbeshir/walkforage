@@ -1,10 +1,14 @@
 import { TECHNOLOGIES, TECH_BY_ID, getTechsByEra, getAvailableTechs } from '../src/data/techTree';
-import { TechEra } from '../src/types/tech';
+import { LithicEra } from '../src/types/tech';
 
 describe('Tech Tree Data', () => {
   describe('TECHNOLOGIES array', () => {
     it('should contain technology entries', () => {
       expect(TECHNOLOGIES.length).toBeGreaterThan(0);
+    });
+
+    it('should have exactly 8 lithic era technologies', () => {
+      expect(TECHNOLOGIES.length).toBe(8);
     });
 
     it('should have unique ids for all technologies', () => {
@@ -13,8 +17,13 @@ describe('Tech Tree Data', () => {
       expect(uniqueIds.size).toBe(ids.length);
     });
 
-    it('should have valid eras for all technologies', () => {
-      const validEras: TechEra[] = ['stone', 'copper', 'bronze', 'iron', 'advanced'];
+    it('should have valid lithic eras for all technologies', () => {
+      const validEras: LithicEra[] = [
+        'lower_paleolithic',
+        'middle_paleolithic',
+        'upper_paleolithic',
+        'mesolithic',
+      ];
       TECHNOLOGIES.forEach((tech) => {
         expect(validEras).toContain(tech.era);
       });
@@ -31,21 +40,8 @@ describe('Tech Tree Data', () => {
       TECHNOLOGIES.forEach((tech) => {
         tech.resourceCost.forEach((cost) => {
           expect(cost.quantity).toBeGreaterThan(0);
-          expect(cost.resourceId.length).toBeGreaterThan(0);
+          expect(['stone', 'wood']).toContain(cost.resourceType);
         });
-      });
-    });
-
-    it('should have position coordinates', () => {
-      TECHNOLOGIES.forEach((tech) => {
-        expect(typeof tech.position.x).toBe('number');
-        expect(typeof tech.position.y).toBe('number');
-      });
-    });
-
-    it('should have icon strings', () => {
-      TECHNOLOGIES.forEach((tech) => {
-        expect(tech.icon.length).toBeGreaterThan(0);
       });
     });
   });
@@ -56,10 +52,10 @@ describe('Tech Tree Data', () => {
     });
 
     it('should allow lookup by id', () => {
-      const flintKnapping = TECH_BY_ID['flint_knapping'];
-      expect(flintKnapping).toBeDefined();
-      expect(flintKnapping.name).toBe('Flint Knapping');
-      expect(flintKnapping.era).toBe('stone');
+      const basicKnapping = TECH_BY_ID['basic_knapping'];
+      expect(basicKnapping).toBeDefined();
+      expect(basicKnapping.name).toBe('Basic Knapping');
+      expect(basicKnapping.era).toBe('lower_paleolithic');
     });
 
     it('should return undefined for non-existent id', () => {
@@ -69,128 +65,84 @@ describe('Tech Tree Data', () => {
   });
 
   describe('getTechsByEra', () => {
-    it('should return stone age technologies', () => {
-      const stone = getTechsByEra('stone');
-      expect(stone.length).toBeGreaterThan(0);
-      stone.forEach((tech) => {
-        expect(tech.era).toBe('stone');
+    it('should return lower paleolithic technologies', () => {
+      const lowerPaleo = getTechsByEra('lower_paleolithic');
+      expect(lowerPaleo.length).toBeGreaterThan(0);
+      lowerPaleo.forEach((tech) => {
+        expect(tech.era).toBe('lower_paleolithic');
       });
-      expect(stone.some((t) => t.id === 'flint_knapping')).toBe(true);
-      expect(stone.some((t) => t.id === 'pottery')).toBe(true);
+      expect(lowerPaleo.some((t) => t.id === 'basic_knapping')).toBe(true);
+      expect(lowerPaleo.some((t) => t.id === 'fire_making')).toBe(true);
     });
 
-    it('should return copper age technologies', () => {
-      const copper = getTechsByEra('copper');
-      expect(copper.length).toBeGreaterThan(0);
-      copper.forEach((tech) => {
-        expect(tech.era).toBe('copper');
+    it('should return middle paleolithic technologies', () => {
+      const middlePaleo = getTechsByEra('middle_paleolithic');
+      expect(middlePaleo.length).toBeGreaterThan(0);
+      middlePaleo.forEach((tech) => {
+        expect(tech.era).toBe('middle_paleolithic');
       });
-      expect(copper.some((t) => t.id === 'copper_smelting')).toBe(true);
-      expect(copper.some((t) => t.id === 'copper_tools')).toBe(true);
+      expect(middlePaleo.some((t) => t.id === 'hafting')).toBe(true);
     });
 
-    it('should return bronze age technologies', () => {
-      const bronze = getTechsByEra('bronze');
-      expect(bronze.length).toBeGreaterThan(0);
-      bronze.forEach((tech) => {
-        expect(tech.era).toBe('bronze');
+    it('should return upper paleolithic technologies', () => {
+      const upperPaleo = getTechsByEra('upper_paleolithic');
+      expect(upperPaleo.length).toBeGreaterThan(0);
+      upperPaleo.forEach((tech) => {
+        expect(tech.era).toBe('upper_paleolithic');
       });
-      expect(bronze.some((t) => t.id === 'bronze_alloy')).toBe(true);
-      expect(bronze.some((t) => t.id === 'bronze_tools')).toBe(true);
+      expect(upperPaleo.some((t) => t.id === 'blade_technology')).toBe(true);
     });
 
-    it('should return iron age technologies', () => {
-      const iron = getTechsByEra('iron');
-      expect(iron.length).toBeGreaterThan(0);
-      iron.forEach((tech) => {
-        expect(tech.era).toBe('iron');
+    it('should return mesolithic technologies', () => {
+      const mesolithic = getTechsByEra('mesolithic');
+      expect(mesolithic.length).toBeGreaterThan(0);
+      mesolithic.forEach((tech) => {
+        expect(tech.era).toBe('mesolithic');
       });
-      expect(iron.some((t) => t.id === 'iron_smelting')).toBe(true);
-      expect(iron.some((t) => t.id === 'steel_tools')).toBe(true);
-    });
-
-    it('should return empty array for advanced era (not yet implemented)', () => {
-      const advanced = getTechsByEra('advanced');
-      expect(advanced).toEqual([]);
+      expect(mesolithic.some((t) => t.id === 'polished_stone')).toBe(true);
     });
   });
 
   describe('getAvailableTechs', () => {
-    it('should return flint_knapping when no techs unlocked', () => {
+    it('should return basic_knapping when no techs unlocked', () => {
       const available = getAvailableTechs([]);
       expect(available.length).toBeGreaterThan(0);
-      expect(available.some((t) => t.id === 'flint_knapping')).toBe(true);
+      expect(available.some((t) => t.id === 'basic_knapping')).toBe(true);
     });
 
     it('should not return already unlocked techs', () => {
-      const available = getAvailableTechs(['flint_knapping']);
-      expect(available.some((t) => t.id === 'flint_knapping')).toBe(false);
+      const available = getAvailableTechs(['basic_knapping']);
+      expect(available.some((t) => t.id === 'basic_knapping')).toBe(false);
     });
 
-    it('should unlock stone_tools after flint_knapping', () => {
-      const available = getAvailableTechs(['flint_knapping']);
-      expect(available.some((t) => t.id === 'stone_tools')).toBe(true);
+    it('should unlock grinding after basic_knapping', () => {
+      const available = getAvailableTechs(['basic_knapping']);
+      expect(available.some((t) => t.id === 'grinding')).toBe(true);
     });
 
-    it('should unlock basket_weaving after flint_knapping', () => {
-      const available = getAvailableTechs(['flint_knapping']);
-      expect(available.some((t) => t.id === 'basket_weaving')).toBe(true);
+    it('should unlock fire_making after basic_knapping', () => {
+      const available = getAvailableTechs(['basic_knapping']);
+      expect(available.some((t) => t.id === 'fire_making')).toBe(true);
     });
 
-    it('should not unlock pottery without both prerequisites', () => {
-      // Pottery requires fire_making and clay_gathering
-      const withoutClay = getAvailableTechs([
-        'flint_knapping',
-        'stone_tools',
-        'woodworking',
-        'fire_making',
-      ]);
-      expect(withoutClay.some((t) => t.id === 'pottery')).toBe(false);
-
-      const withoutFire = getAvailableTechs(['flint_knapping', 'basket_weaving', 'clay_gathering']);
-      expect(withoutFire.some((t) => t.id === 'pottery')).toBe(false);
+    it('should unlock cordage_making after basic_knapping', () => {
+      const available = getAvailableTechs(['basic_knapping']);
+      expect(available.some((t) => t.id === 'cordage_making')).toBe(true);
     });
 
-    it('should unlock pottery when both prerequisites met', () => {
-      const available = getAvailableTechs([
-        'flint_knapping',
-        'stone_tools',
-        'woodworking',
-        'fire_making',
-        'basket_weaving',
-        'clay_gathering',
-      ]);
-      expect(available.some((t) => t.id === 'pottery')).toBe(true);
+    it('should unlock hafting after basic_knapping and cordage_making', () => {
+      // hafting requires basic_knapping and cordage_making
+      const withoutCordage = getAvailableTechs(['basic_knapping']);
+      expect(withoutCordage.some((t) => t.id === 'hafting')).toBe(false);
+
+      const withCordage = getAvailableTechs(['basic_knapping', 'cordage_making']);
+      expect(withCordage.some((t) => t.id === 'hafting')).toBe(true);
     });
 
-    it('should progressively unlock copper age techs', () => {
-      // Follow the path to copper tools
-      const stoneTechs = [
-        'flint_knapping',
-        'stone_tools',
-        'woodworking',
-        'fire_making',
-        'basket_weaving',
-        'clay_gathering',
-        'pottery',
-      ];
-
-      let available = getAvailableTechs(stoneTechs);
-      expect(available.some((t) => t.id === 'charcoal_production')).toBe(true);
-
-      available = getAvailableTechs([...stoneTechs, 'charcoal_production']);
-      expect(available.some((t) => t.id === 'simple_kiln')).toBe(true);
-
-      available = getAvailableTechs([...stoneTechs, 'charcoal_production', 'simple_kiln']);
-      expect(available.some((t) => t.id === 'copper_smelting')).toBe(true);
-
-      available = getAvailableTechs([
-        ...stoneTechs,
-        'charcoal_production',
-        'simple_kiln',
-        'copper_smelting',
-      ]);
-      expect(available.some((t) => t.id === 'copper_tools')).toBe(true);
+    it('should progressively unlock technologies', () => {
+      // Follow the path to blade_technology - now unlocks directly after hafting
+      const available = getAvailableTechs(['basic_knapping', 'cordage_making', 'hafting']);
+      expect(available.some((t) => t.id === 'blade_technology')).toBe(true);
     });
   });
 
@@ -211,9 +163,9 @@ describe('Tech Tree Data', () => {
       });
     });
 
-    it('flint_knapping should have no prerequisites (starting tech)', () => {
-      const flintKnapping = TECH_BY_ID['flint_knapping'];
-      expect(flintKnapping.prerequisites).toEqual([]);
+    it('basic_knapping should have no prerequisites (starting tech)', () => {
+      const basicKnapping = TECH_BY_ID['basic_knapping'];
+      expect(basicKnapping.prerequisites).toEqual([]);
     });
 
     it('should have no circular dependencies', () => {
@@ -270,98 +222,68 @@ describe('Tech Tree Data', () => {
   });
 
   describe('Era progression', () => {
-    it('should have stone age techs at the start', () => {
-      const stoneTechs = getTechsByEra('stone');
-      const startingTech = stoneTechs.find((t) => t.prerequisites.length === 0);
+    it('should have lower paleolithic techs at the start', () => {
+      const lowerPaleoTechs = getTechsByEra('lower_paleolithic');
+      const startingTech = lowerPaleoTechs.find((t) => t.prerequisites.length === 0);
       expect(startingTech).toBeDefined();
-      expect(startingTech?.id).toBe('flint_knapping');
+      expect(startingTech?.id).toBe('basic_knapping');
     });
 
-    it('copper age techs should require stone age prerequisites', () => {
-      const copperTechs = getTechsByEra('copper');
-      copperTechs.forEach((tech) => {
-        // Each copper tech should have at least one prerequisite
+    it('middle paleolithic techs should require lower paleolithic prerequisites', () => {
+      const middlePaleoTechs = getTechsByEra('middle_paleolithic');
+      middlePaleoTechs.forEach((tech) => {
+        // Each middle paleolithic tech should have at least one prerequisite
         expect(tech.prerequisites.length).toBeGreaterThan(0);
 
-        // Follow prerequisite chain - should eventually reach stone age
+        // Follow prerequisite chain - should eventually reach lower_paleolithic
         const prereqIds = tech.prerequisites.map((p) => p.techId);
-        const hasPathToStone = prereqIds.some((prereqId) => {
+        const hasPathToLowerPaleo = prereqIds.some((prereqId) => {
           let current = TECH_BY_ID[prereqId];
           while (current) {
-            if (current.era === 'stone') return true;
+            if (current.era === 'lower_paleolithic') return true;
             if (current.prerequisites.length === 0) break;
             current = TECH_BY_ID[current.prerequisites[0].techId];
           }
           return false;
         });
-        expect(hasPathToStone).toBe(true);
+        expect(hasPathToLowerPaleo).toBe(true);
       });
     });
   });
 
   describe('Specific technology data', () => {
-    it('flint_knapping should enable basic crafting recipes', () => {
-      const flintKnapping = TECH_BY_ID['flint_knapping'];
-      expect(flintKnapping.enablesRecipes).toContain('hammerstone');
-      expect(flintKnapping.enablesRecipes).toContain('stone_knife');
+    it('basic_knapping should enable hammerstone recipe', () => {
+      const basicKnapping = TECH_BY_ID['basic_knapping'];
+      expect(basicKnapping.enablesRecipes).toContain('hammerstone');
     });
 
-    it('pottery should require both fire_making and clay_gathering', () => {
-      const pottery = TECH_BY_ID['pottery'];
-      const prereqIds = pottery.prerequisites.map((p) => p.techId);
-      expect(prereqIds).toContain('fire_making');
-      expect(prereqIds).toContain('clay_gathering');
+    it('hafting should require cordage_making', () => {
+      const hafting = TECH_BY_ID['hafting'];
+      const prereqIds = hafting.prerequisites.map((p) => p.techId);
+      expect(prereqIds).toContain('cordage_making');
     });
 
-    it('bronze_alloy should require tin_discovery', () => {
-      const bronzeAlloy = TECH_BY_ID['bronze_alloy'];
-      const prereqIds = bronzeAlloy.prerequisites.map((p) => p.techId);
-      expect(prereqIds).toContain('tin_discovery');
+    it('polished_stone should be late-game technology', () => {
+      const polishedStone = TECH_BY_ID['polished_stone'];
+      expect(polishedStone.era).toBe('mesolithic');
     });
 
-    it('steel_tools should be end-game technology', () => {
-      const steelTools = TECH_BY_ID['steel_tools'];
-      expect(steelTools.era).toBe('iron');
-      expect(steelTools.unlocks).toEqual([]);
-      expect(steelTools.gatheringBonus?.multiplier).toBeGreaterThanOrEqual(2.0);
-      expect(steelTools.craftingBonus?.speedMultiplier).toBeGreaterThanOrEqual(3.0);
-    });
-
-    it('copper_tools should provide gathering bonus', () => {
-      const copperTools = TECH_BY_ID['copper_tools'];
-      expect(copperTools.gatheringBonus).toBeDefined();
-      expect(copperTools.gatheringBonus?.multiplier).toBeGreaterThan(1);
-    });
-
-    it('bronze_tools should provide both gathering and crafting bonuses', () => {
-      const bronzeTools = TECH_BY_ID['bronze_tools'];
-      expect(bronzeTools.gatheringBonus).toBeDefined();
-      expect(bronzeTools.craftingBonus).toBeDefined();
+    it('blade_technology should enable pressure_flaker recipe', () => {
+      const bladeTech = TECH_BY_ID['blade_technology'];
+      expect(bladeTech.enablesRecipes).toContain('pressure_flaker');
     });
   });
 
   describe('Buildings and recipes enabled', () => {
-    it('technologies should enable at least buildings or recipes', () => {
+    it('technologies should enable at least recipes', () => {
       // Most technologies should enable something
-      const techsWithContent = TECHNOLOGIES.filter(
-        (t) => t.enablesBuildings.length > 0 || t.enablesRecipes.length > 0
-      );
+      const techsWithContent = TECHNOLOGIES.filter((t) => t.enablesRecipes.length > 0);
       expect(techsWithContent.length).toBeGreaterThan(TECHNOLOGIES.length * 0.5);
     });
 
     it('fire_making should enable fire_pit building', () => {
       const fireMaking = TECH_BY_ID['fire_making'];
       expect(fireMaking.enablesBuildings).toContain('fire_pit');
-    });
-
-    it('pottery should enable pottery_kiln building', () => {
-      const pottery = TECH_BY_ID['pottery'];
-      expect(pottery.enablesBuildings).toContain('pottery_kiln');
-    });
-
-    it('smithing should enable smithy building', () => {
-      const smithing = TECH_BY_ID['smithing'];
-      expect(smithing.enablesBuildings).toContain('smithy');
     });
   });
 });

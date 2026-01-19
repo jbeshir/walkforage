@@ -1,78 +1,178 @@
 // Crafting Screen - Tool and component crafting interface
+// Updated for lithic era material selection system
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useGameState } from '../hooks/useGameState';
-import { TOOLS, COMPONENTS, getToolById, getComponentById } from '../data/tools';
-import { Tool, CraftedComponent, OwnedTool, MaterialTier } from '../types/tools';
+import { useGameState, CraftCheckResult } from '../hooks/useGameState';
+import {
+  TOOLS,
+  COMPONENTS,
+  getToolById,
+  isCraftingTool,
+  isGatheringTool,
+  getToolTypeLabels,
+  getComponentById,
+} from '../data/tools';
+import {
+  Tool,
+  CraftedComponent,
+  OwnedTool,
+  OwnedComponent,
+  getQualityTier,
+  calculateGatheringBonus,
+} from '../types/tools';
+import { ERA_COLORS, ERA_LABELS } from '../types/tech';
+import { STONES_BY_ID } from '../data/stones';
+import { WOODS_BY_ID } from '../data/woods';
+import MaterialSelectionModal, { MaterialSelection } from '../components/MaterialSelectionModal';
+import { getQualityColor, getQualityDisplayName } from '../utils/qualityCalculation';
 
 type TabType = 'owned' | 'tools' | 'components';
 
-const TIER_COLORS: Record<MaterialTier, string> = {
-  primitive: '#8B7355',
-  stone: '#708090',
-  copper: '#B87333',
-  bronze: '#CD7F32',
-  iron: '#434343',
-  steel: '#71797E',
-};
-
 interface OwnedToolItemProps {
   owned: OwnedTool;
-  onRepair: (instanceId: string) => void;
 }
 
-function OwnedToolItem({ owned, onRepair }: OwnedToolItemProps) {
+function OwnedToolItem({ owned }: OwnedToolItemProps) {
   const tool = getToolById(owned.toolId);
   if (!tool) return null;
 
-  const durabilityPercent = (owned.currentDurability / tool.stats.maxDurability) * 100;
-  const durabilityColor =
-    durabilityPercent > 50 ? '#4CAF50' : durabilityPercent > 25 ? '#FF9800' : '#F44336';
+  const qualityTier = getQualityTier(owned.quality);
+  const qualityColor = getQualityColor(qualityTier);
+  const gatheringBonus = calculateGatheringBonus(tool, owned.quality);
 
   return (
     <View style={styles.ownedToolItem}>
-      <View style={[styles.tierBadge, { backgroundColor: TIER_COLORS[tool.tier] }]}>
-        <Text style={styles.tierText}>{tool.tier.charAt(0).toUpperCase()}</Text>
+      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
+        <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
       </View>
       <View style={styles.toolInfo}>
-        <Text style={styles.toolName}>{tool.name}</Text>
-        <Text style={styles.qualityText}>Quality: {owned.quality}</Text>
-        <View style={styles.durabilityBar}>
-          <View
-            style={[
-              styles.durabilityFill,
-              { width: `${durabilityPercent}%`, backgroundColor: durabilityColor },
-            ]}
-          />
+        <View style={styles.toolNameRow}>
+          <Text style={styles.toolName}>{tool.name}</Text>
+          <View style={[styles.qualityBadge, { backgroundColor: qualityColor }]}>
+            <Text style={styles.qualityBadgeText}>{getQualityDisplayName(qualityTier)}</Text>
+          </View>
         </View>
-        <Text style={styles.durabilityText}>
-          {Math.round(owned.currentDurability)} / {tool.stats.maxDurability}
-        </Text>
+
+        {/* Materials used */}
+        <View style={styles.materialsRow}>
+          {owned.materials.stoneId && (
+            <View style={styles.materialTag}>
+              <View
+                style={[
+                  styles.materialSwatch,
+                  { backgroundColor: STONES_BY_ID[owned.materials.stoneId]?.color || '#888' },
+                ]}
+              />
+              <Text style={styles.materialTagText}>
+                {STONES_BY_ID[owned.materials.stoneId]?.name || owned.materials.stoneId}
+              </Text>
+            </View>
+          )}
+          {owned.materials.woodId && (
+            <View style={styles.materialTag}>
+              <View
+                style={[
+                  styles.materialSwatch,
+                  { backgroundColor: WOODS_BY_ID[owned.materials.woodId]?.color || '#888' },
+                ]}
+              />
+              <Text style={styles.materialTagText}>
+                {WOODS_BY_ID[owned.materials.woodId]?.name || owned.materials.woodId}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Gathering bonus - only show if tool offers a bonus */}
+        {gatheringBonus > 0 && (
+          <Text style={styles.gatheringBonus}>+{gatheringBonus.toFixed(1)} gathering</Text>
+        )}
+
+        {/* Quality percentage */}
+        <Text style={styles.qualityPercent}>{Math.round(owned.quality * 100)}% quality</Text>
       </View>
-      {tool.stats.canRepair && durabilityPercent < 100 && (
-        <TouchableOpacity style={styles.repairButton} onPress={() => onRepair(owned.instanceId)}>
-          <Text style={styles.repairButtonText}>Repair</Text>
-        </TouchableOpacity>
-      )}
+    </View>
+  );
+}
+
+/** Badge showing tool type (Crafting/Gathering) */
+function ToolTypeBadge({ toolId }: { toolId: string }) {
+  const labels = getToolTypeLabels(toolId);
+  if (labels.length === 0) return null;
+
+  return (
+    <View style={styles.toolTypeRow}>
+      {labels.map((label) => (
+        <View
+          key={label}
+          style={[
+            styles.toolTypeBadge,
+            label === 'Crafting' ? styles.toolTypeCrafting : styles.toolTypeGathering,
+          ]}
+        >
+          <Text style={styles.toolTypeBadgeText}>{label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+interface OwnedComponentItemProps {
+  component: OwnedComponent;
+}
+
+function OwnedComponentItem({ component }: OwnedComponentItemProps) {
+  const componentDef = getComponentById(component.componentId);
+  if (!componentDef) return null;
+
+  const qualityPercent = Math.round(component.quality * 100);
+
+  return (
+    <View style={styles.ownedComponentItem}>
+      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[componentDef.era] }]}>
+        <Text style={styles.eraText}>{ERA_LABELS[componentDef.era]}</Text>
+      </View>
+      <View style={styles.componentInfo}>
+        <Text style={styles.componentName}>{componentDef.name}</Text>
+        <View style={styles.materialsRow}>
+          {component.materials.woodId && (
+            <View style={styles.materialTag}>
+              <View
+                style={[
+                  styles.materialSwatch,
+                  { backgroundColor: WOODS_BY_ID[component.materials.woodId]?.color || '#888' },
+                ]}
+              />
+              <Text style={styles.materialTagText}>
+                {WOODS_BY_ID[component.materials.woodId]?.name}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <Text style={styles.componentQualityText}>{qualityPercent}%</Text>
     </View>
   );
 }
 
 interface ToolRecipeItemProps {
   tool: Tool;
-  canCraft: boolean;
-  missingRequirements: string[];
+  craftCheck: CraftCheckResult;
   onCraft: () => void;
 }
 
-function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRecipeItemProps) {
+function ToolRecipeItem({ tool, craftCheck, onCraft }: ToolRecipeItemProps) {
   return (
     <View style={styles.recipeItem}>
-      <View style={[styles.tierBadge, { backgroundColor: TIER_COLORS[tool.tier] }]}>
-        <Text style={styles.tierText}>{tool.tier.charAt(0).toUpperCase()}</Text>
+      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
+        <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
       </View>
       <View style={styles.recipeInfo}>
-        <Text style={styles.recipeName}>{tool.name}</Text>
+        <View style={styles.recipeHeader}>
+          <Text style={styles.recipeName}>{tool.name}</Text>
+          <ToolTypeBadge toolId={tool.id} />
+        </View>
         <Text style={styles.recipeDescription} numberOfLines={2}>
           {tool.description}
         </Text>
@@ -90,19 +190,23 @@ function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRe
                 .join(', ')}
             </Text>
           )}
-          {tool.materials.length > 0 && (
+          {(tool.materials.stone || tool.materials.wood) && (
             <Text style={styles.requirementLabel}>
               Materials:{' '}
-              {tool.materials
-                .map((m) => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`)
+              {[
+                tool.materials.stone &&
+                  `${tool.materials.stone.quantity}x stone${tool.materials.stone.requiresToolstone ? ' (toolstone)' : ''}`,
+                tool.materials.wood && `${tool.materials.wood.quantity}x wood`,
+              ]
+                .filter(Boolean)
                 .join(', ')}
             </Text>
           )}
         </View>
-        {missingRequirements.length > 0 && (
+        {craftCheck.missingRequirements.length > 0 && (
           <View style={styles.missingContainer}>
             <Text style={styles.missingLabel}>Missing:</Text>
-            {missingRequirements.map((req, i) => (
+            {craftCheck.missingRequirements.map((req, i) => (
               <Text key={i} style={styles.missingText}>
                 {req}
               </Text>
@@ -111,11 +215,13 @@ function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRe
         )}
       </View>
       <TouchableOpacity
-        style={[styles.craftButton, !canCraft && styles.craftButtonDisabled]}
+        style={[styles.craftButton, !craftCheck.canCraft && styles.craftButtonDisabled]}
         onPress={onCraft}
-        disabled={!canCraft}
+        disabled={!craftCheck.canCraft}
       >
-        <Text style={[styles.craftButtonText, !canCraft && styles.craftButtonTextDisabled]}>
+        <Text
+          style={[styles.craftButtonText, !craftCheck.canCraft && styles.craftButtonTextDisabled]}
+        >
           Craft
         </Text>
       </TouchableOpacity>
@@ -125,23 +231,21 @@ function ToolRecipeItem({ tool, canCraft, missingRequirements, onCraft }: ToolRe
 
 interface ComponentRecipeItemProps {
   component: CraftedComponent;
-  canCraft: boolean;
-  missingRequirements: string[];
+  craftCheck: CraftCheckResult;
   ownedCount: number;
   onCraft: () => void;
 }
 
 function ComponentRecipeItem({
   component,
-  canCraft,
-  missingRequirements,
+  craftCheck,
   ownedCount,
   onCraft,
 }: ComponentRecipeItemProps) {
   return (
     <View style={styles.recipeItem}>
-      <View style={[styles.tierBadge, { backgroundColor: TIER_COLORS[component.tier] }]}>
-        <Text style={styles.tierText}>{component.tier.charAt(0).toUpperCase()}</Text>
+      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[component.era] }]}>
+        <Text style={styles.eraText}>{ERA_LABELS[component.era]}</Text>
       </View>
       <View style={styles.recipeInfo}>
         <View style={styles.recipeHeader}>
@@ -157,19 +261,22 @@ function ComponentRecipeItem({
               Tools: {component.requiredTools.map((r) => r.toolId.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
-          {component.materials.length > 0 && (
+          {(component.materials.stone || component.materials.wood) && (
             <Text style={styles.requirementLabel}>
               Materials:{' '}
-              {component.materials
-                .map((m) => `${m.quantity}x ${m.resourceId.replace(/_/g, ' ')}`)
+              {[
+                component.materials.stone && `${component.materials.stone.quantity}x stone`,
+                component.materials.wood && `${component.materials.wood.quantity}x wood`,
+              ]
+                .filter(Boolean)
                 .join(', ')}
             </Text>
           )}
         </View>
-        {missingRequirements.length > 0 && (
+        {craftCheck.missingRequirements.length > 0 && (
           <View style={styles.missingContainer}>
             <Text style={styles.missingLabel}>Missing:</Text>
-            {missingRequirements.map((req, i) => (
+            {craftCheck.missingRequirements.map((req, i) => (
               <Text key={i} style={styles.missingText}>
                 {req}
               </Text>
@@ -178,11 +285,13 @@ function ComponentRecipeItem({
         )}
       </View>
       <TouchableOpacity
-        style={[styles.craftButton, !canCraft && styles.craftButtonDisabled]}
+        style={[styles.craftButton, !craftCheck.canCraft && styles.craftButtonDisabled]}
         onPress={onCraft}
-        disabled={!canCraft}
+        disabled={!craftCheck.canCraft}
       >
-        <Text style={[styles.craftButtonText, !canCraft && styles.craftButtonTextDisabled]}>
+        <Text
+          style={[styles.craftButtonText, !craftCheck.canCraft && styles.craftButtonTextDisabled]}
+        >
           Craft
         </Text>
       </TouchableOpacity>
@@ -191,108 +300,119 @@ function ComponentRecipeItem({
 }
 
 export default function CraftingScreen() {
-  const { state, canCraftTool, canCraftComponent, craftTool, craftComponent, repairTool, hasTech } =
-    useGameState();
+  const { state, canCraft, craft, hasTech, getOwnedComponents } = useGameState();
   const [activeTab, setActiveTab] = useState<TabType>('owned');
 
-  const handleCraftTool = (toolId: string) => {
-    const tool = getToolById(toolId);
-    if (!tool) return;
+  // Modal state - stores the actual craftable object instead of just id/type
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<{
+    craftable: Tool | CraftedComponent;
+    craftCheck: CraftCheckResult;
+  } | null>(null);
 
-    Alert.alert('Craft Tool', `Craft ${tool.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Craft',
-        onPress: () => {
-          const success = craftTool(toolId);
-          if (success) {
-            Alert.alert('Success', `Crafted ${tool.name}!`);
-          } else {
-            Alert.alert('Failed', 'Could not craft tool. Check requirements.');
-          }
-        },
-      },
-    ]);
+  // Unified handler for crafting any craftable (tool or component)
+  const handleCraft = (craftable: Tool | CraftedComponent) => {
+    const craftCheck = canCraft(craftable);
+    if (!craftCheck.canCraft) return;
+
+    // Check if we need material selection (multiple choices or required components)
+    const needsMaterialSelection =
+      craftable.materials.stone ||
+      craftable.materials.wood ||
+      craftable.requiredComponents.length > 0 ||
+      craftCheck.availableStones.length > 1 ||
+      craftCheck.availableWoods.length > 1;
+
+    if (needsMaterialSelection) {
+      setSelectedRecipe({ craftable, craftCheck });
+      setModalVisible(true);
+    } else {
+      // Simple craft with default materials
+      const result = craft({
+        craftable,
+        selectedStoneId: craftCheck.availableStones[0],
+        selectedWoodId: craftCheck.availableWoods[0],
+        selectedComponentIds: craftCheck.availableComponents,
+      });
+      if (result.success) {
+        Alert.alert('Success', `Crafted ${craftable.name}!`);
+      } else {
+        Alert.alert('Failed', result.error || 'Could not craft.');
+      }
+    }
   };
 
-  const handleCraftComponent = (componentId: string) => {
-    const component = getComponentById(componentId);
-    if (!component) return;
+  const handleMaterialConfirm = (selection: MaterialSelection) => {
+    if (!selectedRecipe) return;
 
-    Alert.alert('Craft Component', `Craft ${component.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Craft',
-        onPress: () => {
-          const success = craftComponent(componentId);
-          if (success) {
-            Alert.alert('Success', `Crafted ${component.name}!`);
-          } else {
-            Alert.alert('Failed', 'Could not craft component. Check requirements.');
-          }
-        },
-      },
-    ]);
-  };
+    setModalVisible(false);
+    const { craftable } = selectedRecipe;
 
-  const handleRepairTool = (instanceId: string) => {
-    const owned = state.toolInventory.ownedTools.find((t) => t.instanceId === instanceId);
-    if (!owned) return;
-    const tool = getToolById(owned.toolId);
-    if (!tool) return;
+    const result = craft({
+      craftable,
+      selectedStoneId: selection.stoneId,
+      selectedWoodId: selection.woodId,
+      selectedComponentIds: selection.componentIds,
+    });
 
-    Alert.alert('Repair Tool', `Repair ${tool.name}? Requires ${tool.stats.repairMaterial}.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Repair',
-        onPress: () => {
-          const success = repairTool(instanceId);
-          if (success) {
-            Alert.alert('Success', `Repaired ${tool.name}!`);
-          } else {
-            Alert.alert('Failed', 'Could not repair. Check materials.');
-          }
-        },
-      },
-    ]);
+    if (result.success) {
+      Alert.alert('Success', `Crafted ${craftable.name}!`);
+    } else {
+      Alert.alert('Failed', result.error || 'Could not craft.');
+    }
+
+    setSelectedRecipe(null);
   };
 
   // Filter tools by unlocked tech
   const availableTools = TOOLS.filter((tool) => hasTech(tool.requiredTech));
   const availableComponents = COMPONENTS.filter((comp) => hasTech(comp.requiredTech));
 
-  const renderOwnedTools = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Owned Tools ({state.toolInventory.ownedTools.length})</Text>
-      {state.toolInventory.ownedTools.length === 0 ? (
-        <Text style={styles.emptyText}>No tools owned yet. Craft your first tool!</Text>
-      ) : (
-        state.toolInventory.ownedTools.map((owned) => (
-          <OwnedToolItem key={owned.instanceId} owned={owned} onRepair={handleRepairTool} />
-        ))
-      )}
+  const renderOwnedTools = () => {
+    // Split owned tools into crafting and gathering categories
+    const craftingTools = state.toolInventory.ownedTools.filter((owned) =>
+      isCraftingTool(owned.toolId)
+    );
+    const gatheringTools = state.toolInventory.ownedTools.filter((owned) =>
+      isGatheringTool(owned.toolId)
+    );
 
-      {/* Components inventory */}
-      <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>Components</Text>
-      {Object.keys(state.toolInventory.componentInventory).length === 0 ? (
-        <Text style={styles.emptyText}>No components crafted yet.</Text>
-      ) : (
-        Object.entries(state.toolInventory.componentInventory).map(([compId, count]) => {
-          const comp = getComponentById(compId);
-          if (!comp || count <= 0) return null;
-          return (
-            <View key={compId} style={styles.componentItem}>
-              <View style={[styles.tierBadge, { backgroundColor: TIER_COLORS[comp.tier] }]}>
-                <Text style={styles.tierText}>{comp.tier.charAt(0).toUpperCase()}</Text>
-              </View>
-              <Text style={styles.componentName}>{comp.name}</Text>
-              <Text style={styles.componentCount}>x{count}</Text>
-            </View>
-          );
-        })
-      )}
-    </View>
-  );
+    return (
+      <View style={styles.section}>
+        {/* Crafting Tools */}
+        <Text style={styles.sectionTitle}>Crafting Tools ({craftingTools.length})</Text>
+        <Text style={styles.sectionSubtitle}>Used as prerequisites for other tools</Text>
+        {craftingTools.length === 0 ? (
+          <Text style={styles.emptyText}>No crafting tools yet.</Text>
+        ) : (
+          craftingTools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)
+        )}
+
+        {/* Gathering Tools */}
+        <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
+          Gathering Tools ({gatheringTools.length})
+        </Text>
+        <Text style={styles.sectionSubtitle}>Provide bonuses when gathering resources</Text>
+        {gatheringTools.length === 0 ? (
+          <Text style={styles.emptyText}>No gathering tools yet.</Text>
+        ) : (
+          gatheringTools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)
+        )}
+
+        {/* Components inventory */}
+        <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
+          Components ({state.toolInventory.ownedComponents.length})
+        </Text>
+        {state.toolInventory.ownedComponents.length === 0 ? (
+          <Text style={styles.emptyText}>No components crafted yet.</Text>
+        ) : (
+          state.toolInventory.ownedComponents.map((comp) => (
+            <OwnedComponentItem key={comp.instanceId} component={comp} />
+          ))
+        )}
+      </View>
+    );
+  };
 
   const renderToolRecipes = () => (
     <View style={styles.section}>
@@ -301,14 +421,13 @@ export default function CraftingScreen() {
         <Text style={styles.emptyText}>Research more tech to unlock tool recipes.</Text>
       ) : (
         availableTools.map((tool) => {
-          const { canCraft, missingRequirements } = canCraftTool(tool.id);
+          const craftCheck = canCraft(tool);
           return (
             <ToolRecipeItem
               key={tool.id}
               tool={tool}
-              canCraft={canCraft}
-              missingRequirements={missingRequirements}
-              onCraft={() => handleCraftTool(tool.id)}
+              craftCheck={craftCheck}
+              onCraft={() => handleCraft(tool)}
             />
           );
         })
@@ -323,22 +442,37 @@ export default function CraftingScreen() {
         <Text style={styles.emptyText}>Research more tech to unlock component recipes.</Text>
       ) : (
         availableComponents.map((comp) => {
-          const { canCraft, missingRequirements } = canCraftComponent(comp.id);
-          const ownedCount = state.toolInventory.componentInventory[comp.id] || 0;
+          const craftCheck = canCraft(comp);
+          const ownedCount = getOwnedComponents(comp.id).length;
           return (
             <ComponentRecipeItem
               key={comp.id}
               component={comp}
-              canCraft={canCraft}
-              missingRequirements={missingRequirements}
+              craftCheck={craftCheck}
               ownedCount={ownedCount}
-              onCraft={() => handleCraftComponent(comp.id)}
+              onCraft={() => handleCraft(comp)}
             />
           );
         })
       )}
     </View>
   );
+
+  // Get modal props - unified for both tools and components
+  const getModalProps = () => {
+    if (!selectedRecipe) return null;
+    const { craftable, craftCheck } = selectedRecipe;
+
+    return {
+      title: `Craft ${craftable.name}`,
+      craftable,
+      availableStones: craftCheck.availableStones,
+      availableWoods: craftCheck.availableWoods,
+      availableComponentIds: craftCheck.availableComponents,
+    };
+  };
+
+  const modalProps = getModalProps();
 
   return (
     <View style={styles.container}>
@@ -372,6 +506,19 @@ export default function CraftingScreen() {
         {activeTab === 'components' && renderComponentRecipes()}
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Material Selection Modal */}
+      {modalProps && (
+        <MaterialSelectionModal
+          visible={modalVisible}
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedRecipe(null);
+          }}
+          onConfirm={handleMaterialConfirm}
+          {...modalProps}
+        />
+      )}
     </View>
   );
 }
@@ -431,6 +578,12 @@ const styles = StyleSheet.create({
   sectionTitleMarginTop: {
     marginTop: 20,
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: -12,
+    marginBottom: 12,
+  },
   emptyText: {
     fontSize: 14,
     color: '#999',
@@ -440,64 +593,105 @@ const styles = StyleSheet.create({
   },
   ownedToolItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  tierBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+  ownedComponentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  eraBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  tierText: {
+  eraText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 11,
   },
   toolInfo: {
     flex: 1,
+  },
+  componentInfo: {
+    flex: 1,
+  },
+  toolNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   toolName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginRight: 8,
   },
-  qualityText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  durabilityBar: {
-    height: 6,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
-    marginTop: 6,
-    overflow: 'hidden',
-  },
-  durabilityFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  durabilityText: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 2,
-  },
-  repairButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginLeft: 10,
-  },
-  repairButtonText: {
-    color: '#fff',
-    fontSize: 12,
+  componentName: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#333',
+  },
+  qualityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  qualityBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  materialsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
+  materialTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 6,
+    marginBottom: 2,
+  },
+  materialSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    marginRight: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  materialTagText: {
+    fontSize: 10,
+    color: '#666',
+  },
+  gatheringBonus: {
+    fontSize: 11,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  qualityPercent: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 2,
+  },
+  componentQualityText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
   },
   recipeItem: {
     flexDirection: 'row',
@@ -511,6 +705,28 @@ const styles = StyleSheet.create({
   recipeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  toolTypeRow: {
+    flexDirection: 'row',
+    marginLeft: 8,
+  },
+  toolTypeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  toolTypeCrafting: {
+    backgroundColor: '#7E57C2',
+  },
+  toolTypeGathering: {
+    backgroundColor: '#26A69A',
+  },
+  toolTypeBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '600',
   },
   recipeName: {
     fontSize: 16,
@@ -570,23 +786,6 @@ const styles = StyleSheet.create({
   },
   craftButtonTextDisabled: {
     color: '#999',
-  },
-  componentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  componentName: {
-    flex: 1,
-    fontSize: 14,
-    color: '#333',
-  },
-  componentCount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4CAF50',
   },
   bottomPadding: {
     height: 30,

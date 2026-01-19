@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGameState, GameStateProvider } from '../src/hooks/useGameState';
+import { getToolById } from '../src/data/tools';
 
 // Get the mocked module
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
@@ -33,14 +34,14 @@ describe('useGameState', () => {
       });
     });
 
-    it('should have flint_knapping unlocked initially', async () => {
+    it('should have no techs unlocked initially', async () => {
       const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.state.techProgress.unlockedTechs).toContain('flint_knapping');
+      expect(result.current.state.techProgress.unlockedTechs).toEqual([]);
     });
 
     it('should have empty inventory initially', async () => {
@@ -222,10 +223,10 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.unlockTech('stone_tools');
+        result.current.unlockTech('grinding');
       });
 
-      expect(result.current.state.techProgress.unlockedTechs).toContain('stone_tools');
+      expect(result.current.state.techProgress.unlockedTechs).toContain('grinding');
     });
 
     it('should check if tech is unlocked', async () => {
@@ -235,14 +236,22 @@ describe('useGameState', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.hasTech('flint_knapping')).toBe(true);
-      expect(result.current.hasTech('stone_tools')).toBe(false);
+      // No techs unlocked initially
+      expect(result.current.hasTech('basic_knapping')).toBe(false);
+      expect(result.current.hasTech('grinding')).toBe(false);
 
       act(() => {
-        result.current.unlockTech('stone_tools');
+        result.current.unlockTech('basic_knapping');
       });
 
-      expect(result.current.hasTech('stone_tools')).toBe(true);
+      expect(result.current.hasTech('basic_knapping')).toBe(true);
+      expect(result.current.hasTech('grinding')).toBe(false);
+
+      act(() => {
+        result.current.unlockTech('grinding');
+      });
+
+      expect(result.current.hasTech('grinding')).toBe(true);
     });
   });
 
@@ -282,8 +291,6 @@ describe('useGameState', () => {
         level: 1,
         position: { x: 0, y: 0 },
         assignedWorkers: 0,
-        lastCollected: Date.now(),
-        accumulatedProduction: 0,
       };
 
       act(() => {
@@ -307,8 +314,6 @@ describe('useGameState', () => {
         level: 1,
         position: { x: 0, y: 0 },
         assignedWorkers: 0,
-        lastCollected: Date.now(),
-        accumulatedProduction: 0,
       };
 
       act(() => {
@@ -365,7 +370,10 @@ describe('useGameState', () => {
       });
 
       // Hammerstone has minimal requirements
-      const { canCraft, missingRequirements } = result.current.canCraftTool('hammerstone');
+      const hammerstone = getToolById('hammerstone');
+      expect(hammerstone).toBeDefined();
+
+      const { missingRequirements } = result.current.canCraft(hammerstone!);
 
       // Should have missing materials
       expect(missingRequirements.length).toBeGreaterThan(0);
@@ -399,6 +407,9 @@ describe('useGameState', () => {
       act(() => {
         result.current.addExplorationPoints(100);
       });
+
+      // Clear any previous auto-save calls before explicit save
+      mockAsyncStorage.setItem.mockClear();
 
       await act(async () => {
         await result.current.saveGame();
@@ -450,7 +461,7 @@ describe('useGameState', () => {
       // Should have saved value
       expect(result.current.state.explorationPoints).toBe(100);
       // Should have defaults for missing fields
-      expect(result.current.state.techProgress.unlockedTechs).toContain('flint_knapping');
+      expect(result.current.state.techProgress.unlockedTechs).toEqual([]);
       expect(result.current.state.village.name).toBe('New Settlement');
     });
 

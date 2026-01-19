@@ -14,8 +14,6 @@ export interface StepGatheringState {
   availableSteps: number;
   /** Timestamp of last step sync from health service */
   lastSyncTimestamp: number;
-  /** Timestamp of last gather action */
-  lastGatherTimestamp: number;
   /** Total steps ever used for gathering */
   totalStepsGathered: number;
   /** Current health permission status */

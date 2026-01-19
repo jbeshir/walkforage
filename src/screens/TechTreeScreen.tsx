@@ -1,25 +1,24 @@
 // Tech Tree Screen - View and unlock technologies
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
-import { Technology, TechEra } from '../types/tech';
+import { Technology, LITHIC_ERAS, ERA_COLORS, ERA_NAMES, TechResourceCost } from '../types/tech';
+import TechResourceModal, { ResourceSelection } from '../components/TechResourceModal';
 
-const ERA_COLORS: Record<TechEra, string> = {
-  stone: '#8B7355',
-  copper: '#B87333',
-  bronze: '#CD7F32',
-  iron: '#4A4A4A',
-  advanced: '#1E90FF',
+// Resource icons (using emoji for now, could be replaced with actual icons)
+const RESOURCE_ICONS: Record<string, string> = {
+  stone: '🪨',
+  wood: '🪵',
 };
 
-const ERA_NAMES: Record<TechEra, string> = {
-  stone: 'Stone Age',
-  copper: 'Copper Age',
-  bronze: 'Bronze Age',
-  iron: 'Iron Age',
-  advanced: 'Advanced',
-};
+// Format resource costs as a readable string with icons
+function formatResourceCost(costs: TechResourceCost[]): string {
+  if (costs.length === 0) return 'Free';
+  return costs
+    .map((c) => `${c.quantity} ${RESOURCE_ICONS[c.resourceType] || c.resourceType}`)
+    .join('  ');
+}
 
 interface TechNodeProps {
   tech: Technology;
@@ -45,14 +44,27 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress }: TechNodeProps) {
       {isUnlocked && <Text style={styles.unlockedBadge}>UNLOCKED</Text>}
       {!isUnlocked && isAvailable && <Text style={styles.availableBadge}>AVAILABLE</Text>}
       {!isUnlocked && !isAvailable && <Text style={styles.lockedBadge}>LOCKED</Text>}
+      {!isUnlocked && tech.resourceCost.length > 0 && (
+        <Text style={styles.costText}>{formatResourceCost(tech.resourceCost)}</Text>
+      )}
     </TouchableOpacity>
   );
 }
 
 export default function TechTreeScreen() {
-  const { state, hasTech, unlockTech, hasResource, removeResource } = useGameState();
+  const { state, hasTech, unlockTech, removeResource } = useGameState();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTech, setSelectedTech] = useState<Technology | null>(null);
 
   const availableTechs = getAvailableTechs(state.techProgress.unlockedTechs);
+
+  // Get total count of a resource type across all specific resources
+  const getTotalResourceCount = (resourceType: 'stone' | 'wood'): number => {
+    const category = resourceType === 'stone' ? 'stones' : 'woods';
+    const stacks = state.inventory[category];
+    return stacks.reduce((sum, stack) => sum + stack.quantity, 0);
+  };
 
   const handleTechPress = (tech: Technology) => {
     if (hasTech(tech.id)) {
@@ -74,49 +86,49 @@ export default function TechTreeScreen() {
       return;
     }
 
-    // Check resources
+    // Check resources by type
     const missingResources = tech.resourceCost.filter(
-      (cost) =>
-        !hasResource('stones', cost.resourceId, cost.quantity) &&
-        !hasResource('woods', cost.resourceId, cost.quantity) &&
-        !hasResource('ores', cost.resourceId, cost.quantity)
+      (cost) => getTotalResourceCount(cost.resourceType) < cost.quantity
     );
 
     if (missingResources.length > 0) {
-      const missing = missingResources.map((r) => `${r.quantity}x ${r.resourceId}`).join(', ');
+      const missing = missingResources
+        .map((r) => `${r.quantity} ${RESOURCE_ICONS[r.resourceType] || r.resourceType}`)
+        .join(', ');
       Alert.alert('Insufficient Resources', `Need: ${missing}`);
       return;
     }
 
-    // Unlock tech
-    Alert.alert(
-      'Unlock Technology?',
-      `${tech.name}\n\nCost:\n${tech.resourceCost
-        .map((r) => `${r.quantity}x ${r.resourceId}`)
-        .join('\n')}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unlock',
-          onPress: () => {
-            // Deduct resources
-            tech.resourceCost.forEach((cost) => {
-              // Try each category until one succeeds
-              const removed =
-                removeResource('stones', cost.resourceId, cost.quantity) ||
-                removeResource('woods', cost.resourceId, cost.quantity) ||
-                removeResource('ores', cost.resourceId, cost.quantity);
-              void removed; // Result intentionally unused after deduction
-            });
-            unlockTech(tech.id);
-            Alert.alert('Unlocked!', `${tech.name} is now available.`);
-          },
-        },
-      ]
-    );
+    // If no resources required, just unlock directly
+    if (tech.resourceCost.length === 0) {
+      unlockTech(tech.id);
+      Alert.alert('Unlocked!', `${tech.name} is now available.`);
+      return;
+    }
+
+    // Open material selection modal
+    setSelectedTech(tech);
+    setModalVisible(true);
   };
 
-  const eras: TechEra[] = ['stone', 'copper', 'bronze', 'iron', 'advanced'];
+  const handleModalConfirm = (selection: ResourceSelection) => {
+    if (!selectedTech) return;
+
+    // Deduct selected resources
+    selection.stones.forEach(({ resourceId, quantity }) => {
+      removeResource('stones', resourceId, quantity);
+    });
+    selection.woods.forEach(({ resourceId, quantity }) => {
+      removeResource('woods', resourceId, quantity);
+    });
+
+    // Unlock the tech
+    unlockTech(selectedTech.id);
+    Alert.alert('Unlocked!', `${selectedTech.name} is now available.`);
+
+    setModalVisible(false);
+    setSelectedTech(null);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -127,7 +139,7 @@ export default function TechTreeScreen() {
         </Text>
       </View>
 
-      {eras.map((era) => {
+      {LITHIC_ERAS.map((era) => {
         const eraTechs = getTechsByEra(era);
         if (eraTechs.length === 0) return null;
 
@@ -155,6 +167,22 @@ export default function TechTreeScreen() {
       })}
 
       <View style={styles.bottomPadding} />
+
+      {/* Material Selection Modal */}
+      {selectedTech && (
+        <TechResourceModal
+          visible={modalVisible}
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedTech(null);
+          }}
+          onConfirm={handleModalConfirm}
+          techName={selectedTech.name}
+          resourceCosts={selectedTech.resourceCost}
+          availableStones={state.inventory.stones}
+          availableWoods={state.inventory.woods}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -235,6 +263,15 @@ const styles = StyleSheet.create({
   lockedBadge: {
     fontSize: 10,
     color: 'rgba(255,255,255,0.5)',
+  },
+  costText: {
+    fontSize: 11,
+    color: '#fff',
+    marginTop: 4,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   bottomPadding: {
     height: 30,

@@ -12,11 +12,14 @@ import {
   Modal,
 } from 'react-native';
 import { HealthPermissionRationale } from './HealthPermissionRationale';
+import { ToastContainer, ToastMessage, ToastType } from './Toast';
 import { UseStepGatheringReturn } from '../hooks/useStepGathering';
 import { LocationGeoData } from '../types/gis';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
 import { STEPS_PER_GATHER } from '../config/gathering';
+
+let toastId = 0;
 
 export interface StepGatherPanelProps {
   /** Step gathering hook return value */
@@ -50,8 +53,19 @@ export function StepGatherPanel({
   } = stepGathering;
 
   const gatherableCount = getGatherableCount();
+  const canGather = gatherableCount > 0 && geoData !== null;
 
   const [showRationale, setShowRationale] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = useCallback((message: string, type: ToastType = 'success') => {
+    const id = `toast-${++toastId}`;
+    setToasts((prev) => [...prev, { id, message, type }]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   const handleRequestPermission = useCallback(async () => {
     const status = await requestPermission();
@@ -88,34 +102,34 @@ export function StepGatherPanel({
     const result = await gatherStone(geoData);
     if (result.success && result.resourceId) {
       const stone = STONES_BY_ID[result.resourceId];
-      Alert.alert('Gathered!', `+1 ${stone?.name || result.resourceId}`);
+      showToast(`+1 ${stone?.name || result.resourceId}`, 'success');
       onResourceGathered?.('stone', result.resourceId, 1);
     } else if (!result.success) {
-      Alert.alert('Cannot Gather', result.error || 'Not enough steps');
+      showToast(result.error || 'Not enough steps', 'error');
     }
-  }, [gatherStone, geoData, onResourceGathered]);
+  }, [gatherStone, geoData, onResourceGathered, showToast]);
 
   const handleGatherWood = useCallback(async () => {
     const result = await gatherWood(geoData);
     if (result.success && result.resourceId) {
       const wood = WOODS_BY_ID[result.resourceId];
-      Alert.alert('Gathered!', `+1 ${wood?.name || result.resourceId}`);
+      showToast(`+1 ${wood?.name || result.resourceId}`, 'success');
       onResourceGathered?.('wood', result.resourceId, 1);
     } else if (!result.success) {
-      Alert.alert('Cannot Gather', result.error || 'Not enough steps');
+      showToast(result.error || 'Not enough steps', 'error');
     }
-  }, [gatherWood, geoData, onResourceGathered]);
+  }, [gatherWood, geoData, onResourceGathered, showToast]);
 
   const handleSync = useCallback(async () => {
     const result = await syncSteps();
     if (result.success && result.newSteps > 0) {
-      Alert.alert('Steps Synced', `+${result.newSteps} steps available!`);
+      showToast(`+${result.newSteps} steps synced!`, 'info');
     } else if (result.success) {
-      Alert.alert('Steps Synced', 'No new steps since last sync.');
+      showToast('No new steps', 'info');
     } else {
-      Alert.alert('Sync Failed', result.error || 'Could not sync steps');
+      showToast(result.error || 'Sync failed', 'error');
     }
-  }, [syncSteps]);
+  }, [syncSteps, showToast]);
 
   // Not available on this platform
   if (!isAvailable) {
@@ -192,96 +206,96 @@ export function StepGatherPanel({
   // Compact mode for overlay
   if (compact) {
     return (
-      <View style={[styles.container, styles.containerCompact]}>
-        <Text style={styles.compactLabel}>Forage</Text>
-        <View style={styles.compactHeader}>
-          <View>
-            <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()} steps</Text>
-            <Text style={styles.gatherInfo}>
-              {gatherableCount > 0
-                ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available`
-                : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more for next`}
-            </Text>
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <View style={[styles.container, styles.containerCompact]}>
+          <Text style={styles.compactLabel}>Forage</Text>
+          <View style={styles.compactHeader}>
+            <View>
+              <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()} steps</Text>
+              <Text style={styles.gatherInfo}>
+                {gatherableCount > 0
+                  ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available`
+                  : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more for next`}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleSync} style={styles.syncButton}>
+              <Text style={styles.syncButtonText}>Sync</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleSync} style={styles.syncButton}>
-            <Text style={styles.syncButtonText}>Sync</Text>
-          </TouchableOpacity>
+          <View style={styles.compactButtons}>
+            <TouchableOpacity
+              style={[styles.gatherButton, styles.stoneButton, !canGather && styles.disabledButton]}
+              onPress={handleGatherStone}
+              disabled={!canGather}
+            >
+              <Text style={styles.gatherButtonText}>Stone</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.gatherButton, styles.woodButton, !canGather && styles.disabledButton]}
+              onPress={handleGatherWood}
+              disabled={!canGather}
+            >
+              <Text style={styles.gatherButtonText}>Wood</Text>
+            </TouchableOpacity>
+          </View>
+          {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
         </View>
-        <View style={styles.compactButtons}>
-          <TouchableOpacity
-            style={[
-              styles.gatherButton,
-              styles.stoneButton,
-              gatherableCount === 0 && styles.disabledButton,
-            ]}
-            onPress={handleGatherStone}
-            disabled={gatherableCount === 0}
-          >
-            <Text style={styles.gatherButtonText}>Stone</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.gatherButton,
-              styles.woodButton,
-              gatherableCount === 0 && styles.disabledButton,
-            ]}
-            onPress={handleGatherWood}
-            disabled={gatherableCount === 0}
-          >
-            <Text style={styles.gatherButtonText}>Wood</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </>
     );
   }
 
   // Full mode
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Forage</Text>
+    <>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <View style={styles.container}>
+        <Text style={styles.title}>Forage</Text>
 
-      <View style={styles.stepSection}>
-        <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()}</Text>
-        <Text style={styles.stepLabel}>steps available</Text>
-        <Text style={styles.gatherInfoFull}>
-          {gatherableCount > 0
-            ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available (${STEPS_PER_GATHER} steps each)`
-            : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more steps for next gather`}
+        <View style={styles.stepSection}>
+          <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()}</Text>
+          <Text style={styles.stepLabel}>steps available</Text>
+          <Text style={styles.gatherInfoFull}>
+            {gatherableCount > 0
+              ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available (${STEPS_PER_GATHER} steps each)`
+              : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more steps for next gather`}
+          </Text>
+          <TouchableOpacity onPress={handleSync} style={styles.syncButtonFull}>
+            <Text style={styles.syncButtonText}>Sync Steps</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.gatherSection}>
+          <TouchableOpacity
+            style={[
+              styles.gatherButtonFull,
+              styles.stoneButton,
+              !canGather && styles.disabledButton,
+            ]}
+            onPress={handleGatherStone}
+            disabled={!canGather}
+          >
+            <Text style={styles.gatherButtonText}>Gather Stone</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.gatherButtonFull,
+              styles.woodButton,
+              !canGather && styles.disabledButton,
+            ]}
+            onPress={handleGatherWood}
+            disabled={!canGather}
+          >
+            <Text style={styles.gatherButtonText}>Gather Wood</Text>
+          </TouchableOpacity>
+        </View>
+        {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
+
+        <Text style={styles.totalGathered}>
+          Total gathered: {state.totalStepsGathered.toLocaleString()} steps
         </Text>
-        <TouchableOpacity onPress={handleSync} style={styles.syncButtonFull}>
-          <Text style={styles.syncButtonText}>Sync Steps</Text>
-        </TouchableOpacity>
       </View>
-
-      <View style={styles.gatherSection}>
-        <TouchableOpacity
-          style={[
-            styles.gatherButtonFull,
-            styles.stoneButton,
-            gatherableCount === 0 && styles.disabledButton,
-          ]}
-          onPress={handleGatherStone}
-          disabled={gatherableCount === 0}
-        >
-          <Text style={styles.gatherButtonText}>Gather Stone</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.gatherButtonFull,
-            styles.woodButton,
-            gatherableCount === 0 && styles.disabledButton,
-          ]}
-          onPress={handleGatherWood}
-          disabled={gatherableCount === 0}
-        >
-          <Text style={styles.gatherButtonText}>Gather Wood</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.totalGathered}>
-        Total gathered: {state.totalStepsGathered.toLocaleString()} steps
-      </Text>
-    </View>
+    </>
   );
 }
 
@@ -458,6 +472,13 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginTop: 12,
+  },
+  locationWarning: {
+    fontSize: 11,
+    color: '#FF9800',
+    textAlign: 'center',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });
 
