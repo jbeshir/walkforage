@@ -11,12 +11,15 @@
  * 7. Tech prerequisite/unlock symmetry - if A unlocks B, B should require A (and vice versa)
  * 8. Tech prerequisite existence - all tech prerequisites reference existing techs
  * 9. Circular tech prerequisites - techs that require themselves (directly or indirectly)
+ * 10. Gathering material consistency - gatheringMaterial and gatheringBonus must be set together
+ * 11. Gathering material validity - gatheringMaterial must be a valid GatherableMaterial
  *
  * Run with: npx ts-node src/scripts/validateRecipes.ts
  */
 
 import { TOOLS, COMPONENTS, TOOLS_BY_ID } from '../data/tools';
 import { TECHNOLOGIES, TECH_BY_ID } from '../data/techTree';
+import { GatherableMaterial } from '../types/resources';
 
 interface ValidationResult {
   errors: string[];
@@ -49,11 +52,11 @@ function validateRecipes(): ValidationResult {
     }
 
     // Check required tools exist
-    for (const req of tool.requiredTools) {
-      if (!allToolIds.has(req.toolId)) {
-        result.errors.push(`Tool "${tool.id}" requires non-existent tool "${req.toolId}"`);
+    for (const reqToolId of tool.requiredTools) {
+      if (!allToolIds.has(reqToolId)) {
+        result.errors.push(`Tool "${tool.id}" requires non-existent tool "${reqToolId}"`);
       } else {
-        toolsUsedAsPrereq.add(req.toolId);
+        toolsUsedAsPrereq.add(reqToolId);
       }
     }
 
@@ -65,6 +68,28 @@ function validateRecipes(): ValidationResult {
         );
       } else {
         componentsUsed.add(comp.componentId);
+      }
+    }
+
+    // Validate gathering material consistency
+    const hasGatheringBonus = tool.baseStats.gatheringBonus > 0;
+    if (hasGatheringBonus && !tool.gatheringMaterial) {
+      result.errors.push(
+        `Tool "${tool.id}" has gatheringBonus (${tool.baseStats.gatheringBonus}) but no gatheringMaterial`
+      );
+    }
+    if (!hasGatheringBonus && tool.gatheringMaterial) {
+      result.errors.push(
+        `Tool "${tool.id}" has gatheringMaterial "${tool.gatheringMaterial}" but gatheringBonus is 0`
+      );
+    }
+    // Verify gatheringMaterial is a valid GatherableMaterial
+    if (tool.gatheringMaterial) {
+      const validMaterials: GatherableMaterial[] = ['stones', 'woods'];
+      if (!validMaterials.includes(tool.gatheringMaterial)) {
+        result.errors.push(
+          `Tool "${tool.id}" has invalid gatheringMaterial "${tool.gatheringMaterial}"`
+        );
       }
     }
   }
@@ -79,11 +104,11 @@ function validateRecipes(): ValidationResult {
     }
 
     // Check required tools exist
-    for (const req of comp.requiredTools) {
-      if (!allToolIds.has(req.toolId)) {
-        result.errors.push(`Component "${comp.id}" requires non-existent tool "${req.toolId}"`);
+    for (const reqToolId of comp.requiredTools) {
+      if (!allToolIds.has(reqToolId)) {
+        result.errors.push(`Component "${comp.id}" requires non-existent tool "${reqToolId}"`);
       } else {
-        toolsUsedAsPrereq.add(req.toolId);
+        toolsUsedAsPrereq.add(reqToolId);
       }
     }
   }
@@ -119,9 +144,9 @@ function validateRecipes(): ValidationResult {
 
   // ========== 3b. Validate Tech Prerequisites Exist ==========
   for (const tech of TECHNOLOGIES) {
-    for (const prereq of tech.prerequisites) {
-      if (!allTechIds.has(prereq.techId)) {
-        result.errors.push(`Tech "${tech.id}" has non-existent prerequisite "${prereq.techId}"`);
+    for (const prereqId of tech.prerequisites) {
+      if (!allTechIds.has(prereqId)) {
+        result.errors.push(`Tech "${tech.id}" has non-existent prerequisite "${prereqId}"`);
       }
     }
   }
@@ -141,9 +166,7 @@ function validateRecipes(): ValidationResult {
     for (const unlockId of tech.unlocks) {
       const unlockedTech = TECH_BY_ID[unlockId];
       if (unlockedTech) {
-        const hasMatchingPrereq = unlockedTech.prerequisites.some(
-          (prereq) => prereq.techId === tech.id
-        );
+        const hasMatchingPrereq = unlockedTech.prerequisites.includes(tech.id);
         if (!hasMatchingPrereq) {
           result.errors.push(
             `Tech "${tech.id}" unlocks "${unlockId}", but "${unlockId}" doesn't have "${tech.id}" as a prerequisite`
@@ -155,13 +178,13 @@ function validateRecipes(): ValidationResult {
 
   // If tech B has prerequisites containing A, then tech A should have unlocks containing B
   for (const tech of TECHNOLOGIES) {
-    for (const prereq of tech.prerequisites) {
-      const prereqTech = TECH_BY_ID[prereq.techId];
+    for (const prereqId of tech.prerequisites) {
+      const prereqTech = TECH_BY_ID[prereqId];
       if (prereqTech) {
         const hasMatchingUnlock = prereqTech.unlocks.includes(tech.id);
         if (!hasMatchingUnlock) {
           result.errors.push(
-            `Tech "${tech.id}" requires "${prereq.techId}", but "${prereq.techId}" doesn't have "${tech.id}" in its unlocks`
+            `Tech "${tech.id}" requires "${prereqId}", but "${prereqId}" doesn't have "${tech.id}" in its unlocks`
           );
         }
       }
@@ -171,7 +194,7 @@ function validateRecipes(): ValidationResult {
   // ========== 3e. Check for Circular Tech Prerequisites ==========
   for (const tech of TECHNOLOGIES) {
     const visited = new Set<string>();
-    const queue = tech.prerequisites.map((p) => p.techId);
+    const queue = [...tech.prerequisites];
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -186,7 +209,7 @@ function validateRecipes(): ValidationResult {
 
       const dep = TECH_BY_ID[current];
       if (dep) {
-        queue.push(...dep.prerequisites.map((p) => p.techId));
+        queue.push(...dep.prerequisites);
       }
     }
   }
@@ -195,7 +218,7 @@ function validateRecipes(): ValidationResult {
   for (const tool of TOOLS) {
     const isUsedAsPrereq = toolsUsedAsPrereq.has(tool.id);
     const isInTechTree = toolsInTechTree.has(tool.id);
-    const hasGatheringBonus = tool.gatheringType !== undefined;
+    const hasGatheringBonus = tool.baseStats.gatheringBonus > 0;
 
     if (!isUsedAsPrereq && !hasGatheringBonus) {
       result.warnings.push(
@@ -225,7 +248,7 @@ function validateRecipes(): ValidationResult {
   // ========== 6. Check for Circular Dependencies ==========
   for (const tool of TOOLS) {
     const visited = new Set<string>();
-    const queue = tool.requiredTools.map((r) => r.toolId);
+    const queue = [...tool.requiredTools];
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -238,7 +261,7 @@ function validateRecipes(): ValidationResult {
 
       const dep = TOOLS_BY_ID[current];
       if (dep) {
-        queue.push(...dep.requiredTools.map((r) => r.toolId));
+        queue.push(...dep.requiredTools);
       }
     }
   }

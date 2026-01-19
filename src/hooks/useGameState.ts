@@ -10,20 +10,13 @@ import React, {
   createContext,
   ReactNode,
   useRef,
+  useMemo,
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Inventory, ResourceStack } from '../types/resources';
-import { TechProgress } from '../types/tech';
 import { Village, PlacedBuilding } from '../types/village';
-import {
-  PlayerToolInventory,
-  OwnedTool,
-  OwnedComponent,
-  CraftingJob,
-  Tool,
-  CraftedComponent,
-} from '../types/tools';
+import { OwnedTool, OwnedComponent, CraftingJob, Tool, CraftedComponent } from '../types/tools';
 import {
   CraftingService,
   CraftCheckResult,
@@ -33,23 +26,18 @@ import {
 
 const STORAGE_KEY = 'walkforage_gamestate';
 
-export interface StepGatheringState {
-  /** Steps available for gathering */
-  availableSteps: number;
-  /** Timestamp of last step sync from health service */
-  lastSyncTimestamp: number;
-  /** Total steps ever used for gathering */
-  totalStepsGathered: number;
-}
-
 export interface GameState {
   inventory: Inventory;
-  techProgress: TechProgress;
-  toolInventory: PlayerToolInventory;
+  unlockedTechs: string[];
+  ownedTools: OwnedTool[];
+  ownedComponents: OwnedComponent[];
   craftingQueue: CraftingJob[];
   village: Village;
   explorationPoints: number;
-  stepGathering: StepGatheringState;
+  // Step gathering state (inlined from PersistedStepGatheringState)
+  availableSteps: number;
+  lastSyncTimestamp: number;
+  totalStepsGathered: number;
 }
 
 const INITIAL_STATE: GameState = {
@@ -59,13 +47,9 @@ const INITIAL_STATE: GameState = {
     ores: [],
     other: [],
   },
-  techProgress: {
-    unlockedTechs: [], // Start with no techs unlocked
-  },
-  toolInventory: {
-    ownedTools: [],
-    ownedComponents: [],
-  },
+  unlockedTechs: [], // Start with no techs unlocked
+  ownedTools: [],
+  ownedComponents: [],
   craftingQueue: [],
   village: {
     name: 'New Settlement',
@@ -75,11 +59,9 @@ const INITIAL_STATE: GameState = {
     gridSize: { width: 10, height: 10 },
   },
   explorationPoints: 0,
-  stepGathering: {
-    availableSteps: 0,
-    lastSyncTimestamp: 0,
-    totalStepsGathered: 0,
-  },
+  availableSteps: 0,
+  lastSyncTimestamp: 0,
+  totalStepsGathered: 0,
 };
 
 // Re-export CraftCheckResult from CraftingService for external consumers
@@ -120,7 +102,11 @@ export interface GameStateHook {
   // Step gathering actions
   syncSteps: (newSteps: number) => void;
   spendSteps: (amount: number) => void;
-  getStepGatheringState: () => StepGatheringState;
+  getStepGatheringState: () => {
+    availableSteps: number;
+    lastSyncTimestamp: number;
+    totalStepsGathered: number;
+  };
 
   // Village actions
   placeBuilding: (building: PlacedBuilding) => void;
@@ -161,20 +147,12 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<GameState>;
-        // Merge with initial state to handle missing fields from old saves
+        // Merge with initial state to handle missing fields
         setState({
           ...INITIAL_STATE,
           ...parsed,
-          // Ensure nested objects have defaults
           inventory: { ...INITIAL_STATE.inventory, ...parsed.inventory },
-          techProgress: { ...INITIAL_STATE.techProgress, ...parsed.techProgress },
-          toolInventory: {
-            ownedTools: parsed.toolInventory?.ownedTools || [],
-            ownedComponents: parsed.toolInventory?.ownedComponents || [],
-          },
-          craftingQueue: parsed.craftingQueue || INITIAL_STATE.craftingQueue,
           village: { ...INITIAL_STATE.village, ...parsed.village },
-          stepGathering: { ...INITIAL_STATE.stepGathering, ...parsed.stepGathering },
         });
       }
     } catch (error) {
@@ -365,26 +343,23 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   const unlockTech = useCallback((techId: string) => {
     setState((prev) => ({
       ...prev,
-      techProgress: {
-        ...prev.techProgress,
-        unlockedTechs: [...prev.techProgress.unlockedTechs, techId],
-      },
+      unlockedTechs: [...prev.unlockedTechs, techId],
     }));
   }, []);
 
   const hasTech = useCallback(
     (techId: string): boolean => {
-      return state.techProgress.unlockedTechs.includes(techId);
+      return state.unlockedTechs.includes(techId);
     },
-    [state.techProgress.unlockedTechs]
+    [state.unlockedTechs]
   );
 
   // Tool inventory helpers
   const getOwnedTools = useCallback(
     (toolId: string): OwnedTool[] => {
-      return state.toolInventory.ownedTools.filter((t) => t.toolId === toolId);
+      return state.ownedTools.filter((t) => t.toolId === toolId);
     },
-    [state.toolInventory.ownedTools]
+    [state.ownedTools]
   );
 
   const hasTool = useCallback(
@@ -407,19 +382,20 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
   const getOwnedComponents = useCallback(
     (componentId: string): OwnedComponent[] => {
-      return state.toolInventory.ownedComponents.filter((c) => c.componentId === componentId);
+      return state.ownedComponents.filter((c) => c.componentId === componentId);
     },
-    [state.toolInventory.ownedComponents]
+    [state.ownedComponents]
   );
 
   // Helper to get CraftingState from GameState
   const getCraftingState = useCallback((): CraftingState => {
     return {
       inventory: state.inventory,
-      techProgress: state.techProgress,
-      toolInventory: state.toolInventory,
+      unlockedTechs: state.unlockedTechs,
+      ownedTools: state.ownedTools,
+      ownedComponents: state.ownedComponents,
     };
-  }, [state.inventory, state.techProgress, state.toolInventory]);
+  }, [state.inventory, state.unlockedTechs, state.ownedTools, state.ownedComponents]);
 
   // Unified canCraft using CraftingService
   const canCraft = useCallback(
@@ -448,7 +424,8 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       setState((prev) => ({
         ...prev,
         inventory: result.newState.inventory,
-        toolInventory: result.newState.toolInventory,
+        ownedTools: result.newState.ownedTools,
+        ownedComponents: result.newState.ownedComponents,
       }));
 
       return { success: true };
@@ -468,28 +445,27 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   const syncSteps = useCallback((newSteps: number) => {
     setState((prev) => ({
       ...prev,
-      stepGathering: {
-        ...prev.stepGathering,
-        availableSteps: prev.stepGathering.availableSteps + newSteps,
-        lastSyncTimestamp: Date.now(),
-      },
+      availableSteps: prev.availableSteps + newSteps,
+      lastSyncTimestamp: Date.now(),
     }));
   }, []);
 
   const spendSteps = useCallback((amount: number) => {
     setState((prev) => ({
       ...prev,
-      stepGathering: {
-        ...prev.stepGathering,
-        availableSteps: Math.max(0, prev.stepGathering.availableSteps - amount),
-        totalStepsGathered: prev.stepGathering.totalStepsGathered + amount,
-      },
+      availableSteps: Math.max(0, prev.availableSteps - amount),
+      totalStepsGathered: prev.totalStepsGathered + amount,
     }));
   }, []);
 
-  const getStepGatheringState = useCallback((): StepGatheringState => {
-    return state.stepGathering;
-  }, [state.stepGathering]);
+  // Use stateRef to return truly fresh state, avoiding stale closure issues
+  const getStepGatheringState = useCallback(() => {
+    return {
+      availableSteps: stateRef.current.availableSteps,
+      lastSyncTimestamp: stateRef.current.lastSyncTimestamp,
+      totalStepsGathered: stateRef.current.totalStepsGathered,
+    };
+  }, []);
 
   // Village helpers
   const placeBuilding = useCallback((building: PlacedBuilding) => {
@@ -514,31 +490,37 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     }));
   }, []);
 
-  const value: GameStateHook = {
-    state,
-    isLoading,
-    addResource,
-    removeResource,
-    hasResource,
-    getResourceCount,
-    unlockTech,
-    hasTech,
-    hasTool,
-    getOwnedTools,
-    getBestTool,
-    getOwnedComponents,
-    canCraft,
-    craft,
-    addExplorationPoints,
-    syncSteps,
-    spendSteps,
-    getStepGatheringState,
-    placeBuilding,
-    upgradeBuilding,
-    saveGame,
-    loadGame,
-    resetGame,
-  };
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  // Callbacks are stable (useCallback with empty/stable deps), so only state/isLoading matter
+  const value: GameStateHook = useMemo(
+    () => ({
+      state,
+      isLoading,
+      addResource,
+      removeResource,
+      hasResource,
+      getResourceCount,
+      unlockTech,
+      hasTech,
+      hasTool,
+      getOwnedTools,
+      getBestTool,
+      getOwnedComponents,
+      canCraft,
+      craft,
+      addExplorationPoints,
+      syncSteps,
+      spendSteps,
+      getStepGatheringState,
+      placeBuilding,
+      upgradeBuilding,
+      saveGame,
+      loadGame,
+      resetGame,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, isLoading]
+  );
 
   return React.createElement(GameStateContext.Provider, { value }, children);
 }

@@ -7,20 +7,19 @@ import {
   CraftedComponent,
   OwnedTool,
   OwnedComponent,
-  PlayerToolInventory,
   UsedMaterials,
   MaterialRequirements,
   isTool,
 } from '../types/tools';
-import { TechProgress } from '../types/tech';
 import { STONES_BY_ID } from '../data/stones';
 import { calculateCraftableQuality } from '../utils/qualityCalculation';
 
 // State required for crafting operations
 export interface CraftingState {
   inventory: Inventory;
-  techProgress: TechProgress;
-  toolInventory: PlayerToolInventory;
+  unlockedTechs: string[];
+  ownedTools: OwnedTool[];
+  ownedComponents: OwnedComponent[];
 }
 
 // Result of checking if something can be crafted
@@ -90,16 +89,16 @@ function findAvailableWoods(woods: ResourceStack[], quantity: number): string[] 
 }
 
 // Helper: Check if player owns a specific tool
-function hasTool(toolInventory: PlayerToolInventory, toolId: string): boolean {
-  return toolInventory.ownedTools.some((t) => t.toolId === toolId);
+function hasTool(ownedTools: OwnedTool[], toolId: string): boolean {
+  return ownedTools.some((t) => t.toolId === toolId);
 }
 
 // Helper: Get owned components by component ID
 function getOwnedComponentsByType(
-  toolInventory: PlayerToolInventory,
+  ownedComponents: OwnedComponent[],
   componentId: string
 ): OwnedComponent[] {
-  return toolInventory.ownedComponents.filter((c) => c.componentId === componentId);
+  return ownedComponents.filter((c) => c.componentId === componentId);
 }
 
 // Helper: Get resource count from inventory
@@ -145,20 +144,20 @@ export function canCraft(
   const availableComponentIds: string[] = [];
 
   // Check tech requirement
-  if (!state.techProgress.unlockedTechs.includes(craftable.requiredTech)) {
+  if (!state.unlockedTechs.includes(craftable.requiredTech)) {
     missing.push(`Tech: ${craftable.requiredTech}`);
   }
 
   // Check tool requirements
-  for (const req of craftable.requiredTools) {
-    if (!hasTool(state.toolInventory, req.toolId)) {
-      missing.push(`Tool: ${req.toolId}`);
+  for (const reqToolId of craftable.requiredTools) {
+    if (!hasTool(state.ownedTools, reqToolId)) {
+      missing.push(`Tool: ${reqToolId}`);
     }
   }
 
   // Check component requirements (both tools and components can require components)
   for (const comp of craftable.requiredComponents) {
-    const ownedComps = getOwnedComponentsByType(state.toolInventory, comp.componentId);
+    const ownedComps = getOwnedComponentsByType(state.ownedComponents, comp.componentId);
     if (ownedComps.length < comp.quantity) {
       missing.push(`Component: ${comp.quantity}x ${comp.componentId}`);
     } else {
@@ -305,7 +304,7 @@ export function craft(
   const componentValidation = validateComponentSelection(
     craftable.requiredComponents,
     params.selectedComponentIds,
-    state.toolInventory.ownedComponents
+    state.ownedComponents
   );
   if ('error' in componentValidation) {
     return { success: false, error: componentValidation.error };
@@ -340,7 +339,7 @@ export function craft(
   };
 
   // Consume components
-  let newOwnedComponents = state.toolInventory.ownedComponents;
+  let newOwnedComponents = state.ownedComponents;
   if (params.selectedComponentIds && params.selectedComponentIds.length > 0) {
     newOwnedComponents = newOwnedComponents.filter(
       (c) => !params.selectedComponentIds!.includes(c.instanceId)
@@ -358,11 +357,9 @@ export function craft(
 
     const newState: CraftingState = {
       inventory: newInventory,
-      techProgress: state.techProgress,
-      toolInventory: {
-        ownedTools: [...state.toolInventory.ownedTools, newTool],
-        ownedComponents: newOwnedComponents,
-      },
+      unlockedTechs: state.unlockedTechs,
+      ownedTools: [...state.ownedTools, newTool],
+      ownedComponents: newOwnedComponents,
     };
 
     return { success: true, newState, craftedItem: newTool };
@@ -376,11 +373,9 @@ export function craft(
 
     const newState: CraftingState = {
       inventory: newInventory,
-      techProgress: state.techProgress,
-      toolInventory: {
-        ownedTools: state.toolInventory.ownedTools,
-        ownedComponents: [...newOwnedComponents, newComponent],
-      },
+      unlockedTechs: state.unlockedTechs,
+      ownedTools: state.ownedTools,
+      ownedComponents: [...newOwnedComponents, newComponent],
     };
 
     return { success: true, newState, craftedItem: newComponent };

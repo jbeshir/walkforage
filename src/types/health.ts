@@ -7,20 +7,6 @@
 export type HealthPermissionStatus = 'not_determined' | 'denied' | 'authorized' | 'unavailable';
 
 /**
- * Current step gathering state
- */
-export interface StepGatheringState {
-  /** Steps available for gathering (synced from health service) */
-  availableSteps: number;
-  /** Timestamp of last step sync from health service */
-  lastSyncTimestamp: number;
-  /** Total steps ever used for gathering */
-  totalStepsGathered: number;
-  /** Current health permission status */
-  permissionStatus: HealthPermissionStatus;
-}
-
-/**
  * Result from syncing steps from health service
  */
 export interface StepSyncResult {

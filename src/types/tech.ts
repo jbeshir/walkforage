@@ -46,11 +46,6 @@ export const ERA_LABELS: Record<LithicEra, string> = {
   mesolithic: 'MS',
 };
 
-export interface TechRequirement {
-  techId: string;
-  type: 'prerequisite';
-}
-
 // Resource cost for technologies - uses generic types (any stone, any wood)
 export interface TechResourceCost {
   resourceType: 'stone' | 'wood'; // Generic resource category
@@ -70,15 +65,11 @@ export interface Technology {
   description: string;
 
   // What's needed to unlock this tech
-  prerequisites: TechRequirement[];
+  prerequisites: string[]; // Tech IDs that must be unlocked first
   resourceCost: TechResourceCost[];
 
   // What this tech enables
   unlocks: string[]; // Other tech IDs
   enablesBuildings: string[]; // Building IDs
   enablesRecipes: string[]; // Recipe IDs
-}
-
-export interface TechProgress {
-  unlockedTechs: string[];
 }

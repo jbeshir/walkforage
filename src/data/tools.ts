@@ -46,7 +46,7 @@ export const COMPONENTS: CraftedComponent[] = [
     era: 'middle_paleolithic',
     description: 'A handle carved with stone tools. Fits the hand better.',
     requiredTech: 'hafting',
-    requiredTools: [{ toolId: 'stone_knife' }],
+    requiredTools: ['stone_knife'],
     requiredComponents: [],
     materials: { wood: { quantity: 10 } },
     qualityWeights: COMPONENT_QUALITY_WEIGHTS,
@@ -87,7 +87,6 @@ export const TOOLS: Tool[] = [
     requiredComponents: [],
     materials: { stone: { quantity: 10 } },
     baseStats: { gatheringBonus: 0 },
-    gatheringType: 'stone_harvesting',
     qualityWeights: QUALITY_WEIGHTS.knapping,
     baseCraftTime: 10,
   },
@@ -120,7 +119,7 @@ export const TOOLS: Tool[] = [
     requiredComponents: [{ componentId: 'crude_handle', quantity: 1 }],
     materials: {},
     baseStats: { gatheringBonus: 0.3 },
-    gatheringType: 'foraging',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.foraging,
     baseCraftTime: 60,
   },
@@ -134,11 +133,11 @@ export const TOOLS: Tool[] = [
     description:
       'A bifacially flaked stone held in the hand. Useful for chopping wood and butchering.',
     requiredTech: 'basic_knapping',
-    requiredTools: [{ toolId: 'hammerstone' }],
+    requiredTools: ['hammerstone'],
     requiredComponents: [],
     materials: { stone: { quantity: 15, requiresToolstone: true } },
     baseStats: { gatheringBonus: 0.2 },
-    gatheringType: 'woodcutting',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.woodworking,
     baseCraftTime: 300,
   },
@@ -150,16 +149,16 @@ export const TOOLS: Tool[] = [
     category: 'cutting',
     era: 'middle_paleolithic',
     description:
-      'A hafted flint blade. Essential for many crafts including hide working and food preparation.',
+      'A hafted flint blade. Useful for cutting plants and preparing food, and required for finer crafts.',
     requiredTech: 'hafting',
-    requiredTools: [{ toolId: 'hammerstone' }],
+    requiredTools: ['hammerstone'],
     requiredComponents: [
       { componentId: 'crude_handle', quantity: 1 },
       { componentId: 'fiber_binding', quantity: 1 },
     ],
     materials: { stone: { quantity: 10, requiresToolstone: true } },
     baseStats: { gatheringBonus: 0.2 },
-    gatheringType: 'foraging',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.cutting,
     baseCraftTime: 180,
   },
@@ -173,14 +172,14 @@ export const TOOLS: Tool[] = [
     description:
       'A stone axe head bound to a wooden handle. More powerful than hand axes for felling trees.',
     requiredTech: 'hafting',
-    requiredTools: [{ toolId: 'hammerstone' }],
+    requiredTools: ['hammerstone'],
     requiredComponents: [
       { componentId: 'shaped_handle', quantity: 1 },
       { componentId: 'fiber_binding', quantity: 1 },
     ],
     materials: { stone: { quantity: 12, requiresToolstone: true } },
     baseStats: { gatheringBonus: 0.5 },
-    gatheringType: 'woodcutting',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.woodworking,
     baseCraftTime: 600,
   },
@@ -194,7 +193,7 @@ export const TOOLS: Tool[] = [
     description:
       'A pointed tool for precise pressure flaking. Enables crafting refined tools like adzes.',
     requiredTech: 'blade_technology',
-    requiredTools: [{ toolId: 'stone_knife' }],
+    requiredTools: ['stone_knife'],
     requiredComponents: [],
     materials: {
       stone: { quantity: 8, requiresToolstone: true },
@@ -214,14 +213,14 @@ export const TOOLS: Tool[] = [
     description:
       'A transverse axe with blade perpendicular to handle. Excellent for hollowing and shaping wood.',
     requiredTech: 'composite_tools',
-    requiredTools: [{ toolId: 'hammerstone' }, { toolId: 'pressure_flaker' }],
+    requiredTools: ['hammerstone', 'pressure_flaker'],
     requiredComponents: [
       { componentId: 'shaped_handle', quantity: 1 },
       { componentId: 'fiber_binding', quantity: 1 },
     ],
     materials: { stone: { quantity: 15, requiresToolstone: true } },
     baseStats: { gatheringBonus: 0.3 },
-    gatheringType: 'woodcutting',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.woodworking,
     baseCraftTime: 600,
   },
@@ -235,14 +234,14 @@ export const TOOLS: Tool[] = [
     description:
       'A ground and polished stone axe. The cutting edge is smoother and more durable than flaked axes.',
     requiredTech: 'polished_stone',
-    requiredTools: [{ toolId: 'hammerstone' }, { toolId: 'grinding_stone' }],
+    requiredTools: ['hammerstone', 'grinding_stone'],
     requiredComponents: [
       { componentId: 'shaped_handle', quantity: 1 },
       { componentId: 'fiber_binding', quantity: 1 },
     ],
     materials: { stone: { quantity: 25 } },
     baseStats: { gatheringBonus: 1.0 },
-    gatheringType: 'woodcutting',
+    gatheringMaterial: 'woods',
     qualityWeights: QUALITY_WEIGHTS.woodworking,
     baseCraftTime: 1200,
   },
@@ -276,7 +275,7 @@ export function getToolsByCategory(category: ToolCategory): Tool[] {
 export function getToolPrerequisites(toolId: string): string[] {
   const tool = TOOLS_BY_ID[toolId];
   if (!tool) return [];
-  return tool.requiredTools.map((rt) => rt.toolId);
+  return tool.requiredTools;
 }
 
 export function getAllToolDependencies(toolId: string): string[] {
@@ -288,10 +287,10 @@ export function getAllToolDependencies(toolId: string): string[] {
     const tool = TOOLS_BY_ID[current];
     if (!tool) continue;
 
-    for (const req of tool.requiredTools) {
-      if (!deps.has(req.toolId)) {
-        deps.add(req.toolId);
-        queue.push(req.toolId);
+    for (const reqToolId of tool.requiredTools) {
+      if (!deps.has(reqToolId)) {
+        deps.add(reqToolId);
+        queue.push(reqToolId);
       }
     }
   }
@@ -308,14 +307,14 @@ const CRAFTING_TOOL_IDS = new Set<string>();
 (() => {
   // Check tools that require other tools
   for (const tool of TOOLS) {
-    for (const req of tool.requiredTools) {
-      CRAFTING_TOOL_IDS.add(req.toolId);
+    for (const reqToolId of tool.requiredTools) {
+      CRAFTING_TOOL_IDS.add(reqToolId);
     }
   }
   // Check components that require tools
   for (const component of COMPONENTS) {
-    for (const req of component.requiredTools) {
-      CRAFTING_TOOL_IDS.add(req.toolId);
+    for (const reqToolId of component.requiredTools) {
+      CRAFTING_TOOL_IDS.add(reqToolId);
     }
   }
 })();

@@ -204,7 +204,7 @@ export default function MaterialSelectionModal({
       const autoSelectedComponents: string[] = [];
       for (const req of requiredComponents) {
         const available = availableComponentIds.filter((id) => {
-          const comp = state.toolInventory.ownedComponents.find((c) => c.instanceId === id);
+          const comp = state.ownedComponents.find((c) => c.instanceId === id);
           return comp?.componentId === req.componentId;
         });
         for (let i = 0; i < req.quantity && i < available.length; i++) {
@@ -223,7 +223,7 @@ export default function MaterialSelectionModal({
     availableWoods,
     availableComponentIds,
     requiredComponents,
-    state.toolInventory.ownedComponents,
+    state.ownedComponents,
     qualityWeights,
   ]);
 
@@ -271,7 +271,7 @@ export default function MaterialSelectionModal({
       // Check all required component types have enough selections
       for (const req of requiredComponents) {
         const selectedOfType = selectedComponentIds.filter((id) => {
-          const comp = state.toolInventory.ownedComponents.find((c) => c.instanceId === id);
+          const comp = state.ownedComponents.find((c) => c.instanceId === id);
           return comp?.componentId === req.componentId;
         });
         if (selectedOfType.length < req.quantity) return false;
@@ -409,9 +409,7 @@ export default function MaterialSelectionModal({
                 {requiredComponents.map((req) => {
                   const compDef = getComponentById(req.componentId);
                   const availableForType = availableComponentIds
-                    .map((id) =>
-                      state.toolInventory.ownedComponents.find((c) => c.instanceId === id)
-                    )
+                    .map((id) => state.ownedComponents.find((c) => c.instanceId === id))
                     .filter((c) => c?.componentId === req.componentId) as OwnedComponent[];
 
                   return (

@@ -149,16 +149,8 @@ describe('Tech Tree Data', () => {
   describe('Tech prerequisites', () => {
     it('should have valid prerequisite references', () => {
       TECHNOLOGIES.forEach((tech) => {
-        tech.prerequisites.forEach((prereq) => {
-          expect(TECH_BY_ID[prereq.techId]).toBeDefined();
-        });
-      });
-    });
-
-    it('should have prerequisite type as "prerequisite"', () => {
-      TECHNOLOGIES.forEach((tech) => {
-        tech.prerequisites.forEach((prereq) => {
-          expect(prereq.type).toBe('prerequisite');
+        tech.prerequisites.forEach((prereqId) => {
+          expect(TECH_BY_ID[prereqId]).toBeDefined();
         });
       });
     });
@@ -181,10 +173,10 @@ describe('Tech Tree Data', () => {
 
           const currentTech = TECH_BY_ID[current];
           if (currentTech) {
-            currentTech.prerequisites.forEach((prereq) => {
+            currentTech.prerequisites.forEach((prereqId) => {
               // Should never find the original tech in its dependency tree
-              expect(prereq.techId).not.toBe(tech.id);
-              queue.push(prereq.techId);
+              expect(prereqId).not.toBe(tech.id);
+              queue.push(prereqId);
             });
           }
         }
@@ -213,7 +205,7 @@ describe('Tech Tree Data', () => {
           const unlockedTech = TECH_BY_ID[unlockId];
           // Only check if it's actually a technology
           if (unlockedTech) {
-            const hasPrereq = unlockedTech.prerequisites.some((p) => p.techId === tech.id);
+            const hasPrereq = unlockedTech.prerequisites.includes(tech.id);
             expect(hasPrereq).toBe(true);
           }
         });
@@ -236,13 +228,12 @@ describe('Tech Tree Data', () => {
         expect(tech.prerequisites.length).toBeGreaterThan(0);
 
         // Follow prerequisite chain - should eventually reach lower_paleolithic
-        const prereqIds = tech.prerequisites.map((p) => p.techId);
-        const hasPathToLowerPaleo = prereqIds.some((prereqId) => {
+        const hasPathToLowerPaleo = tech.prerequisites.some((prereqId) => {
           let current = TECH_BY_ID[prereqId];
           while (current) {
             if (current.era === 'lower_paleolithic') return true;
             if (current.prerequisites.length === 0) break;
-            current = TECH_BY_ID[current.prerequisites[0].techId];
+            current = TECH_BY_ID[current.prerequisites[0]];
           }
           return false;
         });
@@ -259,8 +250,7 @@ describe('Tech Tree Data', () => {
 
     it('hafting should require cordage_making', () => {
       const hafting = TECH_BY_ID['hafting'];
-      const prereqIds = hafting.prerequisites.map((p) => p.techId);
-      expect(prereqIds).toContain('cordage_making');
+      expect(hafting.prerequisites).toContain('cordage_making');
     });
 
     it('polished_stone should be late-game technology', () => {

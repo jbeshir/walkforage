@@ -72,6 +72,10 @@ export interface Inventory {
   other: ResourceStack[];
 }
 
+// Material categories that can be gathered with tools
+// This is the source of truth for gathering-related logic
+export type GatherableMaterial = 'stones' | 'woods';
+
 // Geological zone data from real-world datasets
 export interface GeologicalZone {
   id: string;

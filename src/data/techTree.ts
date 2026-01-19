@@ -24,7 +24,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'lower_paleolithic',
     description:
       'Using abrasive stones to smooth and shape other stones. Essential for creating certain tool types.',
-    prerequisites: [{ techId: 'basic_knapping', type: 'prerequisite' }],
+    prerequisites: ['basic_knapping'],
     resourceCost: [{ resourceType: 'stone', quantity: 15 }],
     unlocks: [],
     enablesBuildings: [],
@@ -35,7 +35,7 @@ export const TECHNOLOGIES: Technology[] = [
     name: 'Fire Making',
     era: 'lower_paleolithic',
     description: 'Creating fire through friction. A transformative technology for early humans.',
-    prerequisites: [{ techId: 'basic_knapping', type: 'prerequisite' }],
+    prerequisites: ['basic_knapping'],
     resourceCost: [{ resourceType: 'wood', quantity: 10 }],
     unlocks: [],
     enablesBuildings: ['fire_pit'],
@@ -47,7 +47,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'lower_paleolithic',
     description:
       'Twisting plant fibers into cordage. Essential for binding tools and creating complex items.',
-    prerequisites: [{ techId: 'basic_knapping', type: 'prerequisite' }],
+    prerequisites: ['basic_knapping'],
     resourceCost: [{ resourceType: 'wood', quantity: 10 }],
     unlocks: ['hafting'],
     enablesBuildings: [],
@@ -62,7 +62,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'middle_paleolithic',
     description:
       'Attaching stone heads to wooden handles. Creates more powerful and versatile tools.',
-    prerequisites: [{ techId: 'cordage_making', type: 'prerequisite' }],
+    prerequisites: ['cordage_making'],
     resourceCost: [
       { resourceType: 'stone', quantity: 25 },
       { resourceType: 'wood', quantity: 15 },
@@ -80,7 +80,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'upper_paleolithic',
     description:
       'Precision flaking to create long, thin blades. A revolution in stone tool efficiency.',
-    prerequisites: [{ techId: 'hafting', type: 'prerequisite' }],
+    prerequisites: ['hafting'],
     resourceCost: [
       { resourceType: 'stone', quantity: 40 },
       { resourceType: 'wood', quantity: 10 },
@@ -95,7 +95,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'upper_paleolithic',
     description:
       'Creating tools from multiple materials and components. The height of stone age ingenuity.',
-    prerequisites: [{ techId: 'blade_technology', type: 'prerequisite' }],
+    prerequisites: ['blade_technology'],
     resourceCost: [
       { resourceType: 'stone', quantity: 60 },
       { resourceType: 'wood', quantity: 25 },
@@ -113,7 +113,7 @@ export const TECHNOLOGIES: Technology[] = [
     era: 'mesolithic',
     description:
       'Grinding and polishing stone to create stronger, more refined tools. The precursor to the Neolithic.',
-    prerequisites: [{ techId: 'composite_tools', type: 'prerequisite' }],
+    prerequisites: ['composite_tools'],
     resourceCost: [
       { resourceType: 'stone', quantity: 100 },
       { resourceType: 'wood', quantity: 40 },
@@ -136,6 +136,6 @@ export function getAvailableTechs(unlockedTechs: string[]): Technology[] {
     if (unlockedTechs.includes(tech.id)) return false;
 
     // Check all prerequisites are met
-    return tech.prerequisites.every((prereq) => unlockedTechs.includes(prereq.techId));
+    return tech.prerequisites.every((prereqId) => unlockedTechs.includes(prereqId));
   });
 }

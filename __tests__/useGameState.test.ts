@@ -41,7 +41,7 @@ describe('useGameState', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.state.techProgress.unlockedTechs).toEqual([]);
+      expect(result.current.state.unlockedTechs).toEqual([]);
     });
 
     it('should have empty inventory initially', async () => {
@@ -226,7 +226,7 @@ describe('useGameState', () => {
         result.current.unlockTech('grinding');
       });
 
-      expect(result.current.state.techProgress.unlockedTechs).toContain('grinding');
+      expect(result.current.state.unlockedTechs).toContain('grinding');
     });
 
     it('should check if tech is unlocked', async () => {
@@ -461,7 +461,7 @@ describe('useGameState', () => {
       // Should have saved value
       expect(result.current.state.explorationPoints).toBe(100);
       // Should have defaults for missing fields
-      expect(result.current.state.techProgress.unlockedTechs).toEqual([]);
+      expect(result.current.state.unlockedTechs).toEqual([]);
       expect(result.current.state.village.name).toBe('New Settlement');
     });
 

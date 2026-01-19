@@ -179,7 +179,7 @@ function ToolRecipeItem({ tool, craftCheck, onCraft }: ToolRecipeItemProps) {
         <View style={styles.requirementsContainer}>
           {tool.requiredTools.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Tools: {tool.requiredTools.map((r) => r.toolId.replace(/_/g, ' ')).join(', ')}
+              Tools: {tool.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {tool.requiredComponents.length > 0 && (
@@ -258,7 +258,7 @@ function ComponentRecipeItem({
         <View style={styles.requirementsContainer}>
           {component.requiredTools.length > 0 && (
             <Text style={styles.requirementLabel}>
-              Tools: {component.requiredTools.map((r) => r.toolId.replace(/_/g, ' ')).join(', ')}
+              Tools: {component.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {(component.materials.stone || component.materials.wood) && (
@@ -370,12 +370,8 @@ export default function CraftingScreen() {
 
   const renderOwnedTools = () => {
     // Split owned tools into crafting and gathering categories
-    const craftingTools = state.toolInventory.ownedTools.filter((owned) =>
-      isCraftingTool(owned.toolId)
-    );
-    const gatheringTools = state.toolInventory.ownedTools.filter((owned) =>
-      isGatheringTool(owned.toolId)
-    );
+    const craftingTools = state.ownedTools.filter((owned) => isCraftingTool(owned.toolId));
+    const gatheringTools = state.ownedTools.filter((owned) => isGatheringTool(owned.toolId));
 
     return (
       <View style={styles.section}>
@@ -401,12 +397,12 @@ export default function CraftingScreen() {
 
         {/* Components inventory */}
         <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
-          Components ({state.toolInventory.ownedComponents.length})
+          Components ({state.ownedComponents.length})
         </Text>
-        {state.toolInventory.ownedComponents.length === 0 ? (
+        {state.ownedComponents.length === 0 ? (
           <Text style={styles.emptyText}>No components crafted yet.</Text>
         ) : (
-          state.toolInventory.ownedComponents.map((comp) => (
+          state.ownedComponents.map((comp) => (
             <OwnedComponentItem key={comp.instanceId} component={comp} />
           ))
         )}

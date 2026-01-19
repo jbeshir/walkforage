@@ -57,7 +57,7 @@ export default function TechTreeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTech, setSelectedTech] = useState<Technology | null>(null);
 
-  const availableTechs = getAvailableTechs(state.techProgress.unlockedTechs);
+  const availableTechs = getAvailableTechs(state.unlockedTechs);
 
   // Get total count of a resource type across all specific resources
   const getTotalResourceCount = (resourceType: 'stone' | 'wood'): number => {
@@ -77,11 +77,11 @@ export default function TechTreeScreen() {
     }
 
     // Check if available
-    const isAvailable = tech.prerequisites.every((prereq) => hasTech(prereq.techId));
+    const isAvailable = tech.prerequisites.every((prereqId) => hasTech(prereqId));
     if (!isAvailable) {
       const missing = tech.prerequisites
-        .filter((p) => !hasTech(p.techId))
-        .map((p) => TECH_BY_ID[p.techId]?.name || p.techId);
+        .filter((prereqId) => !hasTech(prereqId))
+        .map((prereqId) => TECH_BY_ID[prereqId]?.name || prereqId);
       Alert.alert('Locked', `Requires: ${missing.join(', ')}`);
       return;
     }
@@ -135,7 +135,7 @@ export default function TechTreeScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Technology Tree</Text>
         <Text style={styles.headerSubtitle}>
-          {state.techProgress.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
+          {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
         </Text>
       </View>
 

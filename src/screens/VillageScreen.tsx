@@ -29,7 +29,7 @@ export default function VillageScreen() {
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Technologies</Text>
-          <Text style={styles.statValue}>{state.techProgress.unlockedTechs.length} unlocked</Text>
+          <Text style={styles.statValue}>{state.unlockedTechs.length} unlocked</Text>
         </View>
       </View>
 

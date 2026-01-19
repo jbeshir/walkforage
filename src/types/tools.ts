@@ -3,6 +3,7 @@
 // Tools track actual materials used, with quality derived from material properties
 
 import { TechEra } from './tech';
+import { GatherableMaterial } from './resources';
 
 // Tool categories for organization and bonuses
 export type ToolCategory =
@@ -44,11 +45,6 @@ export interface MaterialRequirements {
   wood?: WoodMaterialRequirement;
 }
 
-// Tool prerequisite - another tool needed to craft
-export interface ToolPrerequisite {
-  toolId: string;
-}
-
 // Materials used in a crafted tool (tracks actual materials)
 export interface UsedMaterials {
   stoneId?: string; // e.g., "flint", "obsidian"
@@ -59,9 +55,6 @@ export interface UsedMaterials {
 
 // Quality tier for display purposes
 export type QualityTier = 'poor' | 'adequate' | 'good' | 'excellent' | 'masterwork';
-
-// Gathering type for tools that provide gathering bonuses
-export type GatheringType = 'foraging' | 'woodcutting' | 'stone_harvesting' | 'general';
 
 // Component requirement for tools
 export interface ComponentRequirement {
@@ -80,8 +73,8 @@ export interface CraftedComponent {
   // What tech must be unlocked to craft this
   requiredTech: string;
 
-  // Tools needed to craft this component
-  requiredTools: ToolPrerequisite[];
+  // Tool IDs needed to craft this component
+  requiredTools: string[];
 
   // Pre-crafted components needed (allows components to require other components)
   requiredComponents: ComponentRequirement[];
@@ -126,15 +119,15 @@ export interface Tool {
 
   // Prerequisites
   requiredTech: string; // Tech that unlocks this recipe
-  requiredTools: ToolPrerequisite[]; // Other tools needed to craft
+  requiredTools: string[]; // Tool IDs needed to craft
   requiredComponents: ComponentRequirement[]; // Pre-crafted components needed
   materials: MaterialRequirements; // Raw materials consumed (player chooses specific)
 
   // Base stats before material quality modifiers
   baseStats: ToolBaseStats;
 
-  // What type of gathering this tool helps with
-  gatheringType?: GatheringType;
+  // What material category this tool helps gather (must match an Inventory key)
+  gatheringMaterial?: GatherableMaterial;
 
   // Quality calculation weights for this tool type
   qualityWeights: QualityWeights;
@@ -149,12 +142,6 @@ export interface OwnedTool {
   toolId: string; // Reference to Tool definition
   materials: UsedMaterials; // What materials were used
   quality: number; // 0-1 scale quality score
-}
-
-// Player's tool inventory
-export interface PlayerToolInventory {
-  ownedTools: OwnedTool[];
-  ownedComponents: OwnedComponent[];
 }
 
 // Crafting job in queue
@@ -188,8 +175,8 @@ export function getQualityTier(score: number): QualityTier {
 // Calculate gathering bonus for a tool based on its quality and base stats
 // Returns an additive bonus (0 = no change, positive = help)
 export function calculateGatheringBonus(tool: Tool, quality: number): number {
-  // Only tools with gathering types get a bonus
-  if (!tool.gatheringType) return 0;
+  // Only tools with gathering materials get a bonus
+  if (!tool.gatheringMaterial) return 0;
 
   // Quality scales the bonus linearly from 0 to full bonus
   // At quality 0: no bonus (0)

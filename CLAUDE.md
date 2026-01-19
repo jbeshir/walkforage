@@ -41,6 +41,7 @@ After automated validation passes, review code for these issues:
 
 2. **Incomplete or Disconnected Logic**: Look for:
    - Legacy mechanisms or functions left in the code instead of being removed
+   - Closures closing over data that may be outdated
    - Fields in types/interfaces that are never read or written
    - Functions that are defined but never called
    - Data properties that don't connect to any UI display

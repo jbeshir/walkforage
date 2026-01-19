@@ -11,13 +11,9 @@ function createTestState(overrides: Partial<CraftingState> = {}): CraftingState 
       ores: [],
       other: [],
     },
-    techProgress: {
-      unlockedTechs: [],
-    },
-    toolInventory: {
-      ownedTools: [],
-      ownedComponents: [],
-    },
+    unlockedTechs: [],
+    ownedTools: [],
+    ownedComponents: [],
     ...overrides,
   };
 }
@@ -37,9 +33,7 @@ describe('CraftingService', () => {
 
       it('should return false when materials are missing', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
         });
         const result = CraftingService.canCraft(hammerstone, state);
 
@@ -49,9 +43,7 @@ describe('CraftingService', () => {
 
       it('should return true when all requirements are met', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stones: [{ resourceId: 'granite', quantity: 10 }],
             woods: [],
@@ -69,20 +61,16 @@ describe('CraftingService', () => {
       it('should check for toolstone requirement', () => {
         const handAxe = getToolById('hand_axe')!;
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [handAxe.requiredTech],
-          },
-          toolInventory: {
-            ownedTools: [
-              {
-                instanceId: 'test_hammerstone',
-                toolId: 'hammerstone',
-                materials: {},
-                quality: 0.5,
-              },
-            ],
-            ownedComponents: [],
-          },
+          unlockedTechs: [handAxe.requiredTech],
+          ownedTools: [
+            {
+              instanceId: 'test_hammerstone',
+              toolId: 'hammerstone',
+              materials: {},
+              quality: 0.5,
+            },
+          ],
+          ownedComponents: [],
           inventory: {
             stones: [{ resourceId: 'granite', quantity: 10 }], // Not a toolstone
             woods: [],
@@ -100,9 +88,7 @@ describe('CraftingService', () => {
 
       it('should list available materials when craftable', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stones: [
               { resourceId: 'granite', quantity: 10 },
@@ -134,9 +120,7 @@ describe('CraftingService', () => {
 
       it('should check required tools', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [crudeHandle.requiredTech],
-          },
+          unlockedTechs: [crudeHandle.requiredTech],
           inventory: {
             stones: [],
             woods: [{ resourceId: 'european_ash', quantity: 10 }],
@@ -159,20 +143,16 @@ describe('CraftingService', () => {
       it('should check required components for tools', () => {
         const haftedAxe = getToolById('hafted_axe')!;
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [haftedAxe.requiredTech],
-          },
-          toolInventory: {
-            ownedTools: [
-              {
-                instanceId: 'test_hammerstone',
-                toolId: 'hammerstone',
-                materials: {},
-                quality: 0.5,
-              },
-            ],
-            ownedComponents: [], // No components
-          },
+          unlockedTechs: [haftedAxe.requiredTech],
+          ownedTools: [
+            {
+              instanceId: 'test_hammerstone',
+              toolId: 'hammerstone',
+              materials: {},
+              quality: 0.5,
+            },
+          ],
+          ownedComponents: [], // No components
           inventory: {
             stones: [{ resourceId: 'flint', quantity: 10 }],
             woods: [{ resourceId: 'european_ash', quantity: 10 }],
@@ -206,9 +186,7 @@ describe('CraftingService', () => {
 
       it('should fail when stone not selected but required', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stones: [{ resourceId: 'granite', quantity: 10 }],
             woods: [],
@@ -228,9 +206,7 @@ describe('CraftingService', () => {
       it('should succeed and consume materials', () => {
         const initialQuantity = 20; // More than required so some remains
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stones: [{ resourceId: 'granite', quantity: initialQuantity }],
             woods: [],
@@ -251,8 +227,8 @@ describe('CraftingService', () => {
           expect(stoneStack!.quantity).toBeLessThan(initialQuantity);
 
           // Tool should be added
-          expect(result.newState.toolInventory.ownedTools.length).toBe(1);
-          expect(result.newState.toolInventory.ownedTools[0].toolId).toBe('hammerstone');
+          expect(result.newState.ownedTools.length).toBe(1);
+          expect(result.newState.ownedTools[0].toolId).toBe('hammerstone');
 
           // Crafted item should be returned
           expect(isTool(hammerstone)).toBe(true);
@@ -262,9 +238,7 @@ describe('CraftingService', () => {
 
       it('should create tool with quality based on materials', () => {
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [hammerstone.requiredTech],
-          },
+          unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stones: [{ resourceId: 'granite', quantity: 10 }],
             woods: [],
@@ -277,7 +251,7 @@ describe('CraftingService', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          const tool = result.newState.toolInventory.ownedTools[0];
+          const tool = result.newState.ownedTools[0];
           expect(tool.quality).toBeGreaterThanOrEqual(0);
           expect(tool.quality).toBeLessThanOrEqual(1);
         }
@@ -290,18 +264,14 @@ describe('CraftingService', () => {
       it('should succeed and add to ownedComponents', () => {
         // First, we need to meet all requirements for crude_handle
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [crudeHandle.requiredTech],
-          },
-          toolInventory: {
-            ownedTools: crudeHandle.requiredTools.map((req) => ({
-              instanceId: `test_${req.toolId}`,
-              toolId: req.toolId,
-              materials: {},
-              quality: 0.5,
-            })),
-            ownedComponents: [],
-          },
+          unlockedTechs: [crudeHandle.requiredTech],
+          ownedTools: crudeHandle.requiredTools.map((reqToolId) => ({
+            instanceId: `test_${reqToolId}`,
+            toolId: reqToolId,
+            materials: {},
+            quality: 0.5,
+          })),
+          ownedComponents: [],
           inventory: {
             stones: [],
             woods: [{ resourceId: 'european_ash', quantity: 10 }],
@@ -326,8 +296,8 @@ describe('CraftingService', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.newState.toolInventory.ownedComponents.length).toBe(1);
-          expect(result.newState.toolInventory.ownedComponents[0].componentId).toBe('crude_handle');
+          expect(result.newState.ownedComponents.length).toBe(1);
+          expect(result.newState.ownedComponents[0].componentId).toBe('crude_handle');
         }
       });
     });
@@ -345,25 +315,21 @@ describe('CraftingService', () => {
         const componentInstanceId = 'test_component_123';
 
         const state = createTestState({
-          techProgress: {
-            unlockedTechs: [haftedAxe.requiredTech],
-          },
-          toolInventory: {
-            ownedTools: haftedAxe.requiredTools.map((req) => ({
-              instanceId: `test_${req.toolId}`,
-              toolId: req.toolId,
-              materials: {},
+          unlockedTechs: [haftedAxe.requiredTech],
+          ownedTools: haftedAxe.requiredTools.map((reqToolId) => ({
+            instanceId: `test_${reqToolId}`,
+            toolId: reqToolId,
+            materials: {},
+            quality: 0.5,
+          })),
+          ownedComponents: [
+            {
+              instanceId: componentInstanceId,
+              componentId: componentReq.componentId,
+              materials: { woodId: 'european_ash', woodQuantity: 5 },
               quality: 0.5,
-            })),
-            ownedComponents: [
-              {
-                instanceId: componentInstanceId,
-                componentId: componentReq.componentId,
-                materials: { woodId: 'european_ash', woodQuantity: 5 },
-                quality: 0.5,
-              },
-            ],
-          },
+            },
+          ],
           inventory: {
             stones: [{ resourceId: 'flint', quantity: 20 }],
             woods: [{ resourceId: 'european_ash', quantity: 20 }],
@@ -391,11 +357,9 @@ describe('CraftingService', () => {
         expect(result.success).toBe(true);
         if (result.success) {
           // Component should be consumed
-          expect(result.newState.toolInventory.ownedComponents.length).toBe(0);
+          expect(result.newState.ownedComponents.length).toBe(0);
           // Tool should be created
-          expect(result.newState.toolInventory.ownedTools.length).toBeGreaterThan(
-            state.toolInventory.ownedTools.length
-          );
+          expect(result.newState.ownedTools.length).toBeGreaterThan(state.ownedTools.length);
         }
       });
     });
@@ -414,9 +378,7 @@ describe('CraftingService', () => {
       const hammerstone = getToolById('hammerstone')!;
 
       const state = createTestState({
-        techProgress: {
-          unlockedTechs: [hammerstone.requiredTech],
-        },
+        unlockedTechs: [hammerstone.requiredTech],
         inventory: {
           stones: [{ resourceId: 'granite', quantity: 10 }],
           woods: [],
@@ -430,8 +392,8 @@ describe('CraftingService', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         // Should be in ownedTools, not ownedComponents
-        expect(result.newState.toolInventory.ownedTools.length).toBe(1);
-        expect(result.newState.toolInventory.ownedComponents.length).toBe(0);
+        expect(result.newState.ownedTools.length).toBe(1);
+        expect(result.newState.ownedComponents.length).toBe(0);
       }
     });
   });

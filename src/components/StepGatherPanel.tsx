@@ -39,7 +39,9 @@ export function StepGatherPanel({
   onResourceGathered,
 }: StepGatherPanelProps) {
   const {
-    state,
+    availableSteps,
+    totalStepsGathered,
+    permissionStatus,
     isLoading,
     syncSteps,
     requestPermission,
@@ -158,7 +160,7 @@ export function StepGatherPanel({
   }
 
   // Permission not yet requested
-  if (state.permissionStatus === 'not_determined') {
+  if (permissionStatus === 'not_determined') {
     return (
       <View style={[styles.container, compact && styles.containerCompact]}>
         <Text style={styles.permissionText}>Connect health to gather resources with steps</Text>
@@ -180,7 +182,7 @@ export function StepGatherPanel({
   }
 
   // Permission denied - show settings button
-  if (state.permissionStatus === 'denied') {
+  if (permissionStatus === 'denied') {
     return (
       <View style={[styles.container, compact && styles.containerCompact]}>
         <Text style={styles.permissionText}>
@@ -199,7 +201,7 @@ export function StepGatherPanel({
   }
 
   // Unavailable (unsupported device/platform)
-  if (state.permissionStatus === 'unavailable') {
+  if (permissionStatus === 'unavailable') {
     return null;
   }
 
@@ -212,11 +214,11 @@ export function StepGatherPanel({
           <Text style={styles.compactLabel}>Forage</Text>
           <View style={styles.compactHeader}>
             <View>
-              <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()} steps</Text>
+              <Text style={styles.stepCount}>{availableSteps.toLocaleString()} steps</Text>
               <Text style={styles.gatherInfo}>
                 {gatherableCount > 0
                   ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available`
-                  : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more for next`}
+                  : `${STEPS_PER_GATHER - (availableSteps % STEPS_PER_GATHER)} more for next`}
               </Text>
             </View>
             <TouchableOpacity onPress={handleSync} style={styles.syncButton}>
@@ -253,12 +255,12 @@ export function StepGatherPanel({
         <Text style={styles.title}>Forage</Text>
 
         <View style={styles.stepSection}>
-          <Text style={styles.stepCount}>{state.availableSteps.toLocaleString()}</Text>
+          <Text style={styles.stepCount}>{availableSteps.toLocaleString()}</Text>
           <Text style={styles.stepLabel}>steps available</Text>
           <Text style={styles.gatherInfoFull}>
             {gatherableCount > 0
               ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available (${STEPS_PER_GATHER} steps each)`
-              : `${STEPS_PER_GATHER - (state.availableSteps % STEPS_PER_GATHER)} more steps for next gather`}
+              : `${STEPS_PER_GATHER - (availableSteps % STEPS_PER_GATHER)} more steps for next gather`}
           </Text>
           <TouchableOpacity onPress={handleSync} style={styles.syncButtonFull}>
             <Text style={styles.syncButtonText}>Sync Steps</Text>
@@ -292,7 +294,7 @@ export function StepGatherPanel({
         {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
 
         <Text style={styles.totalGathered}>
-          Total gathered: {state.totalStepsGathered.toLocaleString()} steps
+          Total gathered: {totalStepsGathered.toLocaleString()} steps
         </Text>
       </View>
     </>

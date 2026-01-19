@@ -2,7 +2,6 @@ import {
   ToolCategory,
   ComponentCategory,
   MaterialRequirements,
-  ToolPrerequisite,
   UsedMaterials,
   QualityTier,
   getQualityTier,
@@ -68,15 +67,6 @@ describe('Tool Types', () => {
       };
       expect(req.stone?.quantity).toBe(5);
       expect(req.wood?.quantity).toBe(3);
-    });
-  });
-
-  describe('ToolPrerequisite interface', () => {
-    it('should accept valid tool prerequisite', () => {
-      const prereq: ToolPrerequisite = {
-        toolId: 'hammerstone',
-      };
-      expect(prereq.toolId).toBe('hammerstone');
     });
   });
 
@@ -165,11 +155,11 @@ describe('Tool Types', () => {
   describe('calculateGatheringBonus function', () => {
     // Find a gathering tool with base bonus > 0 for meaningful tests
     const gatheringToolWithBonus = TOOLS.find(
-      (t) => t.gatheringType && t.baseStats.gatheringBonus > 0
+      (t) => t.gatheringMaterial && t.baseStats.gatheringBonus > 0
     );
 
-    it('should return 0 for tools without gathering type', () => {
-      const toolWithoutGathering = TOOLS.find((t) => !t.gatheringType);
+    it('should return 0 for tools without gathering material', () => {
+      const toolWithoutGathering = TOOLS.find((t) => !t.gatheringMaterial);
       if (toolWithoutGathering) {
         expect(calculateGatheringBonus(toolWithoutGathering, 0.5)).toBe(0);
       }
@@ -209,13 +199,12 @@ describe('Tool Types', () => {
     });
 
     it('should return 0 for any quality when base bonus is 0', () => {
-      const toolWithNoBonus = TOOLS.find(
-        (t) => t.gatheringType && t.baseStats.gatheringBonus === 0
-      );
-      if (toolWithNoBonus) {
-        expect(calculateGatheringBonus(toolWithNoBonus, 0)).toBe(0);
-        expect(calculateGatheringBonus(toolWithNoBonus, 0.5)).toBe(0);
-        expect(calculateGatheringBonus(toolWithNoBonus, 1.0)).toBe(0);
+      // Tools without gatheringMaterial should return 0 bonus
+      const toolWithNoGatheringMaterial = TOOLS.find((t) => !t.gatheringMaterial);
+      if (toolWithNoGatheringMaterial) {
+        expect(calculateGatheringBonus(toolWithNoGatheringMaterial, 0)).toBe(0);
+        expect(calculateGatheringBonus(toolWithNoGatheringMaterial, 0.5)).toBe(0);
+        expect(calculateGatheringBonus(toolWithNoGatheringMaterial, 1.0)).toBe(0);
       }
     });
   });

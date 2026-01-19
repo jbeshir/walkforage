@@ -2,16 +2,11 @@
 // Syncs steps from HealthConnect/HealthKit and allows spending steps for resources
 // Uses useGameState for persistence across screen changes
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { healthService } from '../services/HealthService';
 import { resourceSpawnService } from '../services/ResourceSpawnService';
 import { useGameState } from './useGameState';
-import {
-  HealthPermissionStatus,
-  StepGatheringState,
-  GatherResult,
-  StepSyncResult,
-} from '../types/health';
+import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
 import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
 
@@ -23,8 +18,14 @@ export interface UseStepGatheringOptions {
 }
 
 export interface UseStepGatheringReturn {
-  /** Current step gathering state */
-  state: StepGatheringState;
+  /** Steps available for gathering */
+  availableSteps: number;
+  /** Timestamp of last step sync */
+  lastSyncTimestamp: number;
+  /** Total steps ever used for gathering */
+  totalStepsGathered: number;
+  /** Current health permission status */
+  permissionStatus: HealthPermissionStatus;
   /** Whether service is loading/initializing */
   isLoading: boolean;
   /** Sync steps from health service */
@@ -54,27 +55,16 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
   // Get persisted state and update functions from useGameState
   const {
-    getStepGatheringState,
+    state: gameState,
+    getStepGatheringState, // Keep for callbacks that need fresh data
     syncSteps: persistSyncSteps,
     spendSteps: persistSpendSteps,
   } = useGameState();
-
-  // Get persisted state (step counts, timestamps)
-  const persistedState = getStepGatheringState();
 
   // Permission status is ephemeral - checked with health service on each init
   const [permissionStatus, setPermissionStatus] =
     useState<HealthPermissionStatus>('not_determined');
   const [isLoading, setIsLoading] = useState(true);
-
-  // Track if initial sync has been done this session to avoid duplicate syncs
-  const hasInitialSynced = useRef(false);
-
-  // Create the combined state object for consumers
-  const state: StepGatheringState = {
-    ...persistedState,
-    permissionStatus,
-  };
 
   // Initialize health service on mount
   useEffect(() => {
@@ -105,9 +95,8 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         setPermissionStatus(status);
         setIsLoading(false);
 
-        // If already authorized and haven't synced this session, do initial sync
-        if (status === 'authorized' && !hasInitialSynced.current) {
-          hasInitialSynced.current = true;
+        // If already authorized, sync (debounce will prevent rapid re-syncs)
+        if (status === 'authorized') {
           doSyncSteps();
         }
       }
@@ -135,18 +124,37 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
   // Internal sync function that uses persisted state
   const doSyncSteps = useCallback(async (): Promise<StepSyncResult> => {
-    if (permissionStatus !== 'authorized') {
+    // Get fresh state to avoid stale closure issues
+    const currentState = getStepGatheringState();
+
+    // Check permission via service to avoid stale closure issues
+    // (permissionStatus from closure may be stale when called from init effect)
+    const currentPermission = healthService.getPermissionStatus();
+    if (currentPermission !== 'authorized') {
       return {
         newSteps: 0,
-        totalAvailable: persistedState.availableSteps,
+        totalAvailable: currentState.availableSteps,
         success: false,
         error: 'Permission not granted',
       };
     }
 
+    // Debounce: don't re-sync within 30 seconds (persists across app restarts)
+    const MIN_SYNC_INTERVAL_MS = 30000;
+    if (currentState.lastSyncTimestamp > 0) {
+      const timeSinceLastSync = Date.now() - currentState.lastSyncTimestamp;
+      if (timeSinceLastSync < MIN_SYNC_INTERVAL_MS) {
+        return {
+          newSteps: 0,
+          totalAvailable: currentState.availableSteps,
+          success: true,
+        };
+      }
+    }
+
     try {
       // Get steps since last sync (or last 24 hours if no sync)
-      const syncSince = persistedState.lastSyncTimestamp || Date.now() - 24 * 60 * 60 * 1000;
+      const syncSince = currentState.lastSyncTimestamp || Date.now() - 24 * 60 * 60 * 1000;
       const newSteps = await healthService.getStepsSince(syncSince);
 
       // Persist the new steps to game state
@@ -154,23 +162,18 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       return {
         newSteps,
-        totalAvailable: persistedState.availableSteps + newSteps,
+        totalAvailable: currentState.availableSteps + newSteps,
         success: true,
       };
     } catch (error) {
       return {
         newSteps: 0,
-        totalAvailable: persistedState.availableSteps,
+        totalAvailable: currentState.availableSteps,
         success: false,
         error: error instanceof Error ? error.message : 'Sync failed',
       };
     }
-  }, [
-    permissionStatus,
-    persistedState.lastSyncTimestamp,
-    persistedState.availableSteps,
-    persistSyncSteps,
-  ]);
+  }, [getStepGatheringState, persistSyncSteps]);
 
   const requestPermission = useCallback(async (): Promise<HealthPermissionStatus> => {
     setIsLoading(true);
@@ -178,9 +181,8 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
       const status = await healthService.requestPermission();
       setPermissionStatus(status);
 
-      // If permission granted and haven't synced, do initial sync
-      if (status === 'authorized' && !hasInitialSynced.current) {
-        hasInitialSynced.current = true;
+      // If permission granted, sync (debounce will prevent rapid re-syncs)
+      if (status === 'authorized') {
         doSyncSteps();
       }
 
@@ -198,12 +200,16 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
   );
 
   const getGatherableCount = useCallback((): number => {
-    return calculateGatherableAmount(persistedState.availableSteps);
-  }, [persistedState.availableSteps]);
+    // Use fresh state to avoid stale closure issues
+    const currentState = getStepGatheringState();
+    return calculateGatherableAmount(currentState.availableSteps);
+  }, [getStepGatheringState]);
 
   const gatherStone = useCallback(
     async (geoData: LocationGeoData | null): Promise<GatherResult> => {
-      if (getGatherableCount() === 0) {
+      // Use fresh state to avoid race conditions with rapid clicking
+      const currentState = getStepGatheringState();
+      if (calculateGatherableAmount(currentState.availableSteps) === 0) {
         return { success: false, error: 'Not enough steps' };
       }
 
@@ -231,12 +237,14 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         stepsSpent: STEPS_PER_GATHER,
       };
     },
-    [getGatherableCount, spendSteps, onGather]
+    [getStepGatheringState, spendSteps, onGather]
   );
 
   const gatherWood = useCallback(
     async (geoData: LocationGeoData | null): Promise<GatherResult> => {
-      if (getGatherableCount() === 0) {
+      // Use fresh state to avoid race conditions with rapid clicking
+      const currentState = getStepGatheringState();
+      if (calculateGatherableAmount(currentState.availableSteps) === 0) {
         return { success: false, error: 'Not enough steps' };
       }
 
@@ -264,7 +272,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         stepsSpent: STEPS_PER_GATHER,
       };
     },
-    [getGatherableCount, spendSteps, onGather]
+    [getStepGatheringState, spendSteps, onGather]
   );
 
   const openHealthSettings = useCallback(async (): Promise<boolean> => {
@@ -276,7 +284,10 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
   }, []);
 
   return {
-    state,
+    availableSteps: gameState.availableSteps,
+    lastSyncTimestamp: gameState.lastSyncTimestamp,
+    totalStepsGathered: gameState.totalStepsGathered,
+    permissionStatus,
     isLoading,
     syncSteps: doSyncSteps,
     requestPermission,

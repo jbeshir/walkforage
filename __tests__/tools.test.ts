@@ -328,8 +328,8 @@ describe('Tools Data', () => {
   describe('Tool required tools', () => {
     it('should reference valid tools', () => {
       TOOLS.forEach((tool) => {
-        tool.requiredTools.forEach((req) => {
-          expect(TOOLS_BY_ID[req.toolId]).toBeDefined();
+        tool.requiredTools.forEach((reqToolId) => {
+          expect(TOOLS_BY_ID[reqToolId]).toBeDefined();
         });
       });
     });
@@ -338,8 +338,8 @@ describe('Tools Data', () => {
   describe('Component required tools', () => {
     it('should reference valid tools', () => {
       COMPONENTS.forEach((component) => {
-        component.requiredTools.forEach((req) => {
-          expect(TOOLS_BY_ID[req.toolId]).toBeDefined();
+        component.requiredTools.forEach((reqToolId) => {
+          expect(TOOLS_BY_ID[reqToolId]).toBeDefined();
         });
       });
     });
