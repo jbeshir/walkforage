@@ -8,8 +8,6 @@ function createTestState(overrides: Partial<CraftingState> = {}): CraftingState 
     inventory: {
       stone: [],
       wood: [],
-      ore: [],
-      other: [],
     },
     unlockedTechs: [],
     ownedTools: [],
@@ -47,8 +45,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            ore: [],
-            other: [],
           },
         });
         const result = CraftingService.canCraft(hammerstone, state);
@@ -74,8 +70,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }], // Not a toolstone
             wood: [],
-            ore: [],
-            other: [],
           },
         });
 
@@ -95,8 +89,6 @@ describe('CraftingService', () => {
               { resourceId: 'basalt', quantity: 10 }, // Enough for requirements
             ],
             wood: [],
-            ore: [],
-            other: [],
           },
         });
 
@@ -124,8 +116,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [],
             wood: [{ resourceId: 'european_ash', quantity: 10 }],
-            ore: [],
-            other: [],
           },
         });
 
@@ -156,8 +146,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'flint', quantity: 10 }],
             wood: [{ resourceId: 'european_ash', quantity: 10 }],
-            ore: [],
-            other: [],
           },
         });
 
@@ -190,8 +178,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            ore: [],
-            other: [],
           },
         });
 
@@ -210,8 +196,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: initialQuantity }],
             wood: [],
-            ore: [],
-            other: [],
           },
         });
 
@@ -242,8 +226,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            ore: [],
-            other: [],
           },
         });
 
@@ -275,8 +257,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [],
             wood: [{ resourceId: 'european_ash', quantity: 10 }],
-            ore: [],
-            other: [],
           },
         });
 
@@ -333,8 +313,6 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'flint', quantity: 20 }],
             wood: [{ resourceId: 'european_ash', quantity: 20 }],
-            ore: [],
-            other: [],
           },
         });
 
@@ -382,8 +360,6 @@ describe('CraftingService', () => {
         inventory: {
           stone: [{ resourceId: 'granite', quantity: 10 }],
           wood: [],
-          ore: [],
-          other: [],
         },
       });
 

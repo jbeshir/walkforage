@@ -44,8 +44,6 @@ const INITIAL_STATE: GameState = {
   inventory: {
     stone: [],
     wood: [],
-    ore: [],
-    other: [],
   },
   unlockedTechs: [], // Start with no techs unlocked
   ownedTools: [],

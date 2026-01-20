@@ -68,8 +68,6 @@ export interface ResourceStack {
 export interface Inventory {
   stone: ResourceStack[];
   wood: ResourceStack[];
-  ore: ResourceStack[];
-  other: ResourceStack[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

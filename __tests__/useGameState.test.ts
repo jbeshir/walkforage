@@ -53,8 +53,6 @@ describe('useGameState', () => {
 
       expect(result.current.state.inventory.stone).toEqual([]);
       expect(result.current.state.inventory.wood).toEqual([]);
-      expect(result.current.state.inventory.ore).toEqual([]);
-      expect(result.current.state.inventory.other).toEqual([]);
     });
 
     it('should have default village settings', async () => {

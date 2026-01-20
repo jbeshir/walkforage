@@ -57,7 +57,6 @@ export default function InventoryScreen() {
 
   const totalStones = state.inventory.stone.reduce((sum, s) => sum + s.quantity, 0);
   const totalWoods = state.inventory.wood.reduce((sum, s) => sum + s.quantity, 0);
-  const totalOres = state.inventory.ore.reduce((sum, s) => sum + s.quantity, 0);
 
   return (
     <ScrollView style={styles.container}>
@@ -72,10 +71,6 @@ export default function InventoryScreen() {
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{totalWoods}</Text>
             <Text style={styles.summaryLabel}>Woods</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{totalOres}</Text>
-            <Text style={styles.summaryLabel}>Ores</Text>
           </View>
         </View>
       </View>
@@ -100,18 +95,6 @@ export default function InventoryScreen() {
         ) : (
           state.inventory.wood.map((stack) => (
             <ResourceItem key={stack.resourceId} stack={stack} type="wood" />
-          ))
-        )}
-      </View>
-
-      {/* Ores section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ores ({totalOres})</Text>
-        {state.inventory.ore.length === 0 ? (
-          <Text style={styles.emptyText}>No ores collected yet</Text>
-        ) : (
-          state.inventory.ore.map((stack: ResourceStack) => (
-            <ResourceItem key={stack.resourceId} stack={stack} type="stone" />
           ))
         )}
       </View>
