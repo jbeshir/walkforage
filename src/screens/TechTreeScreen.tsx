@@ -1,5 +1,5 @@
 // Tech Tree Screen - View and unlock technologies
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
@@ -51,11 +51,37 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress }: TechNodeProps) {
   );
 }
 
-export default function TechTreeScreen() {
+// Constants for cheat menu activation
+const CHEAT_TAP_COUNT = 5;
+const CHEAT_TAP_WINDOW_MS = 2000; // 5 taps within 2 seconds
+
+interface TechTreeScreenProps {
+  onEnableCheatMode?: () => void;
+}
+
+export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProps) {
   const { state, hasTech, unlockTech, removeResource } = useGameState();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTech, setSelectedTech] = useState<Technology | null>(null);
+
+  // Track taps for cheat menu activation
+  const tapTimesRef = useRef<number[]>([]);
+
+  const handleHeaderTap = useCallback(() => {
+    const now = Date.now();
+    // Add current tap and filter out old taps outside the window
+    tapTimesRef.current = [
+      ...tapTimesRef.current.filter((t) => now - t < CHEAT_TAP_WINDOW_MS),
+      now,
+    ];
+
+    // Check if we have enough taps
+    if (tapTimesRef.current.length >= CHEAT_TAP_COUNT) {
+      tapTimesRef.current = []; // Reset
+      onEnableCheatMode?.();
+    }
+  }, [onEnableCheatMode]);
 
   const availableTechs = getAvailableTechs(state.unlockedTechs);
 
@@ -133,7 +159,9 @@ export default function TechTreeScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Technology Tree</Text>
+        <TouchableOpacity onPress={handleHeaderTap} activeOpacity={1}>
+          <Text style={styles.headerTitle}>Technology Tree</Text>
+        </TouchableOpacity>
         <Text style={styles.headerSubtitle}>
           {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
         </Text>

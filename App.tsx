@@ -1,7 +1,7 @@
 // WalkForage - Location-Based Idle Village Builder
 // Main App with Tab Navigation
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -16,6 +16,7 @@ import InventoryScreen from './src/screens/InventoryScreen';
 import CraftingScreen from './src/screens/CraftingScreen';
 import TechTreeScreen from './src/screens/TechTreeScreen';
 import VillageScreen from './src/screens/VillageScreen';
+import CheatScreen from './src/screens/CheatScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,6 +28,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     Tools: '🔨',
     Tech: '⚙️',
     Village: '🏠',
+    Cheat: '🔧',
   };
 
   return (
@@ -37,6 +39,13 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 export default function App() {
   // Handle Health Connect rationale intent (when user taps privacy policy in HC dialog)
   const { showRationale, dismissRationale } = useHealthRationaleIntent();
+
+  // Cheat mode state - persists until app restart
+  const [cheatModeEnabled, setCheatModeEnabled] = useState(false);
+
+  const enableCheatMode = useCallback(() => {
+    setCheatModeEnabled(true);
+  }, []);
 
   return (
     <GameStateProvider>
@@ -49,7 +58,7 @@ export default function App() {
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
-            tabBarActiveTintColor: '#4CAF50',
+            tabBarActiveTintColor: route.name === 'Cheat' ? '#ff6b6b' : '#4CAF50',
             tabBarInactiveTintColor: '#999',
             tabBarStyle: styles.tabBar,
             headerStyle: styles.header,
@@ -64,8 +73,22 @@ export default function App() {
             options={{ title: 'Materials' }}
           />
           <Tab.Screen name="Tools" component={CraftingScreen} options={{ title: 'Tools' }} />
-          <Tab.Screen name="Tech" component={TechTreeScreen} options={{ title: 'Tech Tree' }} />
+          <Tab.Screen name="Tech" options={{ title: 'Tech Tree' }}>
+            {() => <TechTreeScreen onEnableCheatMode={enableCheatMode} />}
+          </Tab.Screen>
           <Tab.Screen name="Village" component={VillageScreen} options={{ title: 'Village' }} />
+          {cheatModeEnabled && (
+            <Tab.Screen
+              name="Cheat"
+              component={CheatScreen}
+              options={{
+                title: 'Cheat',
+                tabBarActiveTintColor: '#ff6b6b',
+                headerStyle: { ...styles.header, backgroundColor: '#2a2a2a' },
+                headerTintColor: '#ff6b6b',
+              }}
+            />
+          )}
         </Tab.Navigator>
       </NavigationContainer>
     </GameStateProvider>
