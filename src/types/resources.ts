@@ -66,15 +66,24 @@ export interface ResourceStack {
 }
 
 export interface Inventory {
-  stones: ResourceStack[];
-  woods: ResourceStack[];
-  ores: ResourceStack[];
+  stone: ResourceStack[];
+  wood: ResourceStack[];
+  ore: ResourceStack[];
   other: ResourceStack[];
 }
 
-// Material categories that can be gathered with tools
-// This is the source of truth for gathering-related logic
-export type GatherableMaterial = 'stones' | 'woods';
+// ═══════════════════════════════════════════════════════════════════════════
+// Material Type System
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Material type - the canonical form for material categories
+// Used for inventory keys, tool gathering materials, and all internal logic
+export type MaterialType = 'stone' | 'wood';
+
+// Display helper - pluralizes material type for user-facing text
+export function pluralizeMaterial(material: MaterialType): string {
+  return material === 'stone' ? 'Stones' : 'Woods';
+}
 
 // Geological zone data from real-world datasets
 export interface GeologicalZone {

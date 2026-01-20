@@ -9,7 +9,7 @@ import { useStepGathering } from '../hooks/useStepGathering';
 import { geoDataService } from '../services/GeoDataService';
 import { StepGatherPanel } from '../components/StepGatherPanel';
 import { LocationGeoData } from '../types/gis';
-import { BiomeCode } from '../types/resources';
+import { BiomeCode, MaterialType } from '../types/resources';
 
 // Human-readable biome names
 const BIOME_NAMES: Record<BiomeCode, string> = {
@@ -45,7 +45,7 @@ export default function ForageScreen() {
 
   // Step gathering integration
   const handleStepGather = useCallback(
-    (category: 'stones' | 'woods', resourceId: string, quantity: number) => {
+    (category: MaterialType, resourceId: string, quantity: number) => {
       addResource(category, resourceId, quantity);
     },
     [addResource]

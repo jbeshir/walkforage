@@ -16,7 +16,7 @@ import { WOODS } from '../data/woods';
 import { TECHNOLOGIES } from '../data/techTree';
 import { useGameState } from '../hooks/useGameState';
 
-type ResourceTab = 'steps' | 'stones' | 'woods' | 'tech';
+type ResourceTab = 'steps' | 'stone' | 'wood' | 'tech';
 
 export default function CheatScreen() {
   const { addResource, syncSteps, unlockTech, resetGame, state } = useGameState();
@@ -31,11 +31,11 @@ export default function CheatScreen() {
   };
 
   const handleAddStone = (stoneId: string, quantity: number) => {
-    addResource('stones', stoneId, quantity);
+    addResource('stone', stoneId, quantity);
   };
 
   const handleAddWood = (woodId: string, quantity: number) => {
-    addResource('woods', woodId, quantity);
+    addResource('wood', woodId, quantity);
   };
 
   const handleUnlockAllTech = () => {
@@ -199,15 +199,15 @@ export default function CheatScreen() {
 
       <View style={styles.tabs}>
         {renderTabButton('steps', 'Steps')}
-        {renderTabButton('stones', 'Stones')}
-        {renderTabButton('woods', 'Woods')}
+        {renderTabButton('stone', 'Stones')}
+        {renderTabButton('wood', 'Woods')}
         {renderTabButton('tech', 'Tech')}
       </View>
 
       <View style={styles.content}>
         {activeTab === 'steps' && renderStepsTab()}
-        {activeTab === 'stones' && renderStonesTab()}
-        {activeTab === 'woods' && renderWoodsTab()}
+        {activeTab === 'stone' && renderStonesTab()}
+        {activeTab === 'wood' && renderWoodsTab()}
         {activeTab === 'tech' && renderTechTab()}
       </View>
     </View>

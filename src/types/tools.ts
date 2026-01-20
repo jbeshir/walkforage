@@ -3,7 +3,10 @@
 // Tools track actual materials used, with quality derived from material properties
 
 import { TechEra } from './tech';
-import { GatherableMaterial } from './resources';
+import { MaterialType } from './resources';
+
+// Re-export MaterialType for convenience (canonical definition is in resources.ts)
+export type { MaterialType };
 
 // Tool categories for organization and bonuses
 export type ToolCategory =
@@ -24,9 +27,6 @@ export interface QualityWeights {
   workabilityWeight: number;
   durabilityWeight: number;
 }
-
-// Material types
-export type MaterialType = 'stone' | 'wood';
 
 // Stone material requirement
 export interface StoneMaterialRequirement {
@@ -127,7 +127,7 @@ export interface Tool {
   baseStats: ToolBaseStats;
 
   // What material category this tool helps gather (must match an Inventory key)
-  gatheringMaterial?: GatherableMaterial;
+  gatheringMaterial?: MaterialType;
 
   // Quality calculation weights for this tool type
   qualityWeights: QualityWeights;

@@ -6,9 +6,9 @@ import { isTool } from '../src/types/tools';
 function createTestState(overrides: Partial<CraftingState> = {}): CraftingState {
   return {
     inventory: {
-      stones: [],
-      woods: [],
-      ores: [],
+      stone: [],
+      wood: [],
+      ore: [],
       other: [],
     },
     unlockedTechs: [],
@@ -45,9 +45,9 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
-            stones: [{ resourceId: 'granite', quantity: 10 }],
-            woods: [],
-            ores: [],
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -72,9 +72,9 @@ describe('CraftingService', () => {
           ],
           ownedComponents: [],
           inventory: {
-            stones: [{ resourceId: 'granite', quantity: 10 }], // Not a toolstone
-            woods: [],
-            ores: [],
+            stone: [{ resourceId: 'granite', quantity: 10 }], // Not a toolstone
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -90,12 +90,12 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
-            stones: [
+            stone: [
               { resourceId: 'granite', quantity: 10 },
               { resourceId: 'basalt', quantity: 10 }, // Enough for requirements
             ],
-            woods: [],
-            ores: [],
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -122,9 +122,9 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [crudeHandle.requiredTech],
           inventory: {
-            stones: [],
-            woods: [{ resourceId: 'european_ash', quantity: 10 }],
-            ores: [],
+            stone: [],
+            wood: [{ resourceId: 'european_ash', quantity: 10 }],
+            ore: [],
             other: [],
           },
         });
@@ -154,9 +154,9 @@ describe('CraftingService', () => {
           ],
           ownedComponents: [], // No components
           inventory: {
-            stones: [{ resourceId: 'flint', quantity: 10 }],
-            woods: [{ resourceId: 'european_ash', quantity: 10 }],
-            ores: [],
+            stone: [{ resourceId: 'flint', quantity: 10 }],
+            wood: [{ resourceId: 'european_ash', quantity: 10 }],
+            ore: [],
             other: [],
           },
         });
@@ -188,9 +188,9 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
-            stones: [{ resourceId: 'granite', quantity: 10 }],
-            woods: [],
-            ores: [],
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -208,9 +208,9 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
-            stones: [{ resourceId: 'granite', quantity: initialQuantity }],
-            woods: [],
-            ores: [],
+            stone: [{ resourceId: 'granite', quantity: initialQuantity }],
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -220,7 +220,7 @@ describe('CraftingService', () => {
         expect(result.success).toBe(true);
         if (result.success) {
           // Materials should be consumed
-          const stoneStack = result.newState.inventory.stones.find(
+          const stoneStack = result.newState.inventory.stone.find(
             (s) => s.resourceId === 'granite'
           );
           expect(stoneStack).toBeDefined();
@@ -240,9 +240,9 @@ describe('CraftingService', () => {
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
-            stones: [{ resourceId: 'granite', quantity: 10 }],
-            woods: [],
-            ores: [],
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            ore: [],
             other: [],
           },
         });
@@ -273,9 +273,9 @@ describe('CraftingService', () => {
           })),
           ownedComponents: [],
           inventory: {
-            stones: [],
-            woods: [{ resourceId: 'european_ash', quantity: 10 }],
-            ores: [],
+            stone: [],
+            wood: [{ resourceId: 'european_ash', quantity: 10 }],
+            ore: [],
             other: [],
           },
         });
@@ -331,9 +331,9 @@ describe('CraftingService', () => {
             },
           ],
           inventory: {
-            stones: [{ resourceId: 'flint', quantity: 20 }],
-            woods: [{ resourceId: 'european_ash', quantity: 20 }],
-            ores: [],
+            stone: [{ resourceId: 'flint', quantity: 20 }],
+            wood: [{ resourceId: 'european_ash', quantity: 20 }],
+            ore: [],
             other: [],
           },
         });
@@ -380,9 +380,9 @@ describe('CraftingService', () => {
       const state = createTestState({
         unlockedTechs: [hammerstone.requiredTech],
         inventory: {
-          stones: [{ resourceId: 'granite', quantity: 10 }],
-          woods: [],
-          ores: [],
+          stone: [{ resourceId: 'granite', quantity: 10 }],
+          wood: [],
+          ore: [],
           other: [],
         },
       });

@@ -172,13 +172,13 @@ export function canCraft(
   const { materials } = craftable;
   const availableStones = materials.stone
     ? findAvailableStones(
-        state.inventory.stones,
+        state.inventory.stone,
         materials.stone.quantity,
         materials.stone.requiresToolstone ?? false
       )
     : [];
   const availableWoods = materials.wood
-    ? findAvailableWoods(state.inventory.woods, materials.wood.quantity)
+    ? findAvailableWoods(state.inventory.wood, materials.wood.quantity)
     : [];
 
   if (materials.stone && availableStones.length === 0) {
@@ -214,7 +214,7 @@ function validateMaterialSelection(
     if (!params.selectedStoneId) {
       return { error: 'Stone material not selected' };
     }
-    const stoneCount = getResourceCount(inventory.stones, params.selectedStoneId);
+    const stoneCount = getResourceCount(inventory.stone, params.selectedStoneId);
     if (stoneCount < materials.stone.quantity) {
       return { error: `Not enough ${params.selectedStoneId}` };
     }
@@ -233,7 +233,7 @@ function validateMaterialSelection(
     if (!params.selectedWoodId) {
       return { error: 'Wood material not selected' };
     }
-    const woodCount = getResourceCount(inventory.woods, params.selectedWoodId);
+    const woodCount = getResourceCount(inventory.wood, params.selectedWoodId);
     if (woodCount < materials.wood.quantity) {
       return { error: `Not enough ${params.selectedWoodId}` };
     }
@@ -314,8 +314,8 @@ export function craft(
   const quality = calculateCraftableQuality(craftable, usedMaterials);
 
   // Build new inventory (consume materials)
-  let newStones = state.inventory.stones;
-  let newWoods = state.inventory.woods;
+  let newStones = state.inventory.stone;
+  let newWoods = state.inventory.wood;
 
   if (craftable.materials.stone && params.selectedStoneId) {
     newStones = consumeFromStacks(
@@ -334,8 +334,8 @@ export function craft(
 
   const newInventory: Inventory = {
     ...state.inventory,
-    stones: newStones,
-    woods: newWoods,
+    stone: newStones,
+    wood: newWoods,
   };
 
   // Consume components

@@ -1,6 +1,8 @@
 // Technology Tree Types for WalkForage
 // Supports multiple tech eras, currently focused on lithic (stone age)
 
+import { MaterialType } from './tools';
+
 // Lithic era subdivisions
 export type LithicEra =
   | 'lower_paleolithic' // ~3.3M - 300K years ago
@@ -48,7 +50,7 @@ export const ERA_LABELS: Record<LithicEra, string> = {
 
 // Resource cost for technologies - uses generic types (any stone, any wood)
 export interface TechResourceCost {
-  resourceType: 'stone' | 'wood'; // Generic resource category
+  resourceType: MaterialType; // Generic resource category
   quantity: number;
 }
 

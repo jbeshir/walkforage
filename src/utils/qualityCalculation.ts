@@ -6,6 +6,7 @@ import {
   UsedMaterials,
   QualityTier,
   QualityWeights,
+  MaterialType,
   Craftable,
   getQualityTier,
 } from '../types/tools';
@@ -24,7 +25,7 @@ function normalizeProperty(value: number): number {
 // Get material properties, returning null if not found
 function getMaterialProperties(
   materialId: string,
-  materialType: 'stone' | 'wood'
+  materialType: MaterialType
 ): ResourceProperties | null {
   if (materialType === 'stone') {
     const stone = STONES_BY_ID[materialId];
@@ -112,7 +113,7 @@ export function calculateCraftableQuality(craftable: Craftable, materials: UsedM
  */
 export function calculateMaterialQualityWithWeights(
   materialId: string,
-  materialType: 'stone' | 'wood',
+  materialType: MaterialType,
   weights: QualityWeights
 ): number {
   const props = getMaterialProperties(materialId, materialType);

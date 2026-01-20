@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
-import { OwnedComponent, Craftable, getQualityTier } from '../types/tools';
+import { OwnedComponent, Craftable, MaterialType, getQualityTier } from '../types/tools';
 import { useGameState } from '../hooks/useGameState';
 import {
   calculateCraftableQuality,
@@ -42,7 +42,7 @@ export interface MaterialSelection {
 
 interface MaterialOptionProps {
   materialId: string;
-  type: 'stone' | 'wood';
+  type: MaterialType;
   isSelected: boolean;
   quantity: number;
   onSelect: () => void;
@@ -372,7 +372,7 @@ export default function MaterialSelectionModal({
                       materialId={stoneId}
                       type="stone"
                       isSelected={selectedStone === stoneId}
-                      quantity={getResourceCount('stones', stoneId)}
+                      quantity={getResourceCount('stone', stoneId)}
                       onSelect={() => setSelectedStone(stoneId)}
                     />
                   ))
@@ -394,7 +394,7 @@ export default function MaterialSelectionModal({
                       materialId={woodId}
                       type="wood"
                       isSelected={selectedWood === woodId}
-                      quantity={getResourceCount('woods', woodId)}
+                      quantity={getResourceCount('wood', woodId)}
                       onSelect={() => setSelectedWood(woodId)}
                     />
                   ))

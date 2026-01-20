@@ -8,12 +8,12 @@ import { resourceSpawnService } from '../services/ResourceSpawnService';
 import { useGameState } from './useGameState';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
-import { GatherableMaterial } from '../types/resources';
+import { MaterialType } from '../types/resources';
 import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
 
 export interface UseStepGatheringOptions {
   /** Callback when resources are gathered - receives category, resourceId, quantity */
-  onGather?: (category: GatherableMaterial, resourceId: string, quantity: number) => void;
+  onGather?: (category: MaterialType, resourceId: string, quantity: number) => void;
   /** Auto-sync interval in milliseconds (0 to disable) */
   autoSyncInterval?: number;
 }
@@ -222,7 +222,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       // Notify via callback
       if (onGather) {
-        onGather('stones', stone.id, 1);
+        onGather('stone', stone.id, 1);
       }
 
       return {
@@ -257,7 +257,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       // Notify via callback
       if (onGather) {
-        onGather('woods', wood.id, 1);
+        onGather('wood', wood.id, 1);
       }
 
       return {

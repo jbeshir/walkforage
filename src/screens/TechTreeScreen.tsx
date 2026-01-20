@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useGameState } from '../hooks/useGameState';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
 import { Technology, LITHIC_ERAS, ERA_COLORS, ERA_NAMES, TechResourceCost } from '../types/tech';
+import { MaterialType } from '../types/tools';
 import TechResourceModal, { ResourceSelection } from '../components/TechResourceModal';
 
 // Resource icons (using emoji for now, could be replaced with actual icons)
@@ -86,9 +87,8 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
   const availableTechs = getAvailableTechs(state.unlockedTechs);
 
   // Get total count of a resource type across all specific resources
-  const getTotalResourceCount = (resourceType: 'stone' | 'wood'): number => {
-    const category = resourceType === 'stone' ? 'stones' : 'woods';
-    const stacks = state.inventory[category];
+  const getTotalResourceCount = (resourceType: MaterialType): number => {
+    const stacks = state.inventory[resourceType];
     return stacks.reduce((sum, stack) => sum + stack.quantity, 0);
   };
 
@@ -141,11 +141,11 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
     if (!selectedTech) return;
 
     // Deduct selected resources
-    selection.stones.forEach(({ resourceId, quantity }) => {
-      removeResource('stones', resourceId, quantity);
+    selection.stone.forEach(({ resourceId, quantity }) => {
+      removeResource('stone', resourceId, quantity);
     });
-    selection.woods.forEach(({ resourceId, quantity }) => {
-      removeResource('woods', resourceId, quantity);
+    selection.wood.forEach(({ resourceId, quantity }) => {
+      removeResource('wood', resourceId, quantity);
     });
 
     // Unlock the tech
@@ -207,8 +207,8 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
           onConfirm={handleModalConfirm}
           techName={selectedTech.name}
           resourceCosts={selectedTech.resourceCost}
-          availableStones={state.inventory.stones}
-          availableWoods={state.inventory.woods}
+          availableStones={state.inventory.stone}
+          availableWoods={state.inventory.wood}
         />
       )}
     </ScrollView>

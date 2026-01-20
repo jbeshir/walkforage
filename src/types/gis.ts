@@ -3,6 +3,7 @@
 // Based on Macrostrat API and Resolve Ecoregions 2017
 
 import { BiomeCode } from './resources';
+import { MaterialType } from './tools';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Geohash Types
@@ -146,7 +147,7 @@ export interface SpawnConfig {
  */
 export interface SpawnedResourceData {
   resourceId: string;
-  type: 'stone' | 'wood';
+  type: MaterialType;
   quantity: number;
 }
 

@@ -11,12 +11,13 @@ import {
 } from 'react-native';
 import { TechResourceCost } from '../types/tech';
 import { ResourceStack } from '../types/resources';
+import { MaterialType } from '../types/tools';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
 
 export interface ResourceSelection {
-  stones: { resourceId: string; quantity: number }[];
-  woods: { resourceId: string; quantity: number }[];
+  stone: { resourceId: string; quantity: number }[];
+  wood: { resourceId: string; quantity: number }[];
 }
 
 interface TechResourceModalProps {
@@ -30,7 +31,7 @@ interface TechResourceModalProps {
 }
 
 interface MaterialPickerProps {
-  type: 'stone' | 'wood';
+  type: MaterialType;
   required: number;
   stacks: ResourceStack[];
   selected: { resourceId: string; quantity: number }[];
@@ -150,8 +151,8 @@ function TechResourceModalContent({
 
   const handleConfirm = () => {
     onConfirm({
-      stones: selectedStones.filter((s) => s.quantity > 0),
-      woods: selectedWoods.filter((s) => s.quantity > 0),
+      stone: selectedStones.filter((s) => s.quantity > 0),
+      wood: selectedWoods.filter((s) => s.quantity > 0),
     });
   };
 

@@ -42,9 +42,9 @@ export interface GameState {
 
 const INITIAL_STATE: GameState = {
   inventory: {
-    stones: [],
-    woods: [],
-    ores: [],
+    stone: [],
+    wood: [],
+    ore: [],
     other: [],
   },
   unlockedTechs: [], // Start with no techs unlocked

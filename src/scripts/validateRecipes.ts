@@ -19,7 +19,7 @@
 
 import { TOOLS, COMPONENTS, TOOLS_BY_ID } from '../data/tools';
 import { TECHNOLOGIES, TECH_BY_ID } from '../data/techTree';
-import { GatherableMaterial } from '../types/resources';
+import { MaterialType } from '../types/resources';
 
 interface ValidationResult {
   errors: string[];
@@ -83,9 +83,9 @@ function validateRecipes(): ValidationResult {
         `Tool "${tool.id}" has gatheringMaterial "${tool.gatheringMaterial}" but gatheringBonus is 0`
       );
     }
-    // Verify gatheringMaterial is a valid GatherableMaterial
+    // Verify gatheringMaterial is a valid MaterialType
     if (tool.gatheringMaterial) {
-      const validMaterials: GatherableMaterial[] = ['stones', 'woods'];
+      const validMaterials: MaterialType[] = ['stone', 'wood'];
       if (!validMaterials.includes(tool.gatheringMaterial)) {
         result.errors.push(
           `Tool "${tool.id}" has invalid gatheringMaterial "${tool.gatheringMaterial}"`

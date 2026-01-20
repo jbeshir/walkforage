@@ -51,9 +51,9 @@ describe('useGameState', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.state.inventory.stones).toEqual([]);
-      expect(result.current.state.inventory.woods).toEqual([]);
-      expect(result.current.state.inventory.ores).toEqual([]);
+      expect(result.current.state.inventory.stone).toEqual([]);
+      expect(result.current.state.inventory.wood).toEqual([]);
+      expect(result.current.state.inventory.ore).toEqual([]);
       expect(result.current.state.inventory.other).toEqual([]);
     });
 
@@ -89,10 +89,10 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 5);
+        result.current.addResource('stone', 'flint', 5);
       });
 
-      expect(result.current.state.inventory.stones).toContainEqual({
+      expect(result.current.state.inventory.stone).toContainEqual({
         resourceId: 'flint',
         quantity: 5,
       });
@@ -106,14 +106,14 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 5);
+        result.current.addResource('stone', 'flint', 5);
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 3);
+        result.current.addResource('stone', 'flint', 3);
       });
 
-      const flintStack = result.current.state.inventory.stones.find(
+      const flintStack = result.current.state.inventory.stone.find(
         (s) => s.resourceId === 'flint'
       );
       expect(flintStack?.quantity).toBe(8);
@@ -127,11 +127,11 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 5);
-        result.current.addResource('stones', 'granite', 3);
+        result.current.addResource('stone', 'flint', 5);
+        result.current.addResource('stone', 'granite', 3);
       });
 
-      expect(result.current.state.inventory.stones.length).toBe(2);
+      expect(result.current.state.inventory.stone.length).toBe(2);
     });
 
     it('should remove resources from inventory', async () => {
@@ -142,15 +142,15 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 10);
+        result.current.addResource('stone', 'flint', 10);
       });
 
       act(() => {
-        result.current.removeResource('stones', 'flint', 5);
+        result.current.removeResource('stone', 'flint', 5);
       });
 
       // Verify by checking the resulting state
-      const flintStack = result.current.state.inventory.stones.find(
+      const flintStack = result.current.state.inventory.stone.find(
         (s) => s.resourceId === 'flint'
       );
       expect(flintStack?.quantity).toBe(5);
@@ -164,14 +164,14 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 5);
+        result.current.addResource('stone', 'flint', 5);
       });
 
       act(() => {
-        result.current.removeResource('stones', 'flint', 5);
+        result.current.removeResource('stone', 'flint', 5);
       });
 
-      expect(result.current.state.inventory.stones.length).toBe(0);
+      expect(result.current.state.inventory.stone.length).toBe(0);
     });
 
     it('should not remove resources when removing more than available', async () => {
@@ -182,15 +182,15 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 5);
+        result.current.addResource('stone', 'flint', 5);
       });
 
       act(() => {
-        result.current.removeResource('stones', 'flint', 10);
+        result.current.removeResource('stone', 'flint', 10);
       });
 
       // Quantity should remain unchanged when trying to remove more than available
-      const flintStack = result.current.state.inventory.stones.find(
+      const flintStack = result.current.state.inventory.stone.find(
         (s) => s.resourceId === 'flint'
       );
       expect(flintStack?.quantity).toBe(5);
@@ -204,13 +204,13 @@ describe('useGameState', () => {
       });
 
       act(() => {
-        result.current.addResource('stones', 'flint', 10);
+        result.current.addResource('stone', 'flint', 10);
       });
 
-      expect(result.current.hasResource('stones', 'flint', 5)).toBe(true);
-      expect(result.current.hasResource('stones', 'flint', 10)).toBe(true);
-      expect(result.current.hasResource('stones', 'flint', 15)).toBe(false);
-      expect(result.current.hasResource('stones', 'granite', 1)).toBe(false);
+      expect(result.current.hasResource('stone', 'flint', 5)).toBe(true);
+      expect(result.current.hasResource('stone', 'flint', 10)).toBe(true);
+      expect(result.current.hasResource('stone', 'flint', 15)).toBe(false);
+      expect(result.current.hasResource('stone', 'granite', 1)).toBe(false);
     });
   });
 

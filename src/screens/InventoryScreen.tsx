@@ -5,10 +5,11 @@ import { useGameState } from '../hooks/useGameState';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
 import { ResourceStack, StoneType } from '../types/resources';
+import { MaterialType } from '../types/tools';
 
 interface ResourceItemProps {
   stack: ResourceStack;
-  type: 'stone' | 'wood';
+  type: MaterialType;
 }
 
 function ResourceItem({ stack, type }: ResourceItemProps) {
@@ -54,9 +55,9 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
 export default function InventoryScreen() {
   const { state } = useGameState();
 
-  const totalStones = state.inventory.stones.reduce((sum, s) => sum + s.quantity, 0);
-  const totalWoods = state.inventory.woods.reduce((sum, s) => sum + s.quantity, 0);
-  const totalOres = state.inventory.ores.reduce((sum, s) => sum + s.quantity, 0);
+  const totalStones = state.inventory.stone.reduce((sum, s) => sum + s.quantity, 0);
+  const totalWoods = state.inventory.wood.reduce((sum, s) => sum + s.quantity, 0);
+  const totalOres = state.inventory.ore.reduce((sum, s) => sum + s.quantity, 0);
 
   return (
     <ScrollView style={styles.container}>
@@ -82,10 +83,10 @@ export default function InventoryScreen() {
       {/* Stones section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Stones ({totalStones})</Text>
-        {state.inventory.stones.length === 0 ? (
+        {state.inventory.stone.length === 0 ? (
           <Text style={styles.emptyText}>No stones collected yet</Text>
         ) : (
-          state.inventory.stones.map((stack) => (
+          state.inventory.stone.map((stack) => (
             <ResourceItem key={stack.resourceId} stack={stack} type="stone" />
           ))
         )}
@@ -94,10 +95,10 @@ export default function InventoryScreen() {
       {/* Woods section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Woods ({totalWoods})</Text>
-        {state.inventory.woods.length === 0 ? (
+        {state.inventory.wood.length === 0 ? (
           <Text style={styles.emptyText}>No wood collected yet</Text>
         ) : (
-          state.inventory.woods.map((stack) => (
+          state.inventory.wood.map((stack) => (
             <ResourceItem key={stack.resourceId} stack={stack} type="wood" />
           ))
         )}
@@ -106,10 +107,10 @@ export default function InventoryScreen() {
       {/* Ores section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ores ({totalOres})</Text>
-        {state.inventory.ores.length === 0 ? (
+        {state.inventory.ore.length === 0 ? (
           <Text style={styles.emptyText}>No ores collected yet</Text>
         ) : (
-          state.inventory.ores.map((stack) => (
+          state.inventory.ore.map((stack: ResourceStack) => (
             <ResourceItem key={stack.resourceId} stack={stack} type="stone" />
           ))
         )}
