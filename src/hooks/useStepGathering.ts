@@ -8,11 +8,12 @@ import { resourceSpawnService } from '../services/ResourceSpawnService';
 import { useGameState } from './useGameState';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
+import { GatherableMaterial } from '../types/resources';
 import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
 
 export interface UseStepGatheringOptions {
   /** Callback when resources are gathered - receives category, resourceId, quantity */
-  onGather?: (category: 'stones' | 'woods', resourceId: string, quantity: number) => void;
+  onGather?: (category: GatherableMaterial, resourceId: string, quantity: number) => void;
   /** Auto-sync interval in milliseconds (0 to disable) */
   autoSyncInterval?: number;
 }

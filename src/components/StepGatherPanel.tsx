@@ -28,15 +28,12 @@ export interface StepGatherPanelProps {
   geoData: LocationGeoData | null;
   /** Whether to show in compact mode (for overlay) */
   compact?: boolean;
-  /** Called when a resource is gathered */
-  onResourceGathered?: (type: 'stone' | 'wood', resourceId: string, quantity: number) => void;
 }
 
 export function StepGatherPanel({
   stepGathering,
   geoData,
   compact = false,
-  onResourceGathered,
 }: StepGatherPanelProps) {
   const {
     availableSteps,
@@ -105,22 +102,20 @@ export function StepGatherPanel({
     if (result.success && result.resourceId) {
       const stone = STONES_BY_ID[result.resourceId];
       showToast(`+1 ${stone?.name || result.resourceId}`, 'success');
-      onResourceGathered?.('stone', result.resourceId, 1);
     } else if (!result.success) {
       showToast(result.error || 'Not enough steps', 'error');
     }
-  }, [gatherStone, geoData, onResourceGathered, showToast]);
+  }, [gatherStone, geoData, showToast]);
 
   const handleGatherWood = useCallback(async () => {
     const result = await gatherWood(geoData);
     if (result.success && result.resourceId) {
       const wood = WOODS_BY_ID[result.resourceId];
       showToast(`+1 ${wood?.name || result.resourceId}`, 'success');
-      onResourceGathered?.('wood', result.resourceId, 1);
     } else if (!result.success) {
       showToast(result.error || 'Not enough steps', 'error');
     }
-  }, [gatherWood, geoData, onResourceGathered, showToast]);
+  }, [gatherWood, geoData, showToast]);
 
   const handleSync = useCallback(async () => {
     const result = await syncSteps();
