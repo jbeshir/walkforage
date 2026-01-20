@@ -100,9 +100,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    paddingTop: 5,
-    paddingBottom: 5,
-    height: 60,
+    paddingTop: 8,
+    // Height and bottom padding handled automatically by safe area
   },
   tabIcon: {
     fontSize: 24,

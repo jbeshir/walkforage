@@ -7,8 +7,8 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TechResourceCost } from '../types/tech';
 import { ResourceStack } from '../types/resources';
 import { MaterialType } from '../types/tools';
