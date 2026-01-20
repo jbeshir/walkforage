@@ -17,7 +17,7 @@ import { UseStepGatheringReturn } from '../hooks/useStepGathering';
 import { LocationGeoData } from '../types/gis';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
-import { STEPS_PER_GATHER } from '../config/gathering';
+import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
 
 let toastId = 0;
 
@@ -45,7 +45,6 @@ export function StepGatherPanel({
     isLoading,
     syncSteps,
     requestPermission,
-    getGatherableCount,
     gatherStone,
     gatherWood,
     isAvailable,
@@ -54,7 +53,8 @@ export function StepGatherPanel({
     openPlayStore,
   } = stepGathering;
 
-  const gatherableCount = getGatherableCount();
+  // Calculate directly from reactive availableSteps to ensure UI updates immediately
+  const gatherableCount = calculateGatherableAmount(availableSteps);
   const canGather = gatherableCount > 0 && geoData !== null;
 
   const [showRationale, setShowRationale] = useState(false);

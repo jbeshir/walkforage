@@ -18,7 +18,7 @@ export interface UseStepGatheringOptions {
 }
 
 export interface UseStepGatheringReturn {
-  /** Steps available for gathering */
+  /** Steps available for gathering (reactive - use for render) */
   availableSteps: number;
   /** Timestamp of last step sync */
   lastSyncTimestamp: number;
@@ -32,8 +32,6 @@ export interface UseStepGatheringReturn {
   syncSteps: () => Promise<StepSyncResult>;
   /** Request health permission */
   requestPermission: () => Promise<HealthPermissionStatus>;
-  /** Calculate how many gathers are available */
-  getGatherableCount: () => number;
   /** Gather a stone using available steps */
   gatherStone: (geoData: LocationGeoData | null) => Promise<GatherResult>;
   /** Gather wood using available steps */
@@ -201,12 +199,6 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     [persistSpendSteps]
   );
 
-  const getGatherableCount = useCallback((): number => {
-    // Use fresh state to avoid stale closure issues
-    const currentState = getStepGatheringState();
-    return calculateGatherableAmount(currentState.availableSteps);
-  }, [getStepGatheringState]);
-
   const gatherStone = useCallback(
     async (geoData: LocationGeoData | null): Promise<GatherResult> => {
       // Use fresh state to avoid race conditions with rapid clicking
@@ -293,7 +285,6 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     isLoading,
     syncSteps: doSyncSteps,
     requestPermission,
-    getGatherableCount,
     gatherStone,
     gatherWood,
     spendSteps,
