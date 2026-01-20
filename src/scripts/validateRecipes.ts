@@ -13,6 +13,7 @@
  * 9. Circular tech prerequisites - techs that require themselves (directly or indirectly)
  * 10. Gathering material consistency - gatheringMaterial and gatheringBonus must be set together
  * 11. Gathering material validity - gatheringMaterial must be a valid GatherableMaterial
+ * 12. Tech enables something - every tech must enable at least one unlock or recipe
  *
  * Run with: npx ts-node src/scripts/validateRecipes.ts
  */
@@ -211,6 +212,16 @@ function validateRecipes(): ValidationResult {
       if (dep) {
         queue.push(...dep.prerequisites);
       }
+    }
+  }
+
+  // ========== 3f. Validate Tech Enables Something ==========
+  for (const tech of TECHNOLOGIES) {
+    const enablesSomething = tech.unlocks.length > 0 || tech.enablesRecipes.length > 0;
+    if (!enablesSomething) {
+      result.errors.push(
+        `Tech "${tech.id}" doesn't enable anything (no unlocks or enablesRecipes)`
+      );
     }
   }
 

@@ -54,12 +54,6 @@ export interface TechResourceCost {
   quantity: number;
 }
 
-// Resource cost for buildings - uses specific resource IDs
-export interface BuildingResourceCost {
-  resourceId: string;
-  quantity: number;
-}
-
 export interface Technology {
   id: string;
   name: string;
@@ -72,6 +66,5 @@ export interface Technology {
 
   // What this tech enables
   unlocks: string[]; // Other tech IDs
-  enablesBuildings: string[]; // Building IDs
   enablesRecipes: string[]; // Recipe IDs
 }

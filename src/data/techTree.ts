@@ -14,8 +14,7 @@ export const TECHNOLOGIES: Technology[] = [
       'The fundamental skill of striking stone to create sharp edges. The foundation of all stone tool technology.',
     prerequisites: [],
     resourceCost: [{ resourceType: 'stone', quantity: 10 }],
-    unlocks: ['grinding', 'fire_making', 'cordage_making'],
-    enablesBuildings: [],
+    unlocks: ['grinding', 'cordage_making'],
     enablesRecipes: ['hammerstone', 'hand_axe'],
   },
   {
@@ -27,19 +26,7 @@ export const TECHNOLOGIES: Technology[] = [
     prerequisites: ['basic_knapping'],
     resourceCost: [{ resourceType: 'stone', quantity: 15 }],
     unlocks: [],
-    enablesBuildings: [],
     enablesRecipes: ['grinding_stone'],
-  },
-  {
-    id: 'fire_making',
-    name: 'Fire Making',
-    era: 'lower_paleolithic',
-    description: 'Creating fire through friction. A transformative technology for early humans.',
-    prerequisites: ['basic_knapping'],
-    resourceCost: [{ resourceType: 'wood', quantity: 10 }],
-    unlocks: [],
-    enablesBuildings: ['fire_pit'],
-    enablesRecipes: [],
   },
   {
     id: 'cordage_making',
@@ -50,7 +37,6 @@ export const TECHNOLOGIES: Technology[] = [
     prerequisites: ['basic_knapping'],
     resourceCost: [{ resourceType: 'wood', quantity: 10 }],
     unlocks: ['hafting'],
-    enablesBuildings: [],
     enablesRecipes: ['fiber_binding'],
   },
 
@@ -68,7 +54,6 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'wood', quantity: 15 },
     ],
     unlocks: ['blade_technology'],
-    enablesBuildings: [],
     enablesRecipes: ['crude_handle', 'shaped_handle', 'stone_knife', 'hafted_axe', 'digging_stick'],
   },
 
@@ -86,7 +71,6 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'wood', quantity: 10 },
     ],
     unlocks: ['composite_tools'],
-    enablesBuildings: [],
     enablesRecipes: ['pressure_flaker'],
   },
   {
@@ -101,7 +85,6 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'wood', quantity: 25 },
     ],
     unlocks: ['polished_stone'],
-    enablesBuildings: [],
     enablesRecipes: ['stone_adze'],
   },
 
@@ -119,7 +102,6 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'wood', quantity: 40 },
     ],
     unlocks: [],
-    enablesBuildings: [],
     enablesRecipes: ['polished_axe'],
   },
 ];

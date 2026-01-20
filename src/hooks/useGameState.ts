@@ -1,5 +1,5 @@
 // Game state management hook for WalkForage
-// Handles inventory, tech progress, and village state
+// Handles inventory and tech progress
 // Uses React Context to share state across all components
 
 import React, {
@@ -15,7 +15,6 @@ import React, {
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Inventory, ResourceStack } from '../types/resources';
-import { Village, PlacedBuilding } from '../types/village';
 import { OwnedTool, OwnedComponent, CraftingJob, Tool, CraftedComponent } from '../types/tools';
 import {
   CraftingService,
@@ -32,7 +31,6 @@ export interface GameState {
   ownedTools: OwnedTool[];
   ownedComponents: OwnedComponent[];
   craftingQueue: CraftingJob[];
-  village: Village;
   explorationPoints: number;
   // Step gathering state (inlined from PersistedStepGatheringState)
   availableSteps: number;
@@ -49,13 +47,6 @@ const INITIAL_STATE: GameState = {
   ownedTools: [],
   ownedComponents: [],
   craftingQueue: [],
-  village: {
-    name: 'New Settlement',
-    buildings: [],
-    totalWorkers: 1,
-    availableWorkers: 1,
-    gridSize: { width: 10, height: 10 },
-  },
   explorationPoints: 0,
   availableSteps: 0,
   lastSyncTimestamp: 0,
@@ -106,10 +97,6 @@ export interface GameStateHook {
     totalStepsGathered: number;
   };
 
-  // Village actions
-  placeBuilding: (building: PlacedBuilding) => void;
-  upgradeBuilding: (buildingId: string) => void;
-
   // Persistence
   saveGame: () => Promise<void>;
   loadGame: () => Promise<void>;
@@ -150,7 +137,6 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
           ...INITIAL_STATE,
           ...parsed,
           inventory: { ...INITIAL_STATE.inventory, ...parsed.inventory },
-          village: { ...INITIAL_STATE.village, ...parsed.village },
         });
       }
     } catch (error) {
@@ -465,29 +451,6 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     };
   }, []);
 
-  // Village helpers
-  const placeBuilding = useCallback((building: PlacedBuilding) => {
-    setState((prev) => ({
-      ...prev,
-      village: {
-        ...prev.village,
-        buildings: [...prev.village.buildings, building],
-      },
-    }));
-  }, []);
-
-  const upgradeBuilding = useCallback((buildingId: string) => {
-    setState((prev) => ({
-      ...prev,
-      village: {
-        ...prev.village,
-        buildings: prev.village.buildings.map((b) =>
-          b.id === buildingId ? { ...b, level: b.level + 1 } : b
-        ),
-      },
-    }));
-  }, []);
-
   // Memoize context value to prevent unnecessary re-renders of consumers
   // Callbacks are stable (useCallback with empty/stable deps), so only state/isLoading matter
   const value: GameStateHook = useMemo(
@@ -510,8 +473,6 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       syncSteps,
       spendSteps,
       getStepGatheringState,
-      placeBuilding,
-      upgradeBuilding,
       saveGame,
       loadGame,
       resetGame,

@@ -7,8 +7,8 @@ describe('Tech Tree Data', () => {
       expect(TECHNOLOGIES.length).toBeGreaterThan(0);
     });
 
-    it('should have exactly 8 lithic era technologies', () => {
-      expect(TECHNOLOGIES.length).toBe(8);
+    it('should have exactly 7 lithic era technologies', () => {
+      expect(TECHNOLOGIES.length).toBe(7);
     });
 
     it('should have unique ids for all technologies', () => {
@@ -72,7 +72,6 @@ describe('Tech Tree Data', () => {
         expect(tech.era).toBe('lower_paleolithic');
       });
       expect(lowerPaleo.some((t) => t.id === 'basic_knapping')).toBe(true);
-      expect(lowerPaleo.some((t) => t.id === 'fire_making')).toBe(true);
     });
 
     it('should return middle paleolithic technologies', () => {
@@ -118,11 +117,6 @@ describe('Tech Tree Data', () => {
     it('should unlock grinding after basic_knapping', () => {
       const available = getAvailableTechs(['basic_knapping']);
       expect(available.some((t) => t.id === 'grinding')).toBe(true);
-    });
-
-    it('should unlock fire_making after basic_knapping', () => {
-      const available = getAvailableTechs(['basic_knapping']);
-      expect(available.some((t) => t.id === 'fire_making')).toBe(true);
     });
 
     it('should unlock cordage_making after basic_knapping', () => {
@@ -264,16 +258,13 @@ describe('Tech Tree Data', () => {
     });
   });
 
-  describe('Buildings and recipes enabled', () => {
-    it('technologies should enable at least recipes', () => {
-      // Most technologies should enable something
-      const techsWithContent = TECHNOLOGIES.filter((t) => t.enablesRecipes.length > 0);
-      expect(techsWithContent.length).toBeGreaterThan(TECHNOLOGIES.length * 0.5);
-    });
-
-    it('fire_making should enable fire_pit building', () => {
-      const fireMaking = TECH_BY_ID['fire_making'];
-      expect(fireMaking.enablesBuildings).toContain('fire_pit');
+  describe('Recipes enabled', () => {
+    it('all technologies should enable something (unlocks or recipes)', () => {
+      // Every technology should enable at least one other tech or recipe
+      TECHNOLOGIES.forEach((tech) => {
+        const enablesSomething = tech.unlocks.length > 0 || tech.enablesRecipes.length > 0;
+        expect(enablesSomething).toBe(true);
+      });
     });
   });
 });

@@ -9,7 +9,12 @@ import { useGameState } from './useGameState';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
 import { MaterialType } from '../types/resources';
-import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
+import {
+  STEPS_PER_GATHER,
+  calculateGatherableAmount,
+  calculateGatheringAbility,
+  calculateGatherYield,
+} from '../config/gathering';
 
 export interface UseStepGatheringOptions {
   /** Callback when resources are gathered - receives category, resourceId, quantity */
@@ -217,22 +222,27 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         return { success: false, error: 'No stone type available' };
       }
 
+      // Calculate yield based on tool bonuses
+      // Note: Stone gathering doesn't currently have tools, but keep the logic for future
+      const gatheringAbility = calculateGatheringAbility('stone', gameState.ownedTools);
+      const quantity = calculateGatherYield(gatheringAbility);
+
       // Spend steps (persisted)
       spendSteps(STEPS_PER_GATHER);
 
       // Notify via callback
       if (onGather) {
-        onGather('stone', stone.id, 1);
+        onGather('stone', stone.id, quantity);
       }
 
       return {
         success: true,
         resourceId: stone.id,
-        quantity: 1,
+        quantity,
         stepsSpent: STEPS_PER_GATHER,
       };
     },
-    [getStepGatheringState, spendSteps, onGather]
+    [getStepGatheringState, gameState.ownedTools, spendSteps, onGather]
   );
 
   const gatherWood = useCallback(
@@ -252,22 +262,27 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         return { success: false, error: 'No wood type available' };
       }
 
+      // Calculate yield based on tool bonuses
+      // Wood gathering tools provide bonuses here
+      const gatheringAbility = calculateGatheringAbility('wood', gameState.ownedTools);
+      const quantity = calculateGatherYield(gatheringAbility);
+
       // Spend steps (persisted)
       spendSteps(STEPS_PER_GATHER);
 
       // Notify via callback
       if (onGather) {
-        onGather('wood', wood.id, 1);
+        onGather('wood', wood.id, quantity);
       }
 
       return {
         success: true,
         resourceId: wood.id,
-        quantity: 1,
+        quantity,
         stepsSpent: STEPS_PER_GATHER,
       };
     },
-    [getStepGatheringState, spendSteps, onGather]
+    [getStepGatheringState, gameState.ownedTools, spendSteps, onGather]
   );
 
   const openHealthSettings = useCallback(async (): Promise<boolean> => {

@@ -55,18 +55,6 @@ describe('useGameState', () => {
       expect(result.current.state.inventory.wood).toEqual([]);
     });
 
-    it('should have default village settings', async () => {
-      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.state.village.name).toBe('New Settlement');
-      expect(result.current.state.village.totalWorkers).toBe(1);
-      expect(result.current.state.village.availableWorkers).toBe(1);
-    });
-
     it('should have zero exploration points initially', async () => {
       const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
@@ -111,9 +99,7 @@ describe('useGameState', () => {
         result.current.addResource('stone', 'flint', 3);
       });
 
-      const flintStack = result.current.state.inventory.stone.find(
-        (s) => s.resourceId === 'flint'
-      );
+      const flintStack = result.current.state.inventory.stone.find((s) => s.resourceId === 'flint');
       expect(flintStack?.quantity).toBe(8);
     });
 
@@ -148,9 +134,7 @@ describe('useGameState', () => {
       });
 
       // Verify by checking the resulting state
-      const flintStack = result.current.state.inventory.stone.find(
-        (s) => s.resourceId === 'flint'
-      );
+      const flintStack = result.current.state.inventory.stone.find((s) => s.resourceId === 'flint');
       expect(flintStack?.quantity).toBe(5);
     });
 
@@ -188,9 +172,7 @@ describe('useGameState', () => {
       });
 
       // Quantity should remain unchanged when trying to remove more than available
-      const flintStack = result.current.state.inventory.stone.find(
-        (s) => s.resourceId === 'flint'
-      );
+      const flintStack = result.current.state.inventory.stone.find((s) => s.resourceId === 'flint');
       expect(flintStack?.quantity).toBe(5);
     });
 
@@ -272,57 +254,6 @@ describe('useGameState', () => {
       });
 
       expect(result.current.state.explorationPoints).toBe(150);
-    });
-  });
-
-  describe('Village management', () => {
-    it('should place buildings', async () => {
-      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      const newBuilding = {
-        id: 'building_1',
-        buildingId: 'fire_pit',
-        level: 1,
-        position: { x: 0, y: 0 },
-        assignedWorkers: 0,
-      };
-
-      act(() => {
-        result.current.placeBuilding(newBuilding);
-      });
-
-      expect(result.current.state.village.buildings.length).toBe(1);
-      expect(result.current.state.village.buildings[0].buildingId).toBe('fire_pit');
-    });
-
-    it('should upgrade buildings', async () => {
-      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      const newBuilding = {
-        id: 'building_1',
-        buildingId: 'fire_pit',
-        level: 1,
-        position: { x: 0, y: 0 },
-        assignedWorkers: 0,
-      };
-
-      act(() => {
-        result.current.placeBuilding(newBuilding);
-      });
-
-      act(() => {
-        result.current.upgradeBuilding('building_1');
-      });
-
-      expect(result.current.state.village.buildings[0].level).toBe(2);
     });
   });
 
@@ -460,7 +391,6 @@ describe('useGameState', () => {
       expect(result.current.state.explorationPoints).toBe(100);
       // Should have defaults for missing fields
       expect(result.current.state.unlockedTechs).toEqual([]);
-      expect(result.current.state.village.name).toBe('New Settlement');
     });
 
     it('should handle load errors gracefully', async () => {

@@ -1,13 +1,6 @@
 // TechResourceModal - Select specific materials to spend on tech research
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TechResourceCost } from '../types/tech';
 import { ResourceStack } from '../types/resources';
@@ -75,6 +68,20 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
               </View>
               <View style={styles.quantityControls}>
                 <TouchableOpacity
+                  style={[styles.qtyButtonSmall, selectedQty === 0 && styles.qtyButtonDisabled]}
+                  onPress={() => onSelect(stack.resourceId, 0)}
+                  disabled={selectedQty === 0}
+                >
+                  <Text style={styles.qtyButtonTextSmall}>0</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.qtyButtonSmall, selectedQty === 0 && styles.qtyButtonDisabled]}
+                  onPress={() => onSelect(stack.resourceId, Math.max(0, selectedQty - 10))}
+                  disabled={selectedQty === 0}
+                >
+                  <Text style={styles.qtyButtonTextSmall}>-10</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[styles.qtyButton, selectedQty === 0 && styles.qtyButtonDisabled]}
                   onPress={() => onSelect(stack.resourceId, Math.max(0, selectedQty - 1))}
                   disabled={selectedQty === 0}
@@ -93,6 +100,28 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
                   disabled={selectedQty >= maxSelectable}
                 >
                   <Text style={styles.qtyButtonText}>+</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.qtyButtonSmall,
+                    selectedQty >= maxSelectable && styles.qtyButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    onSelect(stack.resourceId, Math.min(maxSelectable, selectedQty + 10))
+                  }
+                  disabled={selectedQty >= maxSelectable}
+                >
+                  <Text style={styles.qtyButtonTextSmall}>+10</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.qtyButtonSmall,
+                    selectedQty >= maxSelectable && styles.qtyButtonDisabled,
+                  ]}
+                  onPress={() => onSelect(stack.resourceId, maxSelectable)}
+                  disabled={selectedQty >= maxSelectable}
+                >
+                  <Text style={styles.qtyButtonTextSmall}>Max</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -345,6 +374,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  qtyButtonSmall: {
+    paddingHorizontal: 6,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#3d8b40',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 2,
+  },
   qtyButtonDisabled: {
     backgroundColor: '#444',
   },
@@ -352,6 +390,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  qtyButtonTextSmall: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
   },
   qtyDisplay: {
     width: 40,

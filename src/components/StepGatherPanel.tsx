@@ -17,7 +17,12 @@ import { UseStepGatheringReturn } from '../hooks/useStepGathering';
 import { LocationGeoData } from '../types/gis';
 import { STONES_BY_ID } from '../data/stones';
 import { WOODS_BY_ID } from '../data/woods';
-import { STEPS_PER_GATHER, calculateGatherableAmount } from '../config/gathering';
+import {
+  STEPS_PER_GATHER,
+  calculateGatherableAmount,
+  calculateGatheringAbility,
+} from '../config/gathering';
+import { useGameState } from '../hooks/useGameState';
 
 let toastId = 0;
 
@@ -30,11 +35,7 @@ export interface StepGatherPanelProps {
   compact?: boolean;
 }
 
-export function StepGatherPanel({
-  stepGathering,
-  geoData,
-  compact = false,
-}: StepGatherPanelProps) {
+export function StepGatherPanel({ stepGathering, geoData, compact = false }: StepGatherPanelProps) {
   const {
     availableSteps,
     totalStepsGathered,
@@ -50,9 +51,17 @@ export function StepGatherPanel({
     openPlayStore,
   } = stepGathering;
 
+  const { state } = useGameState();
+
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
   const gatherableCount = calculateGatherableAmount(availableSteps);
   const canGather = gatherableCount > 0 && geoData !== null;
+
+  // Calculate gathering abilities based on owned tools
+  const stoneAbility = calculateGatheringAbility('stone', state.ownedTools);
+  const woodAbility = calculateGatheringAbility('wood', state.ownedTools);
+  const stoneYieldRange = stoneAbility === 1 ? '1' : `1-${Math.floor(2 * stoneAbility - 1)}`;
+  const woodYieldRange = woodAbility === 1 ? '1' : `1-${Math.floor(2 * woodAbility - 1)}`;
 
   const [showRationale, setShowRationale] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -99,9 +108,9 @@ export function StepGatherPanel({
 
   const handleGatherStone = useCallback(async () => {
     const result = await gatherStone(geoData);
-    if (result.success && result.resourceId) {
+    if (result.success && result.resourceId && result.quantity) {
       const stone = STONES_BY_ID[result.resourceId];
-      showToast(`+1 ${stone?.name || result.resourceId}`, 'success');
+      showToast(`+${result.quantity} ${stone?.name || result.resourceId}`, 'success');
     } else if (!result.success) {
       showToast(result.error || 'Not enough steps', 'error');
     }
@@ -109,9 +118,9 @@ export function StepGatherPanel({
 
   const handleGatherWood = useCallback(async () => {
     const result = await gatherWood(geoData);
-    if (result.success && result.resourceId) {
+    if (result.success && result.resourceId && result.quantity) {
       const wood = WOODS_BY_ID[result.resourceId];
-      showToast(`+1 ${wood?.name || result.resourceId}`, 'success');
+      showToast(`+${result.quantity} ${wood?.name || result.resourceId}`, 'success');
     } else if (!result.success) {
       showToast(result.error || 'Not enough steps', 'error');
     }
@@ -226,14 +235,18 @@ export function StepGatherPanel({
               onPress={handleGatherStone}
               disabled={!canGather}
             >
-              <Text style={styles.gatherButtonText}>Stone</Text>
+              <Text style={styles.gatherButtonText}>
+                🪨 Stone <Text style={styles.yieldText}>×{stoneYieldRange}</Text>
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.gatherButton, styles.woodButton, !canGather && styles.disabledButton]}
               onPress={handleGatherWood}
               disabled={!canGather}
             >
-              <Text style={styles.gatherButtonText}>Wood</Text>
+              <Text style={styles.gatherButtonText}>
+                🪵 Wood <Text style={styles.yieldText}>×{woodYieldRange}</Text>
+              </Text>
             </TouchableOpacity>
           </View>
           {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
@@ -272,7 +285,9 @@ export function StepGatherPanel({
             onPress={handleGatherStone}
             disabled={!canGather}
           >
-            <Text style={styles.gatherButtonText}>Gather Stone</Text>
+            <Text style={styles.gatherButtonText}>
+              🪨 Gather Stone <Text style={styles.yieldText}>×{stoneYieldRange}</Text>
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -283,7 +298,9 @@ export function StepGatherPanel({
             onPress={handleGatherWood}
             disabled={!canGather}
           >
-            <Text style={styles.gatherButtonText}>Gather Wood</Text>
+            <Text style={styles.gatherButtonText}>
+              🪵 Gather Wood <Text style={styles.yieldText}>×{woodYieldRange}</Text>
+            </Text>
           </TouchableOpacity>
         </View>
         {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
@@ -407,6 +424,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  yieldText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '400',
   },
   permissionText: {
     fontSize: 13,

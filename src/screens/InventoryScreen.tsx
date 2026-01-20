@@ -77,7 +77,7 @@ export default function InventoryScreen() {
 
       {/* Stones section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Stones ({totalStones})</Text>
+        <Text style={styles.sectionTitle}>🪨 Stones ({totalStones})</Text>
         {state.inventory.stone.length === 0 ? (
           <Text style={styles.emptyText}>No stones collected yet</Text>
         ) : (
@@ -89,7 +89,7 @@ export default function InventoryScreen() {
 
       {/* Woods section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Woods ({totalWoods})</Text>
+        <Text style={styles.sectionTitle}>🪵 Woods ({totalWoods})</Text>
         {state.inventory.wood.length === 0 ? (
           <Text style={styles.emptyText}>No wood collected yet</Text>
         ) : (

@@ -43,15 +43,15 @@ function OwnedToolItem({ owned }: OwnedToolItemProps) {
 
   return (
     <View style={styles.ownedToolItem}>
-      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
-        <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
-      </View>
       <View style={styles.toolInfo}>
         <View style={styles.toolNameRow}>
-          <Text style={styles.toolName}>{tool.name}</Text>
           <View style={[styles.qualityBadge, { backgroundColor: qualityColor }]}>
             <Text style={styles.qualityBadgeText}>{getQualityDisplayName(qualityTier)}</Text>
           </View>
+          <Text style={styles.qualityPercent}>{Math.round(owned.quality * 100)}%</Text>
+          {gatheringBonus > 0 && (
+            <Text style={styles.gatheringBonus}>+{gatheringBonus.toFixed(1)}</Text>
+          )}
         </View>
 
         {/* Materials used */}
@@ -83,14 +83,6 @@ function OwnedToolItem({ owned }: OwnedToolItemProps) {
             </View>
           )}
         </View>
-
-        {/* Gathering bonus - only show if tool offers a bonus */}
-        {gatheringBonus > 0 && (
-          <Text style={styles.gatheringBonus}>+{gatheringBonus.toFixed(1)} gathering</Text>
-        )}
-
-        {/* Quality percentage */}
-        <Text style={styles.qualityPercent}>{Math.round(owned.quality * 100)}% quality</Text>
       </View>
     </View>
   );
@@ -368,31 +360,123 @@ export default function CraftingScreen() {
   const availableTools = TOOLS.filter((tool) => hasTech(tool.requiredTech));
   const availableComponents = COMPONENTS.filter((comp) => hasTech(comp.requiredTech));
 
+  // Track which tool groups are expanded (collapsed by default)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroupExpanded = (toolId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(toolId)) {
+        next.delete(toolId);
+      } else {
+        next.add(toolId);
+      }
+      return next;
+    });
+  };
+
   const renderOwnedTools = () => {
     // Split owned tools into crafting and gathering categories
     const craftingTools = state.ownedTools.filter((owned) => isCraftingTool(owned.toolId));
     const gatheringTools = state.ownedTools.filter((owned) => isGatheringTool(owned.toolId));
 
+    // Group tools by toolId and sort by quality (highest first)
+    const groupToolsByType = (tools: OwnedTool[]) => {
+      const groups = new Map<string, OwnedTool[]>();
+      for (const tool of tools) {
+        const existing = groups.get(tool.toolId) || [];
+        existing.push(tool);
+        groups.set(tool.toolId, existing);
+      }
+      // Sort each group by quality (highest first)
+      for (const [, group] of groups) {
+        group.sort((a, b) => b.quality - a.quality);
+      }
+      // Sort groups by highest quality tool
+      return Array.from(groups.entries()).sort((a, b) => {
+        return b[1][0].quality - a[1][0].quality;
+      });
+    };
+
+    const craftingGroups = groupToolsByType(craftingTools);
+    const gatheringGroups = groupToolsByType(gatheringTools);
+
+    const renderToolGroup = (toolId: string, tools: OwnedTool[]) => {
+      const toolDef = getToolById(toolId);
+      const count = tools.length;
+      const isExpanded = expandedGroups.has(toolId);
+      const bestTool = tools[0]; // First is best (sorted by quality)
+      const bestQualityTier = getQualityTier(bestTool.quality);
+      const bestQualityColor = getQualityColor(bestQualityTier);
+      const gatheringBonus = toolDef ? calculateGatheringBonus(toolDef, bestTool.quality) : 0;
+
+      return (
+        <View key={toolId} style={styles.toolGroup}>
+          <TouchableOpacity
+            style={styles.toolGroupHeader}
+            onPress={() => toggleGroupExpanded(toolId)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.eraBadge,
+                { backgroundColor: ERA_COLORS[toolDef?.era || 'lower_paleolithic'] },
+              ]}
+            >
+              <Text style={styles.eraText}>{ERA_LABELS[toolDef?.era || 'lower_paleolithic']}</Text>
+            </View>
+            <View style={styles.toolGroupInfo}>
+              <View style={styles.toolGroupNameRow}>
+                <Text style={styles.toolGroupName}>{toolDef?.name || toolId}</Text>
+                {count > 1 && <Text style={styles.toolGroupCount}>x{count}</Text>}
+              </View>
+              <View style={styles.toolGroupSummary}>
+                <View style={[styles.qualityBadgeSmall, { backgroundColor: bestQualityColor }]}>
+                  <Text style={styles.qualityBadgeTextSmall}>
+                    {getQualityDisplayName(bestQualityTier)}
+                  </Text>
+                </View>
+                {gatheringBonus > 0 && (
+                  <>
+                    <Text style={styles.gatheringBonusSmall}>+{gatheringBonus.toFixed(1)}</Text>
+                    <Text style={styles.gatheringMaterialSmall}>
+                      {toolDef?.gatheringMaterial === 'stone' ? '🪨' : '🪵'}
+                    </Text>
+                  </>
+                )}
+              </View>
+            </View>
+            <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
+          </TouchableOpacity>
+          {isExpanded &&
+            tools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)}
+        </View>
+      );
+    };
+
     return (
       <View style={styles.section}>
         {/* Crafting Tools */}
-        <Text style={styles.sectionTitle}>Crafting Tools ({craftingTools.length})</Text>
+        <Text style={styles.sectionTitle}>
+          Crafting Tools ({craftingGroups.length} {craftingGroups.length === 1 ? 'type' : 'types'})
+        </Text>
         <Text style={styles.sectionSubtitle}>Used as prerequisites for other tools</Text>
-        {craftingTools.length === 0 ? (
+        {craftingGroups.length === 0 ? (
           <Text style={styles.emptyText}>No crafting tools yet.</Text>
         ) : (
-          craftingTools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)
+          craftingGroups.map(([toolId, tools]) => renderToolGroup(toolId, tools))
         )}
 
         {/* Gathering Tools */}
         <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
-          Gathering Tools ({gatheringTools.length})
+          Gathering Tools ({gatheringGroups.length}{' '}
+          {gatheringGroups.length === 1 ? 'type' : 'types'})
         </Text>
         <Text style={styles.sectionSubtitle}>Provide bonuses when gathering resources</Text>
-        {gatheringTools.length === 0 ? (
+        {gatheringGroups.length === 0 ? (
           <Text style={styles.emptyText}>No gathering tools yet.</Text>
         ) : (
-          gatheringTools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)
+          gatheringGroups.map(([toolId, tools]) => renderToolGroup(toolId, tools))
         )}
 
         {/* Components inventory */}
@@ -590,9 +674,70 @@ const styles = StyleSheet.create({
   ownedToolItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eee',
+  },
+  toolGroup: {
+    marginBottom: 8,
+    backgroundColor: '#fafafa',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  toolGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+  },
+  toolGroupInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  toolGroupNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toolGroupName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  toolGroupCount: {
+    fontSize: 12,
+    color: '#888',
+    marginLeft: 6,
+  },
+  toolGroupSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  expandIcon: {
+    fontSize: 10,
+    color: '#888',
+    marginLeft: 8,
+  },
+  qualityBadgeSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  qualityBadgeTextSmall: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  gatheringBonusSmall: {
+    fontSize: 10,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  gatheringMaterialSmall: {
+    fontSize: 10,
+    marginLeft: 2,
   },
   ownedComponentItem: {
     flexDirection: 'row',
@@ -624,12 +769,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
-  },
-  toolName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginRight: 8,
   },
   componentName: {
     fontSize: 14,
@@ -677,12 +816,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#4CAF50',
     fontWeight: '500',
-    marginBottom: 4,
+    marginLeft: 8,
   },
   qualityPercent: {
     fontSize: 10,
     color: '#888',
-    marginTop: 2,
+    marginLeft: 6,
   },
   componentQualityText: {
     fontSize: 14,

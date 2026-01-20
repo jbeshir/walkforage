@@ -97,7 +97,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
       // Show tech details
       Alert.alert(
         tech.name,
-        `${tech.description}\n\nUnlocks: ${tech.unlocks.join(', ') || 'None'}\nBuildings: ${tech.enablesBuildings.join(', ') || 'None'}`
+        `${tech.description}\n\nUnlocks: ${tech.unlocks.join(', ') || 'None'}\nRecipes: ${tech.enablesRecipes.join(', ') || 'None'}`
       );
       return;
     }

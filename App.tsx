@@ -1,4 +1,4 @@
-// WalkForage - Location-Based Idle Village Builder
+// WalkForage - Location-Based Resource Gathering Game
 // Main App with Tab Navigation
 
 import React, { useState, useCallback } from 'react';
@@ -15,7 +15,6 @@ import ForageScreen from './src/screens/ForageScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import CraftingScreen from './src/screens/CraftingScreen';
 import TechTreeScreen from './src/screens/TechTreeScreen';
-import VillageScreen from './src/screens/VillageScreen';
 import CheatScreen from './src/screens/CheatScreen';
 
 const Tab = createBottomTabNavigator();
@@ -27,7 +26,6 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     Materials: '🪨',
     Tools: '🔨',
     Tech: '⚙️',
-    Village: '🏠',
     Cheat: '🔧',
   };
 
@@ -76,7 +74,6 @@ export default function App() {
           <Tab.Screen name="Tech" options={{ title: 'Tech Tree' }}>
             {() => <TechTreeScreen onEnableCheatMode={enableCheatMode} />}
           </Tab.Screen>
-          <Tab.Screen name="Village" component={VillageScreen} options={{ title: 'Village' }} />
           {cheatModeEnabled && (
             <Tab.Screen
               name="Cheat"
@@ -101,7 +98,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     paddingTop: 8,
-    // Height and bottom padding handled automatically by safe area
+    paddingBottom: 4,
   },
   tabIcon: {
     fontSize: 24,
