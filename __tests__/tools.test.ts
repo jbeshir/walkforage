@@ -5,10 +5,6 @@ import {
   COMPONENTS_BY_ID,
   getToolById,
   getComponentById,
-  getToolsByEra,
-  getToolsByCategory,
-  getToolPrerequisites,
-  getAllToolDependencies,
 } from '../src/data/tools';
 import { ToolCategory, ComponentCategory } from '../src/types/tools';
 import { LithicEra } from '../src/types/tech';
@@ -175,138 +171,6 @@ describe('Tools Data', () => {
     });
   });
 
-  describe('getToolsByEra', () => {
-    it('should return lower paleolithic tools', () => {
-      const lowerPaleo = getToolsByEra('lower_paleolithic');
-      expect(lowerPaleo.length).toBeGreaterThan(0);
-      lowerPaleo.forEach((tool) => {
-        expect(tool.era).toBe('lower_paleolithic');
-      });
-      expect(lowerPaleo.some((t) => t.id === 'hammerstone')).toBe(true);
-      expect(lowerPaleo.some((t) => t.id === 'hand_axe')).toBe(true);
-    });
-
-    it('should return middle paleolithic tools', () => {
-      const middlePaleo = getToolsByEra('middle_paleolithic');
-      expect(middlePaleo.length).toBeGreaterThan(0);
-      middlePaleo.forEach((tool) => {
-        expect(tool.era).toBe('middle_paleolithic');
-      });
-      expect(middlePaleo.some((t) => t.id === 'stone_knife')).toBe(true);
-      expect(middlePaleo.some((t) => t.id === 'hafted_axe')).toBe(true);
-    });
-
-    it('should return upper paleolithic tools', () => {
-      const upperPaleo = getToolsByEra('upper_paleolithic');
-      expect(upperPaleo.length).toBeGreaterThan(0);
-      upperPaleo.forEach((tool) => {
-        expect(tool.era).toBe('upper_paleolithic');
-      });
-      expect(upperPaleo.some((t) => t.id === 'pressure_flaker')).toBe(true);
-    });
-
-    it('should return mesolithic tools', () => {
-      const mesolithic = getToolsByEra('mesolithic');
-      expect(mesolithic.length).toBeGreaterThan(0);
-      mesolithic.forEach((tool) => {
-        expect(tool.era).toBe('mesolithic');
-      });
-      expect(mesolithic.some((t) => t.id === 'polished_axe')).toBe(true);
-    });
-  });
-
-  describe('getToolsByCategory', () => {
-    it('should return woodworking tools', () => {
-      const woodworking = getToolsByCategory('woodworking');
-      expect(woodworking.length).toBeGreaterThan(0);
-      woodworking.forEach((tool) => {
-        expect(tool.category).toBe('woodworking');
-      });
-      expect(woodworking.some((t) => t.id === 'hand_axe')).toBe(true);
-      expect(woodworking.some((t) => t.id === 'hafted_axe')).toBe(true);
-    });
-
-    it('should return knapping tools', () => {
-      const knapping = getToolsByCategory('knapping');
-      expect(knapping.length).toBeGreaterThan(0);
-      knapping.forEach((tool) => {
-        expect(tool.category).toBe('knapping');
-      });
-      expect(knapping.some((t) => t.id === 'hammerstone')).toBe(true);
-      expect(knapping.some((t) => t.id === 'grinding_stone')).toBe(true);
-    });
-
-    it('should return cutting tools', () => {
-      const cutting = getToolsByCategory('cutting');
-      expect(cutting.length).toBeGreaterThan(0);
-      cutting.forEach((tool) => {
-        expect(tool.category).toBe('cutting');
-      });
-      expect(cutting.some((t) => t.id === 'stone_knife')).toBe(true);
-    });
-
-    it('should return foraging tools', () => {
-      const foraging = getToolsByCategory('foraging');
-      expect(foraging.length).toBeGreaterThan(0);
-      foraging.forEach((tool) => {
-        expect(tool.category).toBe('foraging');
-      });
-      expect(foraging.some((t) => t.id === 'digging_stick')).toBe(true);
-    });
-  });
-
-  describe('getToolPrerequisites', () => {
-    it('should return empty array for tool with no prerequisites', () => {
-      const prereqs = getToolPrerequisites('hammerstone');
-      expect(prereqs).toEqual([]);
-    });
-
-    it('should return prerequisite tool ids', () => {
-      const prereqs = getToolPrerequisites('hand_axe');
-      expect(prereqs).toContain('hammerstone');
-    });
-
-    it('should return multiple prerequisites for complex tools', () => {
-      const prereqs = getToolPrerequisites('polished_axe');
-      expect(prereqs.length).toBeGreaterThanOrEqual(2);
-      expect(prereqs).toContain('hammerstone');
-      expect(prereqs).toContain('grinding_stone');
-    });
-
-    it('should return empty array for non-existent tool', () => {
-      const prereqs = getToolPrerequisites('nonexistent');
-      expect(prereqs).toEqual([]);
-    });
-  });
-
-  describe('getAllToolDependencies', () => {
-    it('should return empty array for tool with no dependencies', () => {
-      const deps = getAllToolDependencies('hammerstone');
-      expect(deps).toEqual([]);
-    });
-
-    it('should return direct dependencies', () => {
-      const deps = getAllToolDependencies('hand_axe');
-      expect(deps).toContain('hammerstone');
-    });
-
-    it('should return transitive dependencies', () => {
-      const deps = getAllToolDependencies('hafted_axe');
-      expect(deps).toContain('hammerstone');
-    });
-
-    it('should return empty array for non-existent tool', () => {
-      const deps = getAllToolDependencies('nonexistent');
-      expect(deps).toEqual([]);
-    });
-
-    it('should not contain duplicates', () => {
-      const deps = getAllToolDependencies('polished_axe');
-      const uniqueDeps = new Set(deps);
-      expect(uniqueDeps.size).toBe(deps.length);
-    });
-  });
-
   describe('Tool required components', () => {
     it('should reference valid components', () => {
       TOOLS.forEach((tool) => {
@@ -347,7 +211,7 @@ describe('Tools Data', () => {
 
   describe('Era progression logic', () => {
     it('should have most lower paleolithic tools without tool requirements', () => {
-      const lowerPaleo = getToolsByEra('lower_paleolithic');
+      const lowerPaleo = TOOLS.filter((t) => t.era === 'lower_paleolithic');
       // Some lower paleolithic tools don't require other tools (hammerstone, grinding_stone)
       const noRequirements = lowerPaleo.filter((t) => t.requiredTools.length === 0);
       expect(noRequirements.length).toBeGreaterThan(0);

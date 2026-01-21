@@ -14,7 +14,8 @@ import React, {
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Inventory, ResourceStack } from '../types/resources';
+import { Inventory, ResourceStack, createEmptyInventory } from '../types/resources';
+import { getAllMaterialTypes } from '../config/materials';
 import { OwnedTool, OwnedComponent, CraftingJob, Tool, CraftedComponent } from '../types/tools';
 import {
   CraftingService,
@@ -39,10 +40,7 @@ export interface GameState {
 }
 
 const INITIAL_STATE: GameState = {
-  inventory: {
-    stone: [],
-    wood: [],
-  },
+  inventory: createEmptyInventory(),
   unlockedTechs: [], // Start with no techs unlocked
   ownedTools: [],
   ownedComponents: [],
@@ -52,9 +50,6 @@ const INITIAL_STATE: GameState = {
   lastSyncTimestamp: 0,
   totalStepsGathered: 0,
 };
-
-// Re-export CraftCheckResult from CraftingService for external consumers
-export type { CraftCheckResult } from '../services/CraftingService';
 
 // Parameters for crafting (used by both tools and components)
 export interface CraftItemParams extends CraftParams {
@@ -132,11 +127,20 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<GameState>;
+        // Merge inventories - ensure all material types exist
+        const mergedInventory = createEmptyInventory();
+        if (parsed.inventory) {
+          for (const type of getAllMaterialTypes()) {
+            if (parsed.inventory[type]) {
+              mergedInventory[type] = parsed.inventory[type];
+            }
+          }
+        }
         // Merge with initial state to handle missing fields
         setState({
           ...INITIAL_STATE,
           ...parsed,
-          inventory: { ...INITIAL_STATE.inventory, ...parsed.inventory },
+          inventory: mergedInventory,
         });
       }
     } catch (error) {
@@ -392,11 +396,11 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   // Unified craft using CraftingService
   const craft = useCallback(
     (params: CraftItemParams): { success: boolean; error?: string } => {
-      const { craftable, selectedStoneId, selectedWoodId, selectedComponentIds } = params;
+      const { craftable, selectedMaterials, selectedComponentIds } = params;
 
       const result = CraftingService.craft(
         craftable,
-        { selectedStoneId, selectedWoodId, selectedComponentIds },
+        { selectedMaterials, selectedComponentIds },
         getCraftingState()
       );
 

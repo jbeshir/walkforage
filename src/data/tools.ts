@@ -3,7 +3,7 @@
 // All tools use generic material requirements - players choose specific materials when crafting
 
 import { Tool, CraftedComponent, ToolCategory, QualityWeights } from '../types/tools';
-import { TechEra } from '../types/tech';
+import { createByIdMap } from '../utils/collections';
 
 // Quality weights by category - determines how material properties affect tool quality
 const QUALITY_WEIGHTS: Record<ToolCategory, QualityWeights> = {
@@ -223,7 +223,7 @@ export const TOOLS: Tool[] = [
     name: 'Polished Axe',
     category: 'woodworking',
     era: 'mesolithic',
-    description: 'A ground and polished stone axe. Smoother, more durable than flaked axes.',
+    description: 'A ground and polished stone axe. Superior for wood gathering.',
     requiredTech: 'polished_stone',
     requiredTools: ['hammerstone', 'grinding_stone'],
     requiredComponents: [
@@ -240,12 +240,9 @@ export const TOOLS: Tool[] = [
 
 // ===== HELPER FUNCTIONS =====
 
-export const TOOLS_BY_ID = Object.fromEntries(TOOLS.map((t) => [t.id, t])) as Record<string, Tool>;
+export const TOOLS_BY_ID = createByIdMap(TOOLS);
 
-export const COMPONENTS_BY_ID = Object.fromEntries(COMPONENTS.map((c) => [c.id, c])) as Record<
-  string,
-  CraftedComponent
->;
+export const COMPONENTS_BY_ID = createByIdMap(COMPONENTS);
 
 export function getToolById(toolId: string): Tool | undefined {
   return TOOLS_BY_ID[toolId];
@@ -253,40 +250,6 @@ export function getToolById(toolId: string): Tool | undefined {
 
 export function getComponentById(componentId: string): CraftedComponent | undefined {
   return COMPONENTS_BY_ID[componentId];
-}
-
-export function getToolsByEra(era: TechEra): Tool[] {
-  return TOOLS.filter((t) => t.era === era);
-}
-
-export function getToolsByCategory(category: ToolCategory): Tool[] {
-  return TOOLS.filter((t) => t.category === category);
-}
-
-export function getToolPrerequisites(toolId: string): string[] {
-  const tool = TOOLS_BY_ID[toolId];
-  if (!tool) return [];
-  return tool.requiredTools;
-}
-
-export function getAllToolDependencies(toolId: string): string[] {
-  const deps = new Set<string>();
-  const queue = [toolId];
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const tool = TOOLS_BY_ID[current];
-    if (!tool) continue;
-
-    for (const reqToolId of tool.requiredTools) {
-      if (!deps.has(reqToolId)) {
-        deps.add(reqToolId);
-        queue.push(reqToolId);
-      }
-    }
-  }
-
-  return Array.from(deps);
 }
 
 // ===== TOOL TYPE HELPERS =====

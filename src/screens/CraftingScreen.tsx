@@ -3,7 +3,8 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useGameState, CraftCheckResult } from '../hooks/useGameState';
+import { useGameState } from '../hooks/useGameState';
+import { CraftCheckResult } from '../services/CraftingService';
 import {
   TOOLS,
   COMPONENTS,
@@ -20,10 +21,10 @@ import {
   OwnedComponent,
   getQualityTier,
   calculateGatheringBonus,
+  getUsedMaterialId,
 } from '../types/tools';
 import { ERA_COLORS, ERA_LABELS } from '../types/tech';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
+import { getMaterialConfig, getAllMaterialTypes, getMaterialIcon } from '../config/materials';
 import MaterialSelectionModal, { MaterialSelection } from '../components/MaterialSelectionModal';
 import { getQualityColor, getQualityDisplayName } from '../utils/qualityCalculation';
 
@@ -54,34 +55,22 @@ function OwnedToolItem({ owned }: OwnedToolItemProps) {
           )}
         </View>
 
-        {/* Materials used */}
+        {/* Materials used - dynamically rendered */}
         <View style={styles.materialsRow}>
-          {owned.materials.stoneId && (
-            <View style={styles.materialTag}>
-              <View
-                style={[
-                  styles.materialSwatch,
-                  { backgroundColor: STONES_BY_ID[owned.materials.stoneId]?.color || '#888' },
-                ]}
-              />
-              <Text style={styles.materialTagText}>
-                {STONES_BY_ID[owned.materials.stoneId]?.name || owned.materials.stoneId}
-              </Text>
-            </View>
-          )}
-          {owned.materials.woodId && (
-            <View style={styles.materialTag}>
-              <View
-                style={[
-                  styles.materialSwatch,
-                  { backgroundColor: WOODS_BY_ID[owned.materials.woodId]?.color || '#888' },
-                ]}
-              />
-              <Text style={styles.materialTagText}>
-                {WOODS_BY_ID[owned.materials.woodId]?.name || owned.materials.woodId}
-              </Text>
-            </View>
-          )}
+          {getAllMaterialTypes().map((materialType) => {
+            const materialId = getUsedMaterialId(owned.materials, materialType);
+            if (!materialId) return null;
+            const config = getMaterialConfig(materialType);
+            const material = config.getResourceById(materialId);
+            return (
+              <View key={materialType} style={styles.materialTag}>
+                <View
+                  style={[styles.materialSwatch, { backgroundColor: material?.color || '#888' }]}
+                />
+                <Text style={styles.materialTagText}>{material?.name || materialId}</Text>
+              </View>
+            );
+          })}
         </View>
       </View>
     </View>
@@ -128,19 +117,21 @@ function OwnedComponentItem({ component }: OwnedComponentItemProps) {
       <View style={styles.componentInfo}>
         <Text style={styles.componentName}>{componentDef.name}</Text>
         <View style={styles.materialsRow}>
-          {component.materials.woodId && (
-            <View style={styles.materialTag}>
-              <View
-                style={[
-                  styles.materialSwatch,
-                  { backgroundColor: WOODS_BY_ID[component.materials.woodId]?.color || '#888' },
-                ]}
-              />
-              <Text style={styles.materialTagText}>
-                {WOODS_BY_ID[component.materials.woodId]?.name}
-              </Text>
-            </View>
-          )}
+          {/* Display used materials dynamically */}
+          {getAllMaterialTypes().map((materialType) => {
+            const materialId = getUsedMaterialId(component.materials, materialType);
+            if (!materialId) return null;
+            const config = getMaterialConfig(materialType);
+            const material = config.getResourceById(materialId);
+            return (
+              <View key={materialType} style={styles.materialTag}>
+                <View
+                  style={[styles.materialSwatch, { backgroundColor: material?.color || '#888' }]}
+                />
+                <Text style={styles.materialTagText}>{material?.name || materialId}</Text>
+              </View>
+            );
+          })}
         </View>
       </View>
       <Text style={styles.componentQualityText}>{qualityPercent}%</Text>
@@ -303,35 +294,13 @@ export default function CraftingScreen() {
   } | null>(null);
 
   // Unified handler for crafting any craftable (tool or component)
+  // Always shows material selection modal as a confirmation prompt
   const handleCraft = (craftable: Tool | CraftedComponent) => {
     const craftCheck = canCraft(craftable);
     if (!craftCheck.canCraft) return;
 
-    // Check if we need material selection (multiple choices or required components)
-    const needsMaterialSelection =
-      craftable.materials.stone ||
-      craftable.materials.wood ||
-      craftable.requiredComponents.length > 0 ||
-      craftCheck.availableStones.length > 1 ||
-      craftCheck.availableWoods.length > 1;
-
-    if (needsMaterialSelection) {
-      setSelectedRecipe({ craftable, craftCheck });
-      setModalVisible(true);
-    } else {
-      // Simple craft with default materials
-      const result = craft({
-        craftable,
-        selectedStoneId: craftCheck.availableStones[0],
-        selectedWoodId: craftCheck.availableWoods[0],
-        selectedComponentIds: craftCheck.availableComponents,
-      });
-      if (result.success) {
-        Alert.alert('Success', `Crafted ${craftable.name}!`);
-      } else {
-        Alert.alert('Failed', result.error || 'Could not craft.');
-      }
-    }
+    setSelectedRecipe({ craftable, craftCheck });
+    setModalVisible(true);
   };
 
   const handleMaterialConfirm = (selection: MaterialSelection) => {
@@ -342,8 +311,7 @@ export default function CraftingScreen() {
 
     const result = craft({
       craftable,
-      selectedStoneId: selection.stoneId,
-      selectedWoodId: selection.woodId,
+      selectedMaterials: selection.selectedMaterials,
       selectedComponentIds: selection.componentIds,
     });
 
@@ -436,11 +404,11 @@ export default function CraftingScreen() {
                     {getQualityDisplayName(bestQualityTier)}
                   </Text>
                 </View>
-                {gatheringBonus > 0 && (
+                {gatheringBonus > 0 && toolDef?.gatheringMaterial && (
                   <>
                     <Text style={styles.gatheringBonusSmall}>+{gatheringBonus.toFixed(1)}</Text>
                     <Text style={styles.gatheringMaterialSmall}>
-                      {toolDef?.gatheringMaterial === 'stone' ? '🪨' : '🪵'}
+                      {getMaterialIcon(toolDef.gatheringMaterial)}
                     </Text>
                   </>
                 )}
@@ -546,8 +514,7 @@ export default function CraftingScreen() {
     return {
       title: `Craft ${craftable.name}`,
       craftable,
-      availableStones: craftCheck.availableStones,
-      availableWoods: craftCheck.availableWoods,
+      availableMaterials: craftCheck.availableMaterials,
       availableComponentIds: craftCheck.availableComponents,
     };
   };

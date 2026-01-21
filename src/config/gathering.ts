@@ -1,7 +1,7 @@
 // Configuration constants for step-based resource gathering
 // These values control how steps are converted to resources
 
-import { MaterialType } from '../types/resources';
+import { MaterialType, getMaterialConfig } from './materials';
 import { OwnedTool, calculateGatheringBonus } from '../types/tools';
 import { getToolById } from '../data/tools';
 
@@ -12,12 +12,6 @@ import { getToolById } from '../data/tools';
 export const STEPS_PER_GATHER = 1000;
 
 /**
- * Base gathering ability without any tools
- * This determines the minimum yield per gather action
- */
-export const BASE_GATHERING_ABILITY = 1;
-
-/**
  * Calculate how many gathers are available with current steps
  */
 export function calculateGatherableAmount(availableSteps: number): number {
@@ -25,21 +19,11 @@ export function calculateGatherableAmount(availableSteps: number): number {
 }
 
 /**
- * Calculate steps required for a given number of gathers
- */
-export function calculateStepsRequired(gatherCount: number): number {
-  return gatherCount * STEPS_PER_GATHER;
-}
-
-/**
  * Get the sum of gathering bonuses from the best tool of each tool type.
  * For example, if you have a Stone Knife and a Polished Axe, both for wood,
  * you get the bonus from the best Stone Knife + the bonus from the best Polished Axe.
  */
-export function getTotalToolBonusForMaterial(
-  materialType: MaterialType,
-  ownedTools: OwnedTool[]
-): number {
+function getTotalToolBonusForMaterial(materialType: MaterialType, ownedTools: OwnedTool[]): number {
   // Group tools by toolId, keeping only the best (highest bonus) of each type
   const bestByToolType = new Map<string, number>(); // toolId -> best bonus
 
@@ -66,13 +50,22 @@ export function getTotalToolBonusForMaterial(
 /**
  * Calculate the total gathering ability for a material type.
  * gatheringAbility = baseGatheringAbility + sum of best tool bonus per tool type
+ *
+ * If the total ability is < 1, returns 0 (gathering disabled).
+ * This can happen if a material has baseGatheringAbility of 0 and the player
+ * has no tools or very low quality tools for that material.
  */
 export function calculateGatheringAbility(
   materialType: MaterialType,
   ownedTools: OwnedTool[]
 ): number {
+  const config = getMaterialConfig(materialType);
+  const baseAbility = config.baseGatheringAbility ?? 1;
   const toolBonus = getTotalToolBonusForMaterial(materialType, ownedTools);
-  return BASE_GATHERING_ABILITY + toolBonus;
+  const totalAbility = baseAbility + toolBonus;
+
+  // If ability < 1, gathering is disabled for this material
+  return totalAbility < 1 ? 0 : totalAbility;
 }
 
 /**

@@ -2,20 +2,10 @@
 // Calculates tool quality based on material properties (hardness, workability, durability)
 // Quality is a single 0-1 score; gathering modifiers are calculated at display/usage time
 
-import {
-  UsedMaterials,
-  QualityTier,
-  QualityWeights,
-  MaterialType,
-  Craftable,
-  getQualityTier,
-} from '../types/tools';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
+import { UsedMaterials, QualityTier, QualityWeights, Craftable } from '../types/tools';
+import { getMaterialConfig, getAllMaterialTypes, MaterialType } from '../config/materials';
 import { ResourceProperties } from '../types/resources';
-
-// Re-export QualityWeights for convenience
-export type { QualityWeights };
+import { capitalizeFirst } from './strings';
 
 // Normalize a property value (1-10) to 0-1 scale
 function normalizeProperty(value: number): number {
@@ -27,20 +17,13 @@ function getMaterialProperties(
   materialId: string,
   materialType: MaterialType
 ): ResourceProperties | null {
-  if (materialType === 'stone') {
-    const stone = STONES_BY_ID[materialId];
-    return stone?.properties || null;
-  } else {
-    const wood = WOODS_BY_ID[materialId];
-    return wood?.properties || null;
-  }
+  const config = getMaterialConfig(materialType);
+  const resource = config.getResourceById(materialId);
+  return resource?.properties || null;
 }
 
 // Calculate weighted quality score for a single material
-export function calculateMaterialScore(
-  properties: ResourceProperties,
-  weights: QualityWeights
-): number {
+function calculateMaterialScore(properties: ResourceProperties, weights: QualityWeights): number {
   const normHardness = normalizeProperty(properties.hardness);
   const normWorkability = normalizeProperty(properties.workability);
   const normDurability = normalizeProperty(properties.durability);
@@ -72,11 +55,8 @@ export function getQualityColor(tier: QualityTier): string {
 
 // Get display name for quality tier
 export function getQualityDisplayName(tier: QualityTier): string {
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
+  return capitalizeFirst(tier);
 }
-
-// Re-export getQualityTier for convenience
-export { getQualityTier };
 
 /**
  * Calculate quality score for a craftable item (Tool or CraftedComponent)
@@ -87,19 +67,15 @@ export function calculateCraftableQuality(craftable: Craftable, materials: UsedM
   let totalScore = 0;
   let materialCount = 0;
 
-  if (materials.stoneId) {
-    const stoneProps = getMaterialProperties(materials.stoneId, 'stone');
-    if (stoneProps) {
-      totalScore += calculateMaterialScore(stoneProps, weights);
-      materialCount++;
-    }
-  }
-
-  if (materials.woodId) {
-    const woodProps = getMaterialProperties(materials.woodId, 'wood');
-    if (woodProps) {
-      totalScore += calculateMaterialScore(woodProps, weights);
-      materialCount++;
+  // Iterate over all material types dynamically
+  for (const materialType of getAllMaterialTypes()) {
+    const usedMaterial = materials[materialType];
+    if (usedMaterial) {
+      const props = getMaterialProperties(usedMaterial.resourceId, materialType);
+      if (props) {
+        totalScore += calculateMaterialScore(props, weights);
+        materialCount++;
+      }
     }
   }
 

@@ -3,6 +3,7 @@
 // Lithologies mapped to Macrostrat API (221 lithology types)
 
 import { StoneType } from '../types/resources';
+import { createByIdMap } from '../utils/collections';
 
 export const STONES: StoneType[] = [
   // ═══════════════════════════════════════════════════════════════════════════
@@ -353,10 +354,7 @@ export const STONES: StoneType[] = [
 ];
 
 // Lookup tables
-export const STONES_BY_ID = Object.fromEntries(STONES.map((s) => [s.id, s])) as Record<
-  string,
-  StoneType
->;
+export const STONES_BY_ID = createByIdMap(STONES);
 
 // Helper functions
 export function getStonesByCategory(category: string): StoneType[] {

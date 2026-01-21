@@ -4,21 +4,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useGameState } from '../hooks/useGameState';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
 import { Technology, LITHIC_ERAS, ERA_COLORS, ERA_NAMES, TechResourceCost } from '../types/tech';
-import { MaterialType } from '../types/tools';
+import { getMaterialIcon, MaterialType } from '../config/materials';
 import TechResourceModal, { ResourceSelection } from '../components/TechResourceModal';
-
-// Resource icons (using emoji for now, could be replaced with actual icons)
-const RESOURCE_ICONS: Record<string, string> = {
-  stone: '🪨',
-  wood: '🪵',
-};
 
 // Format resource costs as a readable string with icons
 function formatResourceCost(costs: TechResourceCost[]): string {
   if (costs.length === 0) return 'Free';
-  return costs
-    .map((c) => `${c.quantity} ${RESOURCE_ICONS[c.resourceType] || c.resourceType}`)
-    .join('  ');
+  return costs.map((c) => `${c.quantity} ${getMaterialIcon(c.resourceType)}`).join('  ');
 }
 
 interface TechNodeProps {
@@ -119,7 +111,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
 
     if (missingResources.length > 0) {
       const missing = missingResources
-        .map((r) => `${r.quantity} ${RESOURCE_ICONS[r.resourceType] || r.resourceType}`)
+        .map((r) => `${r.quantity} ${getMaterialIcon(r.resourceType)}`)
         .join(', ');
       Alert.alert('Insufficient Resources', `Need: ${missing}`);
       return;
@@ -140,13 +132,14 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
   const handleModalConfirm = (selection: ResourceSelection) => {
     if (!selectedTech) return;
 
-    // Deduct selected resources
-    selection.stone.forEach(({ resourceId, quantity }) => {
-      removeResource('stone', resourceId, quantity);
-    });
-    selection.wood.forEach(({ resourceId, quantity }) => {
-      removeResource('wood', resourceId, quantity);
-    });
+    // Deduct selected resources for all material types
+    for (const [materialType, selections] of Object.entries(selection.materials)) {
+      if (selections) {
+        selections.forEach(({ resourceId, quantity }) => {
+          removeResource(materialType as MaterialType, resourceId, quantity);
+        });
+      }
+    }
 
     // Unlock the tech
     unlockTech(selectedTech.id);
@@ -207,8 +200,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
           onConfirm={handleModalConfirm}
           techName={selectedTech.name}
           resourceCosts={selectedTech.resourceCost}
-          availableStones={state.inventory.stone}
-          availableWoods={state.inventory.wood}
+          availableMaterials={state.inventory}
         />
       )}
     </ScrollView>

@@ -63,6 +63,8 @@ After automated validation passes, review code for these issues:
 5. **Redundant fields or parameters**: Look for:
    - Fields that contain information present in or inferrable from other fields
    - Parameters that contain information present in or inferrable from other fields
+   - Methods that aren't used or are only used in tests.
+   - Re-exporting of types available elsewhere. Clean this up!
 
 6. **Poor use of types**: Look for:
    - Code performing type switches to determine what functionality a field supports when it could be using a method on the type instead.

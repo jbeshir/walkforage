@@ -2,10 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
-import { ResourceStack, StoneType } from '../types/resources';
-import { MaterialType } from '../types/tools';
+import { ResourceStack, isToolstone } from '../types/resources';
+import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 
 interface ResourceItemProps {
   stack: ResourceStack;
@@ -13,8 +11,8 @@ interface ResourceItemProps {
 }
 
 function ResourceItem({ stack, type }: ResourceItemProps) {
-  const resourceData =
-    type === 'stone' ? STONES_BY_ID[stack.resourceId] : WOODS_BY_ID[stack.resourceId];
+  const config = getMaterialConfig(type);
+  const resourceData = config.getResourceById(stack.resourceId);
 
   if (!resourceData) {
     return (
@@ -28,7 +26,8 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
     );
   }
 
-  const isToolstone = type === 'stone' && (resourceData as StoneType).isToolstone === true;
+  // Check toolstone flag - only applicable for materials that support it
+  const showToolstoneBadge = config.hasToolstone && isToolstone(resourceData);
 
   return (
     <View style={styles.resourceItem}>
@@ -36,7 +35,7 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
       <View style={styles.resourceInfo}>
         <View style={styles.nameRow}>
           <Text style={styles.resourceName}>{resourceData.name}</Text>
-          {isToolstone && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
+          {showToolstoneBadge && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
         </View>
         <Text style={styles.resourceDescription} numberOfLines={2}>
           {resourceData.description}
@@ -55,49 +54,42 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
 export default function InventoryScreen() {
   const { state } = useGameState();
 
-  const totalStones = state.inventory.stone.reduce((sum, s) => sum + s.quantity, 0);
-  const totalWoods = state.inventory.wood.reduce((sum, s) => sum + s.quantity, 0);
+  // Calculate totals for each material type dynamically
+  const materialTotals = getAllMaterialTypes().map((type) => {
+    const config = getMaterialConfig(type);
+    const stacks = state.inventory[type];
+    const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
+    return { type, config, stacks, total };
+  });
 
   return (
     <ScrollView style={styles.container}>
-      {/* Summary stats */}
+      {/* Summary stats - dynamic for all material types */}
       <View style={styles.summaryCard}>
         <Text style={styles.summaryTitle}>Inventory Summary</Text>
         <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{totalStones}</Text>
-            <Text style={styles.summaryLabel}>Stones</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{totalWoods}</Text>
-            <Text style={styles.summaryLabel}>Woods</Text>
-          </View>
+          {materialTotals.map(({ type, config, total }) => (
+            <View key={type} style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{total}</Text>
+              <Text style={styles.summaryLabel}>{config.pluralName}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
-      {/* Stones section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🪨 Stones ({totalStones})</Text>
-        {state.inventory.stone.length === 0 ? (
-          <Text style={styles.emptyText}>No stones collected yet</Text>
-        ) : (
-          state.inventory.stone.map((stack) => (
-            <ResourceItem key={stack.resourceId} stack={stack} type="stone" />
-          ))
-        )}
-      </View>
-
-      {/* Woods section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🪵 Woods ({totalWoods})</Text>
-        {state.inventory.wood.length === 0 ? (
-          <Text style={styles.emptyText}>No wood collected yet</Text>
-        ) : (
-          state.inventory.wood.map((stack) => (
-            <ResourceItem key={stack.resourceId} stack={stack} type="wood" />
-          ))
-        )}
-      </View>
+      {/* Dynamic sections for each material type */}
+      {materialTotals.map(({ type, config, stacks, total }) => (
+        <View key={type} style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {config.icon} {config.pluralName} ({total})
+          </Text>
+          {stacks.length === 0 ? (
+            <Text style={styles.emptyText}>No {config.pluralName.toLowerCase()} collected yet</Text>
+          ) : (
+            stacks.map((stack) => <ResourceItem key={stack.resourceId} stack={stack} type={type} />)
+          )}
+        </View>
+      ))}
 
       <View style={styles.bottomPadding} />
     </ScrollView>

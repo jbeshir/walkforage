@@ -9,33 +9,9 @@ import { useStepGathering } from '../hooks/useStepGathering';
 import { geoDataService } from '../services/GeoDataService';
 import { StepGatherPanel } from '../components/StepGatherPanel';
 import { LocationGeoData } from '../types/gis';
-import { BiomeCode, MaterialType } from '../types/resources';
-
-// Human-readable biome names
-const BIOME_NAMES: Record<BiomeCode, string> = {
-  tropical_moist_broadleaf: 'Tropical Rainforest',
-  tropical_dry_broadleaf: 'Tropical Dry Forest',
-  tropical_conifer: 'Tropical Conifer Forest',
-  temperate_broadleaf_mixed: 'Temperate Forest',
-  temperate_conifer: 'Conifer Forest',
-  boreal: 'Boreal Forest',
-  tropical_grassland: 'Savanna',
-  temperate_grassland: 'Grassland',
-  flooded_grassland: 'Wetland',
-  montane: 'Mountain Shrubland',
-  tundra: 'Tundra',
-  mediterranean: 'Mediterranean',
-  desert: 'Desert',
-  mangrove: 'Mangrove',
-};
-
-// Format lithology name for display (capitalize, replace underscores)
-function formatLithology(lithology: string): string {
-  return lithology
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+import { MaterialType } from '../config/materials';
+import { getBiomeDisplayName } from '../config/biomes';
+import { formatSnakeCase } from '../utils/strings';
 
 const { width, height } = Dimensions.get('window');
 
@@ -101,14 +77,12 @@ export default function ForageScreen() {
           <View style={styles.terrainRow}>
             <Text style={styles.terrainIcon}>🪨</Text>
             <Text style={styles.terrainText}>
-              {formatLithology(geoData.geology.primaryLithology)}
+              {formatSnakeCase(geoData.geology.primaryLithology)}
             </Text>
           </View>
           <View style={styles.terrainRow}>
             <Text style={styles.terrainIcon}>🌲</Text>
-            <Text style={styles.terrainText}>
-              {BIOME_NAMES[geoData.biome.type] || geoData.biome.type}
-            </Text>
+            <Text style={styles.terrainText}>{getBiomeDisplayName(geoData.biome.type)}</Text>
           </View>
         </View>
       )}

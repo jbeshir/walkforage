@@ -2,6 +2,7 @@
 // Focused on realistic stone age tool progression
 
 import { Technology, LithicEra } from '../types/tech';
+import { createByIdMap } from '../utils/collections';
 
 export const TECHNOLOGIES: Technology[] = [
   // ===== LOWER PALEOLITHIC (~3.3M - 300K years ago) =====
@@ -106,7 +107,7 @@ export const TECHNOLOGIES: Technology[] = [
   },
 ];
 
-export const TECH_BY_ID = Object.fromEntries(TECHNOLOGIES.map((t) => [t.id, t]));
+export const TECH_BY_ID = createByIdMap(TECHNOLOGIES);
 
 export function getTechsByEra(era: LithicEra): Technology[] {
   return TECHNOLOGIES.filter((t) => t.era === era);

@@ -3,7 +3,6 @@
 // Based on Macrostrat API and Resolve Ecoregions 2017
 
 import { BiomeCode } from './resources';
-import { MaterialType } from './tools';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Geohash Types
@@ -125,30 +124,6 @@ export interface RealmBiomeMapping {
 export interface GeoMappings {
   lithologyToStones: Record<string, LithologyMapping>;
   realmBiomesToWoods: Record<string, RealmBiomeMapping>;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Spawning Types
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Configuration for resource spawning
- */
-export interface SpawnConfig {
-  stoneRatio: number; // 0-1, probability of spawning stone vs wood
-  countMin: number; // Minimum resources to spawn per zone
-  countMax: number; // Maximum resources to spawn per zone
-  useRarity: boolean; // Whether to factor in resource rarity
-  useGeoData: boolean; // Whether to use GIS data (false = random)
-}
-
-/**
- * Result from spawn service before adding location offsets
- */
-export interface SpawnedResourceData {
-  resourceId: string;
-  type: MaterialType;
-  quantity: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

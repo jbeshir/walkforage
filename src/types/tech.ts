@@ -1,7 +1,7 @@
 // Technology Tree Types for WalkForage
 // Supports multiple tech eras, currently focused on lithic (stone age)
 
-import { MaterialType } from './tools';
+import { MaterialType } from '../config/materials';
 
 // Lithic era subdivisions
 export type LithicEra =

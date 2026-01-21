@@ -1,7 +1,7 @@
 // CraftingService - Unified crafting logic for tools and components
 // Extracted from useGameState to enable testing and cleaner separation of concerns
 
-import { Inventory, ResourceStack } from '../types/resources';
+import { Inventory, ResourceStack, isToolstone } from '../types/resources';
 import {
   Tool,
   CraftedComponent,
@@ -9,9 +9,10 @@ import {
   OwnedComponent,
   UsedMaterials,
   MaterialRequirements,
+  MaterialRequirement,
   isTool,
 } from '../types/tools';
-import { STONES_BY_ID } from '../data/stones';
+import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
 import { calculateCraftableQuality } from '../utils/qualityCalculation';
 
 // State required for crafting operations
@@ -26,15 +27,17 @@ export interface CraftingState {
 export interface CraftCheckResult {
   canCraft: boolean;
   missingRequirements: string[];
-  availableStones: string[];
-  availableWoods: string[];
-  availableComponents: string[]; // Instance IDs of owned components
+  // Available materials keyed by material type
+  availableMaterials: Partial<Record<MaterialType, string[]>>;
+  // Available component instance IDs
+  availableComponents: string[];
 }
 
 // Parameters for crafting
 export interface CraftParams {
-  selectedStoneId?: string;
-  selectedWoodId?: string;
+  // Selected materials keyed by material type
+  selectedMaterials?: Partial<Record<MaterialType, string>>;
+  // Selected component instance IDs
   selectedComponentIds?: string[];
 }
 
@@ -53,36 +56,28 @@ interface CraftFailureResult {
 
 export type CraftResult = CraftSuccessResult | CraftFailureResult;
 
-// Helper: Find stones in inventory that meet a requirement
-function findAvailableStones(
-  stones: ResourceStack[],
-  quantity: number,
-  requiresToolstone: boolean
+// Helper: Find materials in inventory that meet a requirement
+function findAvailableMaterials(
+  stacks: ResourceStack[],
+  materialType: MaterialType,
+  requirement: MaterialRequirement
 ): string[] {
   const available: string[] = [];
-  for (const stack of stones) {
-    if (stack.quantity >= quantity) {
-      const stone = STONES_BY_ID[stack.resourceId];
-      if (stone) {
-        if (requiresToolstone) {
-          if (stone.isToolstone) {
+  const config = getMaterialConfig(materialType);
+
+  for (const stack of stacks) {
+    if (stack.quantity >= requirement.quantity) {
+      const resource = config.getResourceById(stack.resourceId);
+      if (resource) {
+        // Check toolstone requirement if applicable
+        if (requirement.requiresToolstone && config.hasToolstone) {
+          if (isToolstone(resource)) {
             available.push(stack.resourceId);
           }
         } else {
           available.push(stack.resourceId);
         }
       }
-    }
-  }
-  return available;
-}
-
-// Helper: Find woods in inventory that meet a requirement
-function findAvailableWoods(woods: ResourceStack[], quantity: number): string[] {
-  const available: string[] = [];
-  for (const stack of woods) {
-    if (stack.quantity >= quantity) {
-      available.push(stack.resourceId);
     }
   }
   return available;
@@ -142,6 +137,7 @@ export function canCraft(
 ): CraftCheckResult {
   const missing: string[] = [];
   const availableComponentIds: string[] = [];
+  const availableMaterials: Partial<Record<MaterialType, string[]>> = {};
 
   // Check tech requirement
   if (!state.unlockedTechs.includes(craftable.requiredTech)) {
@@ -168,34 +164,41 @@ export function canCraft(
     }
   }
 
-  // Check material requirements and find available options
+  // Check material requirements and find available options - now dynamic
   const { materials } = craftable;
-  const availableStones = materials.stone
-    ? findAvailableStones(
-        state.inventory.stone,
-        materials.stone.quantity,
-        materials.stone.requiresToolstone ?? false
-      )
-    : [];
-  const availableWoods = materials.wood
-    ? findAvailableWoods(state.inventory.wood, materials.wood.quantity)
-    : [];
+  for (const materialType of getAllMaterialTypes()) {
+    const requirement = materials[materialType];
+    if (requirement) {
+      const config = getMaterialConfig(materialType);
+      const available = findAvailableMaterials(
+        state.inventory[materialType],
+        materialType,
+        requirement
+      );
+      availableMaterials[materialType] = available;
 
-  if (materials.stone && availableStones.length === 0) {
-    const toolstoneNote = materials.stone.requiresToolstone ? ' (toolstone)' : '';
-    missing.push(`Material: ${materials.stone.quantity}x stone${toolstoneNote}`);
-  }
-  if (materials.wood && availableWoods.length === 0) {
-    missing.push(`Material: ${materials.wood.quantity}x wood`);
+      if (available.length === 0) {
+        const toolstoneNote = requirement.requiresToolstone ? ' (toolstone)' : '';
+        missing.push(
+          `Material: ${requirement.quantity}x ${config.singularName.toLowerCase()}${toolstoneNote}`
+        );
+      }
+    }
   }
 
   return {
     canCraft: missing.length === 0,
     missingRequirements: missing,
-    availableStones,
-    availableWoods,
+    availableMaterials,
     availableComponents: availableComponentIds,
   };
+}
+
+/**
+ * Get selected material ID from params
+ */
+function getSelectedMaterial(params: CraftParams, materialType: MaterialType): string | undefined {
+  return params.selectedMaterials?.[materialType];
 }
 
 /**
@@ -209,36 +212,35 @@ function validateMaterialSelection(
 ): { usedMaterials: UsedMaterials } | { error: string } {
   const usedMaterials: UsedMaterials = {};
 
-  // Validate stone selection if required
-  if (materials.stone) {
-    if (!params.selectedStoneId) {
-      return { error: 'Stone material not selected' };
+  // Validate each required material type
+  for (const materialType of getAllMaterialTypes()) {
+    const requirement = materials[materialType];
+    if (!requirement) continue;
+
+    const config = getMaterialConfig(materialType);
+    const selectedId = getSelectedMaterial(params, materialType);
+
+    if (!selectedId) {
+      return { error: `${config.singularName} material not selected` };
     }
-    const stoneCount = getResourceCount(inventory.stone, params.selectedStoneId);
-    if (stoneCount < materials.stone.quantity) {
-      return { error: `Not enough ${params.selectedStoneId}` };
+
+    const count = getResourceCount(inventory[materialType], selectedId);
+    if (count < requirement.quantity) {
+      return { error: `Not enough ${selectedId}` };
     }
-    if (materials.stone.requiresToolstone) {
-      const stone = STONES_BY_ID[params.selectedStoneId];
-      if (!stone?.isToolstone) {
-        return { error: `${params.selectedStoneId} is not a toolstone` };
+
+    // Check toolstone requirement if applicable
+    if (requirement.requiresToolstone && config.hasToolstone) {
+      const resource = config.getResourceById(selectedId);
+      if (!resource || !isToolstone(resource)) {
+        return { error: `${selectedId} is not a toolstone` };
       }
     }
-    usedMaterials.stoneId = params.selectedStoneId;
-    usedMaterials.stoneQuantity = materials.stone.quantity;
-  }
 
-  // Validate wood selection if required
-  if (materials.wood) {
-    if (!params.selectedWoodId) {
-      return { error: 'Wood material not selected' };
-    }
-    const woodCount = getResourceCount(inventory.wood, params.selectedWoodId);
-    if (woodCount < materials.wood.quantity) {
-      return { error: `Not enough ${params.selectedWoodId}` };
-    }
-    usedMaterials.woodId = params.selectedWoodId;
-    usedMaterials.woodQuantity = materials.wood.quantity;
+    usedMaterials[materialType] = {
+      resourceId: selectedId,
+      quantity: requirement.quantity,
+    };
   }
 
   return { usedMaterials };
@@ -313,30 +315,18 @@ export function craft(
   // Calculate quality from materials
   const quality = calculateCraftableQuality(craftable, usedMaterials);
 
-  // Build new inventory (consume materials)
-  let newStones = state.inventory.stone;
-  let newWoods = state.inventory.wood;
-
-  if (craftable.materials.stone && params.selectedStoneId) {
-    newStones = consumeFromStacks(
-      newStones,
-      params.selectedStoneId,
-      craftable.materials.stone.quantity
-    );
+  // Build new inventory (consume materials) - now dynamic
+  const newInventory: Inventory = { ...state.inventory };
+  for (const materialType of getAllMaterialTypes()) {
+    const used = usedMaterials[materialType];
+    if (used) {
+      newInventory[materialType] = consumeFromStacks(
+        state.inventory[materialType],
+        used.resourceId,
+        used.quantity
+      );
+    }
   }
-  if (craftable.materials.wood && params.selectedWoodId) {
-    newWoods = consumeFromStacks(
-      newWoods,
-      params.selectedWoodId,
-      craftable.materials.wood.quantity
-    );
-  }
-
-  const newInventory: Inventory = {
-    ...state.inventory,
-    stone: newStones,
-    wood: newWoods,
-  };
 
   // Consume components
   let newOwnedComponents = state.ownedComponents;

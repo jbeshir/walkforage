@@ -18,7 +18,7 @@ const REALM_CODES: Record<string, string> = {
   Oceania: 'OC',
 };
 
-// Biome type to number mapping
+// Biome type to number mapping (empty string for unknown = no mapping)
 const BIOME_NUMBERS: Record<BiomeCode, string> = {
   tropical_moist_broadleaf: '01',
   tropical_dry_broadleaf: '02',
@@ -34,6 +34,7 @@ const BIOME_NUMBERS: Record<BiomeCode, string> = {
   mediterranean: '12',
   desert: '13',
   mangrove: '14',
+  unknown: '', // No mapping for unknown biomes
 };
 
 // Type for the raw JSON structure

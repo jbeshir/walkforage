@@ -11,12 +11,11 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { STONES } from '../data/stones';
-import { WOODS } from '../data/woods';
 import { TECHNOLOGIES } from '../data/techTree';
 import { useGameState } from '../hooks/useGameState';
+import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 
-type ResourceTab = 'steps' | 'stone' | 'wood' | 'tech';
+type ResourceTab = 'steps' | MaterialType | 'tech';
 
 export default function CheatScreen() {
   const { addResource, syncSteps, unlockTech, resetGame, state } = useGameState();
@@ -30,12 +29,9 @@ export default function CheatScreen() {
     }
   };
 
-  const handleAddStone = (stoneId: string, quantity: number) => {
-    addResource('stone', stoneId, quantity);
-  };
-
-  const handleAddWood = (woodId: string, quantity: number) => {
-    addResource('wood', woodId, quantity);
+  // Generic material add handler
+  const handleAddMaterial = (materialType: MaterialType, resourceId: string, quantity: number) => {
+    addResource(materialType, resourceId, quantity);
   };
 
   const handleUnlockAllTech = () => {
@@ -100,77 +96,47 @@ export default function CheatScreen() {
     </View>
   );
 
-  const renderStonesTab = () => (
-    <ScrollView style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Add Stones</Text>
-      <View style={styles.resourceGrid}>
-        {STONES.map((stone) => (
-          <View key={stone.id} style={styles.resourceItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: stone.color }]} />
-            <Text style={styles.resourceName} numberOfLines={1}>
-              {stone.name}
-            </Text>
-            <View style={styles.quantityButtons}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddStone(stone.id, 1)}
-              >
-                <Text style={styles.quantityButtonText}>+1</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddStone(stone.id, 10)}
-              >
-                <Text style={styles.quantityButtonText}>+10</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddStone(stone.id, 100)}
-              >
-                <Text style={styles.quantityButtonText}>+100</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
+  // Generic material tab renderer
+  const renderMaterialTab = (materialType: MaterialType) => {
+    const config = getMaterialConfig(materialType);
+    const resources = config.getAllResources();
 
-  const renderWoodsTab = () => (
-    <ScrollView style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Add Woods</Text>
-      <View style={styles.resourceGrid}>
-        {WOODS.map((wood) => (
-          <View key={wood.id} style={styles.resourceItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: wood.color }]} />
-            <Text style={styles.resourceName} numberOfLines={1}>
-              {wood.name}
-            </Text>
-            <View style={styles.quantityButtons}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddWood(wood.id, 1)}
-              >
-                <Text style={styles.quantityButtonText}>+1</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddWood(wood.id, 10)}
-              >
-                <Text style={styles.quantityButtonText}>+10</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => handleAddWood(wood.id, 100)}
-              >
-                <Text style={styles.quantityButtonText}>+100</Text>
-              </TouchableOpacity>
+    return (
+      <ScrollView style={styles.tabContent}>
+        <Text style={styles.sectionTitle}>Add {config.pluralName}</Text>
+        <View style={styles.resourceGrid}>
+          {resources.map((resource) => (
+            <View key={resource.id} style={styles.resourceItem}>
+              <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
+              <Text style={styles.resourceName} numberOfLines={1}>
+                {resource.name}
+              </Text>
+              <View style={styles.quantityButtons}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAddMaterial(materialType, resource.id, 1)}
+                >
+                  <Text style={styles.quantityButtonText}>+1</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAddMaterial(materialType, resource.id, 10)}
+                >
+                  <Text style={styles.quantityButtonText}>+10</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAddMaterial(materialType, resource.id, 100)}
+                >
+                  <Text style={styles.quantityButtonText}>+100</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
 
   const renderTechTab = () => (
     <View style={styles.tabContent}>
@@ -199,15 +165,20 @@ export default function CheatScreen() {
 
       <View style={styles.tabs}>
         {renderTabButton('steps', 'Steps')}
-        {renderTabButton('stone', 'Stones')}
-        {renderTabButton('wood', 'Woods')}
+        {getAllMaterialTypes().map((type) => {
+          const config = getMaterialConfig(type);
+          return renderTabButton(type, config.pluralName);
+        })}
         {renderTabButton('tech', 'Tech')}
       </View>
 
       <View style={styles.content}>
         {activeTab === 'steps' && renderStepsTab()}
-        {activeTab === 'stone' && renderStonesTab()}
-        {activeTab === 'wood' && renderWoodsTab()}
+        {getAllMaterialTypes().map((type) =>
+          activeTab === type ? (
+            <React.Fragment key={type}>{renderMaterialTab(type)}</React.Fragment>
+          ) : null
+        )}
         {activeTab === 'tech' && renderTechTab()}
       </View>
     </View>

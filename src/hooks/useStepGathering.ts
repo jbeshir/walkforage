@@ -4,11 +4,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { healthService } from '../services/HealthService';
-import { resourceSpawnService } from '../services/ResourceSpawnService';
 import { useGameState } from './useGameState';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
-import { MaterialType } from '../types/resources';
+import { MaterialType, getMaterialConfig, getGatherableMaterialTypes } from '../config/materials';
 import {
   STEPS_PER_GATHER,
   calculateGatherableAmount,
@@ -38,10 +37,11 @@ export interface UseStepGatheringReturn {
   syncSteps: () => Promise<StepSyncResult>;
   /** Request health permission */
   requestPermission: () => Promise<HealthPermissionStatus>;
-  /** Gather a stone using available steps */
-  gatherStone: (geoData: LocationGeoData | null) => Promise<GatherResult>;
-  /** Gather wood using available steps */
-  gatherWood: (geoData: LocationGeoData | null) => Promise<GatherResult>;
+  /** Generic gather function for any material type */
+  gatherMaterial: (
+    materialType: MaterialType,
+    geoData: LocationGeoData | null
+  ) => Promise<GatherResult>;
   /** Spend steps (used by external state management) */
   spendSteps: (amount: number) => void;
   /** Check if health service is available */
@@ -52,6 +52,8 @@ export interface UseStepGatheringReturn {
   openHealthSettings: () => Promise<boolean>;
   /** Open Play Store to install Health Connect (Android) */
   openPlayStore: () => Promise<boolean>;
+  /** Get list of gatherable material types */
+  gatherableMaterialTypes: MaterialType[];
 }
 
 export function useStepGathering(options: UseStepGatheringOptions = {}): UseStepGatheringReturn {
@@ -205,26 +207,41 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     [persistSpendSteps]
   );
 
-  const gatherStone = useCallback(
-    async (geoData: LocationGeoData | null): Promise<GatherResult> => {
+  // Generic gather function that works for any gatherable material type
+  const gatherMaterial = useCallback(
+    async (materialType: MaterialType, geoData: LocationGeoData | null): Promise<GatherResult> => {
+      const config = getMaterialConfig(materialType);
+
+      // Check if this material type supports gathering
+      if (!config.gathering) {
+        return { success: false, error: `${config.singularName} cannot be gathered` };
+      }
+
+      // Check if gathering is enabled for this material (ability >= 1)
+      const gatheringAbility = calculateGatheringAbility(materialType, gameState.ownedTools);
+      if (gatheringAbility === 0) {
+        return {
+          success: false,
+          error: `Need a tool to gather ${config.singularName.toLowerCase()}`,
+        };
+      }
+
       // Use fresh state to avoid race conditions with rapid clicking
       const currentState = getStepGatheringState();
       if (calculateGatherableAmount(currentState.availableSteps) === 0) {
         return { success: false, error: 'Not enough steps' };
       }
 
-      // Get geo-appropriate stone
-      const stone = geoData
-        ? resourceSpawnService.getRandomStoneForLocation(geoData)
-        : resourceSpawnService.getRandomStone();
+      // Get geo-appropriate resource using the material's gathering config
+      const resource = geoData
+        ? config.gathering.getRandomResourceForLocation(geoData)
+        : config.gathering.getRandomResource();
 
-      if (!stone) {
-        return { success: false, error: 'No stone type available' };
+      if (!resource) {
+        return { success: false, error: `No ${config.singularName.toLowerCase()} type available` };
       }
 
       // Calculate yield based on tool bonuses
-      // Note: Stone gathering doesn't currently have tools, but keep the logic for future
-      const gatheringAbility = calculateGatheringAbility('stone', gameState.ownedTools);
       const quantity = calculateGatherYield(gatheringAbility);
 
       // Spend steps (persisted)
@@ -232,52 +249,12 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       // Notify via callback
       if (onGather) {
-        onGather('stone', stone.id, quantity);
+        onGather(materialType, resource.id, quantity);
       }
 
       return {
         success: true,
-        resourceId: stone.id,
-        quantity,
-        stepsSpent: STEPS_PER_GATHER,
-      };
-    },
-    [getStepGatheringState, gameState.ownedTools, spendSteps, onGather]
-  );
-
-  const gatherWood = useCallback(
-    async (geoData: LocationGeoData | null): Promise<GatherResult> => {
-      // Use fresh state to avoid race conditions with rapid clicking
-      const currentState = getStepGatheringState();
-      if (calculateGatherableAmount(currentState.availableSteps) === 0) {
-        return { success: false, error: 'Not enough steps' };
-      }
-
-      // Get geo-appropriate wood
-      const wood = geoData
-        ? resourceSpawnService.getRandomWoodForLocation(geoData)
-        : resourceSpawnService.getRandomWood();
-
-      if (!wood) {
-        return { success: false, error: 'No wood type available' };
-      }
-
-      // Calculate yield based on tool bonuses
-      // Wood gathering tools provide bonuses here
-      const gatheringAbility = calculateGatheringAbility('wood', gameState.ownedTools);
-      const quantity = calculateGatherYield(gatheringAbility);
-
-      // Spend steps (persisted)
-      spendSteps(STEPS_PER_GATHER);
-
-      // Notify via callback
-      if (onGather) {
-        onGather('wood', wood.id, quantity);
-      }
-
-      return {
-        success: true,
-        resourceId: wood.id,
+        resourceId: resource.id,
         quantity,
         stepsSpent: STEPS_PER_GATHER,
       };
@@ -301,13 +278,13 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     isLoading,
     syncSteps: doSyncSteps,
     requestPermission,
-    gatherStone,
-    gatherWood,
+    gatherMaterial,
     spendSteps,
     isAvailable: healthService.isAvailable(),
     needsInstall: healthService.needsHealthConnectInstall(),
     openHealthSettings,
     openPlayStore,
+    gatherableMaterialTypes: getGatherableMaterialTypes(),
   };
 }
 

@@ -69,7 +69,7 @@ class GeoDataService {
     if (detailedTile) {
       // Check if detailed tile has unknown values that need fallback
       const hasUnknownGeology = detailedTile.geology.primaryLithology === 'unknown';
-      const hasUnknownBiome = (detailedTile.biome.type as string) === 'unknown';
+      const hasUnknownBiome = detailedTile.biome.type === 'unknown';
 
       // Use detailed data, falling back to coarse index for unknown fields
       return {
@@ -247,31 +247,6 @@ class GeoDataService {
       primaryLithology: 'mixed_sedimentary',
       secondaryLithologies: ['sandstone', 'limestone'],
       confidence: 0.3,
-    };
-  }
-
-  /**
-   * Build LocationGeoData from a tile
-   */
-  private buildLocationData(
-    tile: GeoTile,
-    source: 'detailed' | 'coarse',
-    geohash: string
-  ): LocationGeoData {
-    return {
-      geology: {
-        primaryLithology: tile.geology.primaryLithology,
-        secondaryLithologies: tile.geology.secondaryLithologies,
-        confidence: tile.geology.confidence,
-      },
-      biome: {
-        type: tile.biome.type,
-        ecoregionId: tile.biome.ecoregionId,
-        realm: tile.biome.realm,
-        confidence: tile.biome.confidence,
-      },
-      dataSource: source,
-      geohash,
     };
   }
 

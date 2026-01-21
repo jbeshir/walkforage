@@ -51,7 +51,7 @@ describe('CraftingService', () => {
 
         expect(result.canCraft).toBe(true);
         expect(result.missingRequirements).toEqual([]);
-        expect(result.availableStones).toContain('granite');
+        expect(result.availableMaterials.stone).toContain('granite');
       });
 
       it('should check for toolstone requirement', () => {
@@ -76,7 +76,7 @@ describe('CraftingService', () => {
         const result = CraftingService.canCraft(handAxe, state);
 
         // Granite is not a toolstone, so should fail
-        expect(result.availableStones).toEqual([]);
+        expect(result.availableMaterials.stone).toEqual([]);
         expect(result.canCraft).toBe(false);
       });
 
@@ -94,8 +94,8 @@ describe('CraftingService', () => {
 
         const result = CraftingService.canCraft(hammerstone, state);
 
-        expect(result.availableStones).toContain('granite');
-        expect(result.availableStones).toContain('basalt');
+        expect(result.availableMaterials.stone).toContain('granite');
+        expect(result.availableMaterials.stone).toContain('basalt');
       });
     });
 
@@ -199,7 +199,11 @@ describe('CraftingService', () => {
           },
         });
 
-        const result = CraftingService.craft(hammerstone, { selectedStoneId: 'granite' }, state);
+        const result = CraftingService.craft(
+          hammerstone,
+          { selectedMaterials: { stone: 'granite' } },
+          state
+        );
 
         expect(result.success).toBe(true);
         if (result.success) {
@@ -229,7 +233,11 @@ describe('CraftingService', () => {
           },
         });
 
-        const result = CraftingService.craft(hammerstone, { selectedStoneId: 'granite' }, state);
+        const result = CraftingService.craft(
+          hammerstone,
+          { selectedMaterials: { stone: 'granite' } },
+          state
+        );
 
         expect(result.success).toBe(true);
         if (result.success) {
@@ -270,7 +278,7 @@ describe('CraftingService', () => {
 
         const result = CraftingService.craft(
           crudeHandle,
-          { selectedWoodId: 'european_ash' },
+          { selectedMaterials: { wood: 'european_ash' } },
           state
         );
 
@@ -306,7 +314,7 @@ describe('CraftingService', () => {
             {
               instanceId: componentInstanceId,
               componentId: componentReq.componentId,
-              materials: { woodId: 'european_ash', woodQuantity: 5 },
+              materials: { wood: { resourceId: 'european_ash', quantity: 5 } },
               quality: 0.5,
             },
           ],
@@ -325,8 +333,7 @@ describe('CraftingService', () => {
         const result = CraftingService.craft(
           haftedAxe,
           {
-            selectedStoneId: 'flint',
-            selectedWoodId: 'european_ash',
+            selectedMaterials: { stone: 'flint', wood: 'european_ash' },
             selectedComponentIds: [componentInstanceId],
           },
           state
@@ -363,7 +370,11 @@ describe('CraftingService', () => {
         },
       });
 
-      const result = CraftingService.craft(hammerstone, { selectedStoneId: 'granite' }, state);
+      const result = CraftingService.craft(
+        hammerstone,
+        { selectedMaterials: { stone: 'granite' } },
+        state
+      );
 
       expect(result.success).toBe(true);
       if (result.success) {

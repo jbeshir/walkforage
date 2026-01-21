@@ -3,10 +3,7 @@
 // Tools track actual materials used, with quality derived from material properties
 
 import { TechEra } from './tech';
-import { MaterialType } from './resources';
-
-// Re-export MaterialType for convenience (canonical definition is in resources.ts)
-export type { MaterialType };
+import { MaterialType } from '../config/materials';
 
 // Tool categories for organization and bonuses
 export type ToolCategory =
@@ -28,29 +25,51 @@ export interface QualityWeights {
   durabilityWeight: number;
 }
 
-// Stone material requirement
-export interface StoneMaterialRequirement {
+// Generic material requirement (works for any material type)
+export interface MaterialRequirement {
   quantity: number;
-  requiresToolstone?: boolean; // Must be flint, chert, obsidian, etc.
+  requiresToolstone?: boolean; // Only meaningful for materials with hasToolstone flag (stone)
 }
 
-// Wood material requirement
-export interface WoodMaterialRequirement {
+// Material requirements for a craftable (partial record - each material type can appear once)
+export type MaterialRequirements = Partial<Record<MaterialType, MaterialRequirement>>;
+
+// Single used material entry (tracks actual material used)
+export interface UsedMaterial {
+  resourceId: string;
   quantity: number;
 }
 
-// Material requirements for a craftable (struct instead of array - each type can only appear once)
-export interface MaterialRequirements {
-  stone?: StoneMaterialRequirement;
-  wood?: WoodMaterialRequirement;
+// Materials used in a crafted tool/component (partial record keyed by material type)
+export type UsedMaterials = Partial<Record<MaterialType, UsedMaterial>>;
+
+// Helper functions for UsedMaterials compatibility
+
+/** Get the resource ID for a material type from UsedMaterials */
+export function getUsedMaterialId(
+  materials: UsedMaterials,
+  type: MaterialType
+): string | undefined {
+  return materials[type]?.resourceId;
 }
 
-// Materials used in a crafted tool (tracks actual materials)
-export interface UsedMaterials {
-  stoneId?: string; // e.g., "flint", "obsidian"
-  woodId?: string; // e.g., "european_ash"
-  stoneQuantity?: number;
-  woodQuantity?: number;
+/** Get the quantity for a material type from UsedMaterials */
+export function getUsedMaterialQuantity(
+  materials: UsedMaterials,
+  type: MaterialType
+): number | undefined {
+  return materials[type]?.quantity;
+}
+
+/** Create UsedMaterials from individual selections */
+export function createUsedMaterials(
+  selections: { type: MaterialType; resourceId: string; quantity: number }[]
+): UsedMaterials {
+  const materials: UsedMaterials = {};
+  for (const { type, resourceId, quantity } of selections) {
+    materials[type] = { resourceId, quantity };
+  }
+  return materials;
 }
 
 // Quality tier for display purposes

@@ -73,33 +73,29 @@ describe('Tool Types', () => {
   describe('UsedMaterials interface', () => {
     it('should accept stone-only materials', () => {
       const materials: UsedMaterials = {
-        stoneId: 'flint',
-        stoneQuantity: 2,
+        stone: { resourceId: 'flint', quantity: 2 },
       };
-      expect(materials.stoneId).toBe('flint');
-      expect(materials.stoneQuantity).toBe(2);
-      expect(materials.woodId).toBeUndefined();
+      expect(materials.stone?.resourceId).toBe('flint');
+      expect(materials.stone?.quantity).toBe(2);
+      expect(materials.wood).toBeUndefined();
     });
 
     it('should accept wood-only materials', () => {
       const materials: UsedMaterials = {
-        woodId: 'european_ash',
-        woodQuantity: 1,
+        wood: { resourceId: 'european_ash', quantity: 1 },
       };
-      expect(materials.woodId).toBe('european_ash');
-      expect(materials.woodQuantity).toBe(1);
-      expect(materials.stoneId).toBeUndefined();
+      expect(materials.wood?.resourceId).toBe('european_ash');
+      expect(materials.wood?.quantity).toBe(1);
+      expect(materials.stone).toBeUndefined();
     });
 
     it('should accept combined materials', () => {
       const materials: UsedMaterials = {
-        stoneId: 'obsidian',
-        stoneQuantity: 1,
-        woodId: 'european_ash',
-        woodQuantity: 1,
+        stone: { resourceId: 'obsidian', quantity: 1 },
+        wood: { resourceId: 'european_ash', quantity: 1 },
       };
-      expect(materials.stoneId).toBe('obsidian');
-      expect(materials.woodId).toBe('european_ash');
+      expect(materials.stone?.resourceId).toBe('obsidian');
+      expect(materials.wood?.resourceId).toBe('european_ash');
     });
   });
 

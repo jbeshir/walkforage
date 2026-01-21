@@ -4,6 +4,7 @@
 // ~66 species mapped to realm+biome combinations
 
 import { WoodType, BiomeCode } from '../types/resources';
+import { createByIdMap } from '../utils/collections';
 
 export const WOODS: WoodType[] = [
   // ═══════════════════════════════════════════════════════════════════════════
@@ -843,10 +844,7 @@ export const WOODS: WoodType[] = [
 ];
 
 // Lookup tables
-export const WOODS_BY_ID = Object.fromEntries(WOODS.map((w) => [w.id, w])) as Record<
-  string,
-  WoodType
->;
+export const WOODS_BY_ID = createByIdMap(WOODS);
 
 // Helper functions
 export function getWoodsByBiome(biome: BiomeCode | string): WoodType[] {

@@ -27,7 +27,8 @@ export type BiomeCode =
   | 'tundra' // 11: Tundra
   | 'mediterranean' // 12: Mediterranean Forests, Woodlands & Scrub
   | 'desert' // 13: Deserts & Xeric Shrublands
-  | 'mangrove'; // 14: Mangroves
+  | 'mangrove' // 14: Mangroves
+  | 'unknown'; // Sentinel for unmapped areas
 
 export interface ResourceProperties {
   hardness: number; // 1-10 scale (Mohs-inspired)
@@ -65,25 +66,34 @@ export interface ResourceStack {
   quantity: number;
 }
 
-export interface Inventory {
-  stone: ResourceStack[];
-  wood: ResourceStack[];
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Material Type System
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Material type - the canonical form for material categories
-// Used for inventory keys, tool gathering materials, and all internal logic
-export type MaterialType = 'stone' | 'wood';
+import { MaterialType, getAllMaterialTypes } from '../config/materials';
 
-// Display helper - pluralizes material type for user-facing text
-export function pluralizeMaterial(material: MaterialType): string {
-  return material === 'stone' ? 'Stones' : 'Woods';
+// Inventory is a record keyed by material type - automatically supports new material types
+export type Inventory = Record<MaterialType, ResourceStack[]>;
+
+// Create an empty inventory with all material types initialized to empty arrays
+export function createEmptyInventory(): Inventory {
+  const inventory = {} as Inventory;
+  for (const type of getAllMaterialTypes()) {
+    inventory[type] = [];
+  }
+  return inventory;
 }
 
 // Geological zone data from real-world datasets
+/**
+ * Type guard to check if a resource is a toolstone (can be knapped for tools).
+ * Only stones can have the isToolstone property.
+ * Accepts any object to work with MaterialTypeConfig's generic getResourceById.
+ */
+export function isToolstone(resource: object): resource is StoneType & { isToolstone: true } {
+  return 'isToolstone' in resource && (resource as StoneType).isToolstone === true;
+}
+
 export interface GeologicalZone {
   id: string;
   centerLat: number;

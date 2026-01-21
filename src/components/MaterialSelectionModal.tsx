@@ -11,9 +11,8 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
-import { OwnedComponent, Craftable, MaterialType, getQualityTier } from '../types/tools';
+import { OwnedComponent, Craftable, getQualityTier, getUsedMaterialId } from '../types/tools';
+import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
 import { useGameState } from '../hooks/useGameState';
 import {
   calculateCraftableQuality,
@@ -29,14 +28,12 @@ interface MaterialSelectionModalProps {
   onConfirm: (selection: MaterialSelection) => void;
   title: string;
   craftable: Craftable; // The tool or component being crafted
-  availableStones: string[];
-  availableWoods: string[];
+  availableMaterials: Partial<Record<MaterialType, string[]>>;
   availableComponentIds?: string[];
 }
 
 export interface MaterialSelection {
-  stoneId?: string;
-  woodId?: string;
+  selectedMaterials: Partial<Record<MaterialType, string>>;
   componentIds?: string[];
 }
 
@@ -49,7 +46,8 @@ interface MaterialOptionProps {
 }
 
 function MaterialOption({ materialId, type, isSelected, quantity, onSelect }: MaterialOptionProps) {
-  const material = type === 'stone' ? STONES_BY_ID[materialId] : WOODS_BY_ID[materialId];
+  const config = getMaterialConfig(type);
+  const material = config.getResourceById(materialId);
   if (!material) return null;
 
   const props = material.properties;
@@ -116,32 +114,19 @@ function ComponentOption({ component, isSelected, onSelect }: ComponentOptionPro
       <View style={styles.materialInfo}>
         <Text style={styles.materialName}>{componentDef.name}</Text>
         <View style={styles.componentDetails}>
-          {component.materials.woodId && (
-            <View style={styles.usedMaterial}>
-              <View
-                style={[
-                  styles.miniSwatch,
-                  { backgroundColor: WOODS_BY_ID[component.materials.woodId]?.color || '#888' },
-                ]}
-              />
-              <Text style={styles.usedMaterialText}>
-                {WOODS_BY_ID[component.materials.woodId]?.name || component.materials.woodId}
-              </Text>
-            </View>
-          )}
-          {component.materials.stoneId && (
-            <View style={styles.usedMaterial}>
-              <View
-                style={[
-                  styles.miniSwatch,
-                  { backgroundColor: STONES_BY_ID[component.materials.stoneId]?.color || '#888' },
-                ]}
-              />
-              <Text style={styles.usedMaterialText}>
-                {STONES_BY_ID[component.materials.stoneId]?.name || component.materials.stoneId}
-              </Text>
-            </View>
-          )}
+          {/* Display used materials dynamically */}
+          {getAllMaterialTypes().map((materialType) => {
+            const materialId = getUsedMaterialId(component.materials, materialType);
+            if (!materialId) return null;
+            const config = getMaterialConfig(materialType);
+            const material = config.getResourceById(materialId);
+            return (
+              <View key={materialType} style={styles.usedMaterial}>
+                <View style={[styles.miniSwatch, { backgroundColor: material?.color || '#888' }]} />
+                <Text style={styles.usedMaterialText}>{material?.name || materialId}</Text>
+              </View>
+            );
+          })}
           <Text style={styles.componentQuality}>Quality: {qualityPercent}%</Text>
         </View>
       </View>
@@ -156,8 +141,7 @@ export default function MaterialSelectionModal({
   onConfirm,
   title,
   craftable,
-  availableStones,
-  availableWoods,
+  availableMaterials,
   availableComponentIds = [],
 }: MaterialSelectionModalProps) {
   const { getResourceCount, state } = useGameState();
@@ -165,8 +149,10 @@ export default function MaterialSelectionModal({
   // requiredComponents is now part of Craftable interface
   const { requiredComponents } = craftable;
 
-  const [selectedStone, setSelectedStone] = useState<string | undefined>();
-  const [selectedWood, setSelectedWood] = useState<string | undefined>();
+  // Dynamic material selection state
+  const [selectedMaterials, setSelectedMaterials] = useState<Partial<Record<MaterialType, string>>>(
+    {}
+  );
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
 
   // Track previous visibility to detect when modal opens
@@ -174,6 +160,15 @@ export default function MaterialSelectionModal({
 
   // Get quality weights from the craftable item
   const { qualityWeights } = craftable;
+
+  // Get material requirements directly from struct
+  const { materials } = craftable;
+
+  // Determine which material types are needed
+  const requiredMaterialTypes = getAllMaterialTypes().filter(
+    (type) => materials[type] !== undefined
+  );
+  const needsComponents = requiredComponents.length > 0;
 
   // Reset selections when modal opens (transitions from hidden to visible)
   useEffect(() => {
@@ -185,20 +180,23 @@ export default function MaterialSelectionModal({
     // Use setTimeout to batch state updates after initial render
     // This avoids the cascading renders lint warning
     const initializeSelections = () => {
-      // Sort stones by quality and select the best one
-      const sortedStonesInit = [...availableStones].sort((a, b) => {
-        const qualityA = calculateMaterialQualityWithWeights(a, 'stone', qualityWeights);
-        const qualityB = calculateMaterialQualityWithWeights(b, 'stone', qualityWeights);
-        return qualityB - qualityA;
-      });
-      const sortedWoodsInit = [...availableWoods].sort((a, b) => {
-        const qualityA = calculateMaterialQualityWithWeights(a, 'wood', qualityWeights);
-        const qualityB = calculateMaterialQualityWithWeights(b, 'wood', qualityWeights);
-        return qualityB - qualityA;
-      });
+      // Initialize material selections - sort by quality and select the best one
+      const initialSelections: Partial<Record<MaterialType, string>> = {};
 
-      setSelectedStone(sortedStonesInit.length > 0 ? sortedStonesInit[0] : undefined);
-      setSelectedWood(sortedWoodsInit.length > 0 ? sortedWoodsInit[0] : undefined);
+      for (const materialType of requiredMaterialTypes) {
+        const available = availableMaterials[materialType] || [];
+        if (available.length > 0) {
+          // Sort by quality and select the best
+          const sorted = [...available].sort((a, b) => {
+            const qualityA = calculateMaterialQualityWithWeights(a, materialType, qualityWeights);
+            const qualityB = calculateMaterialQualityWithWeights(b, materialType, qualityWeights);
+            return qualityB - qualityA;
+          });
+          initialSelections[materialType] = sorted[0];
+        }
+      }
+
+      setSelectedMaterials(initialSelections);
 
       // Auto-select required components
       const autoSelectedComponents: string[] = [];
@@ -219,43 +217,29 @@ export default function MaterialSelectionModal({
     return () => clearTimeout(timeoutId);
   }, [
     visible,
-    availableStones,
-    availableWoods,
+    availableMaterials,
     availableComponentIds,
     requiredComponents,
     state.ownedComponents,
     qualityWeights,
+    requiredMaterialTypes,
   ]);
-
-  // Get material requirements directly from struct
-  const { materials } = craftable;
-  const needsStone = materials.stone !== undefined;
-  const needsWood = materials.wood !== undefined;
-  const needsComponents = requiredComponents.length > 0;
-  const stoneQuantity = materials.stone?.quantity || 0;
-  const woodQuantity = materials.wood?.quantity || 0;
-
-  // Sort materials by expected quality (best first)
-  const sortedStones = [...availableStones].sort((a, b) => {
-    const qualityA = calculateMaterialQualityWithWeights(a, 'stone', qualityWeights);
-    const qualityB = calculateMaterialQualityWithWeights(b, 'stone', qualityWeights);
-    return qualityB - qualityA; // Descending order (best first)
-  });
-
-  const sortedWoods = [...availableWoods].sort((a, b) => {
-    const qualityA = calculateMaterialQualityWithWeights(a, 'wood', qualityWeights);
-    const qualityB = calculateMaterialQualityWithWeights(b, 'wood', qualityWeights);
-    return qualityB - qualityA;
-  });
 
   // Calculate quality preview using the craftable's weights
   const getQualityPreview = () => {
-    const usedMaterials = {
-      stoneId: selectedStone,
-      woodId: selectedWood,
-      stoneQuantity: stoneQuantity,
-      woodQuantity: woodQuantity,
-    };
+    // Build usedMaterials in the expected format
+    const usedMaterials: Record<string, { resourceId: string; quantity: number }> = {};
+
+    for (const materialType of requiredMaterialTypes) {
+      const selectedId = selectedMaterials[materialType];
+      const requirement = materials[materialType];
+      if (selectedId && requirement) {
+        usedMaterials[materialType] = {
+          resourceId: selectedId,
+          quantity: requirement.quantity,
+        };
+      }
+    }
 
     const score = calculateCraftableQuality(craftable, usedMaterials);
     return { tier: getQualityTier(score), score };
@@ -265,10 +249,13 @@ export default function MaterialSelectionModal({
 
   // Check if selection is valid
   const isSelectionValid = () => {
-    if (needsStone && !selectedStone) return false;
-    if (needsWood && !selectedWood) return false;
+    // Check all required materials are selected
+    for (const materialType of requiredMaterialTypes) {
+      if (!selectedMaterials[materialType]) return false;
+    }
+
+    // Check all required components have enough selections
     if (needsComponents) {
-      // Check all required component types have enough selections
       for (const req of requiredComponents) {
         const selectedOfType = selectedComponentIds.filter((id) => {
           const comp = state.ownedComponents.find((c) => c.instanceId === id);
@@ -282,10 +269,16 @@ export default function MaterialSelectionModal({
 
   const handleConfirm = () => {
     onConfirm({
-      stoneId: selectedStone,
-      woodId: selectedWood,
+      selectedMaterials,
       componentIds: selectedComponentIds.length > 0 ? selectedComponentIds : undefined,
     });
+  };
+
+  const selectMaterial = (materialType: MaterialType, materialId: string) => {
+    setSelectedMaterials((prev) => ({
+      ...prev,
+      [materialType]: materialId,
+    }));
   };
 
   const toggleComponent = (instanceId: string) => {
@@ -295,6 +288,16 @@ export default function MaterialSelectionModal({
       } else {
         return [...prev, instanceId];
       }
+    });
+  };
+
+  // Sort materials by expected quality (best first)
+  const getSortedMaterials = (materialType: MaterialType): string[] => {
+    const available = availableMaterials[materialType] || [];
+    return [...available].sort((a, b) => {
+      const qualityA = calculateMaterialQualityWithWeights(a, materialType, qualityWeights);
+      const qualityB = calculateMaterialQualityWithWeights(b, materialType, qualityWeights);
+      return qualityB - qualityA; // Descending order (best first)
     });
   };
 
@@ -353,54 +356,40 @@ export default function MaterialSelectionModal({
               </View>
             </View>
 
-            {/* Stone Selection */}
-            {needsStone && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  Select Stone ({stoneQuantity} needed)
-                  {materials.stone?.requiresToolstone && (
-                    <Text style={styles.toolstoneNote}> - Toolstone required</Text>
-                  )}
-                </Text>
-                <Text style={styles.sortNote}>Sorted by expected quality (best first)</Text>
-                {sortedStones.length === 0 ? (
-                  <Text style={styles.noOptionsText}>No suitable stones in inventory</Text>
-                ) : (
-                  sortedStones.map((stoneId) => (
-                    <MaterialOption
-                      key={stoneId}
-                      materialId={stoneId}
-                      type="stone"
-                      isSelected={selectedStone === stoneId}
-                      quantity={getResourceCount('stone', stoneId)}
-                      onSelect={() => setSelectedStone(stoneId)}
-                    />
-                  ))
-                )}
-              </View>
-            )}
+            {/* Material Selections - Dynamic for all material types */}
+            {requiredMaterialTypes.map((materialType) => {
+              const config = getMaterialConfig(materialType);
+              const requirement = materials[materialType]!;
+              const sortedMaterials = getSortedMaterials(materialType);
 
-            {/* Wood Selection */}
-            {needsWood && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Select Wood ({woodQuantity} needed)</Text>
-                <Text style={styles.sortNote}>Sorted by expected quality (best first)</Text>
-                {sortedWoods.length === 0 ? (
-                  <Text style={styles.noOptionsText}>No suitable wood in inventory</Text>
-                ) : (
-                  sortedWoods.map((woodId) => (
-                    <MaterialOption
-                      key={woodId}
-                      materialId={woodId}
-                      type="wood"
-                      isSelected={selectedWood === woodId}
-                      quantity={getResourceCount('wood', woodId)}
-                      onSelect={() => setSelectedWood(woodId)}
-                    />
-                  ))
-                )}
-              </View>
-            )}
+              return (
+                <View key={materialType} style={styles.section}>
+                  <Text style={styles.sectionTitle}>
+                    Select {config.singularName} ({requirement.quantity} needed)
+                    {requirement.requiresToolstone && config.hasToolstone && (
+                      <Text style={styles.toolstoneNote}> - Toolstone required</Text>
+                    )}
+                  </Text>
+                  <Text style={styles.sortNote}>Sorted by expected quality (best first)</Text>
+                  {sortedMaterials.length === 0 ? (
+                    <Text style={styles.noOptionsText}>
+                      No suitable {config.pluralName.toLowerCase()} in inventory
+                    </Text>
+                  ) : (
+                    sortedMaterials.map((materialId) => (
+                      <MaterialOption
+                        key={materialId}
+                        materialId={materialId}
+                        type={materialType}
+                        isSelected={selectedMaterials[materialType] === materialId}
+                        quantity={getResourceCount(materialType, materialId)}
+                        onSelect={() => selectMaterial(materialType, materialId)}
+                      />
+                    ))
+                  )}
+                </View>
+              );
+            })}
 
             {/* Component Selection */}
             {needsComponents && (

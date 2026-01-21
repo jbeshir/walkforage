@@ -4,13 +4,11 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TechResourceCost } from '../types/tech';
 import { ResourceStack } from '../types/resources';
-import { MaterialType } from '../types/tools';
-import { STONES_BY_ID } from '../data/stones';
-import { WOODS_BY_ID } from '../data/woods';
+import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
 
+// Selected resources for each material type
 export interface ResourceSelection {
-  stone: { resourceId: string; quantity: number }[];
-  wood: { resourceId: string; quantity: number }[];
+  materials: Partial<Record<MaterialType, { resourceId: string; quantity: number }[]>>;
 }
 
 interface TechResourceModalProps {
@@ -19,8 +17,7 @@ interface TechResourceModalProps {
   onConfirm: (selection: ResourceSelection) => void;
   techName: string;
   resourceCosts: TechResourceCost[];
-  availableStones: ResourceStack[];
-  availableWoods: ResourceStack[];
+  availableMaterials: Partial<Record<MaterialType, ResourceStack[]>>;
 }
 
 interface MaterialPickerProps {
@@ -32,8 +29,7 @@ interface MaterialPickerProps {
 }
 
 function MaterialPicker({ type, required, stacks, selected, onSelect }: MaterialPickerProps) {
-  const lookup = type === 'stone' ? STONES_BY_ID : WOODS_BY_ID;
-  const icon = type === 'stone' ? '🪨' : '🪵';
+  const config = getMaterialConfig(type);
 
   const totalSelected = selected.reduce((sum, s) => sum + s.quantity, 0);
   const remaining = required - totalSelected;
@@ -42,17 +38,17 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
     <View style={styles.pickerSection}>
       <View style={styles.pickerHeader}>
         <Text style={styles.pickerTitle}>
-          {icon} {type === 'stone' ? 'Stone' : 'Wood'}: {totalSelected}/{required}
+          {config.icon} {config.singularName}: {totalSelected}/{required}
         </Text>
         {remaining > 0 && <Text style={styles.remainingText}>Need {remaining} more</Text>}
         {remaining === 0 && <Text style={styles.completeText}>Complete</Text>}
       </View>
 
       {stacks.length === 0 ? (
-        <Text style={styles.emptyText}>No {type} available</Text>
+        <Text style={styles.emptyText}>No {config.singularName.toLowerCase()} available</Text>
       ) : (
         stacks.map((stack) => {
-          const material = lookup[stack.resourceId];
+          const material = config.getResourceById(stack.resourceId);
           const selectedItem = selected.find((s) => s.resourceId === stack.resourceId);
           const selectedQty = selectedItem?.quantity || 0;
           const maxSelectable = Math.min(stack.quantity, selectedQty + remaining);
@@ -138,51 +134,54 @@ function TechResourceModalContent({
   onConfirm,
   techName,
   resourceCosts,
-  availableStones,
-  availableWoods,
+  availableMaterials,
 }: Omit<TechResourceModalProps, 'visible'>) {
-  const [selectedStones, setSelectedStones] = useState<{ resourceId: string; quantity: number }[]>(
-    []
-  );
-  const [selectedWoods, setSelectedWoods] = useState<{ resourceId: string; quantity: number }[]>(
-    []
+  // Dynamic selected materials state
+  const [selectedMaterials, setSelectedMaterials] = useState<
+    Partial<Record<MaterialType, { resourceId: string; quantity: number }[]>>
+  >({});
+
+  // Get required material types from costs
+  const requiredMaterialTypes = getAllMaterialTypes().filter((type) =>
+    resourceCosts.some((c) => c.resourceType === type && c.quantity > 0)
   );
 
-  const stoneCost = resourceCosts.find((c) => c.resourceType === 'stone')?.quantity || 0;
-  const woodCost = resourceCosts.find((c) => c.resourceType === 'wood')?.quantity || 0;
+  // Get cost for a material type
+  const getCostForType = (type: MaterialType): number => {
+    return resourceCosts.find((c) => c.resourceType === type)?.quantity || 0;
+  };
 
-  const handleStoneSelect = (resourceId: string, quantity: number) => {
-    setSelectedStones((prev) => {
-      const filtered = prev.filter((s) => s.resourceId !== resourceId);
+  // Handle material selection for any type
+  const handleMaterialSelect = (type: MaterialType, resourceId: string, quantity: number) => {
+    setSelectedMaterials((prev) => {
+      const currentSelections = prev[type] || [];
+      const filtered = currentSelections.filter((s) => s.resourceId !== resourceId);
       if (quantity > 0) {
-        return [...filtered, { resourceId, quantity }];
+        return { ...prev, [type]: [...filtered, { resourceId, quantity }] };
       }
-      return filtered;
+      return { ...prev, [type]: filtered };
     });
   };
 
-  const handleWoodSelect = (resourceId: string, quantity: number) => {
-    setSelectedWoods((prev) => {
-      const filtered = prev.filter((s) => s.resourceId !== resourceId);
-      if (quantity > 0) {
-        return [...filtered, { resourceId, quantity }];
-      }
-      return filtered;
-    });
-  };
-
-  const totalStoneSelected = selectedStones.reduce((sum, s) => sum + s.quantity, 0);
-  const totalWoodSelected = selectedWoods.reduce((sum, s) => sum + s.quantity, 0);
-
-  const canConfirm =
-    (stoneCost === 0 || totalStoneSelected === stoneCost) &&
-    (woodCost === 0 || totalWoodSelected === woodCost);
+  // Calculate total selected for each type and check if can confirm
+  const canConfirm = requiredMaterialTypes.every((type) => {
+    const cost = getCostForType(type);
+    const selected = selectedMaterials[type] || [];
+    const totalSelected = selected.reduce((sum, s) => sum + s.quantity, 0);
+    return cost === 0 || totalSelected === cost;
+  });
 
   const handleConfirm = () => {
-    onConfirm({
-      stone: selectedStones.filter((s) => s.quantity > 0),
-      wood: selectedWoods.filter((s) => s.quantity > 0),
-    });
+    // Filter out empty selections
+    const materials: Partial<Record<MaterialType, { resourceId: string; quantity: number }[]>> = {};
+    for (const type of requiredMaterialTypes) {
+      const selected = selectedMaterials[type] || [];
+      const filtered = selected.filter((s) => s.quantity > 0);
+      if (filtered.length > 0) {
+        materials[type] = filtered;
+      }
+    }
+    onConfirm({ materials });
   };
 
   return (
@@ -200,25 +199,21 @@ function TechResourceModalContent({
           Select which materials to spend on this research:
         </Text>
 
-        {stoneCost > 0 && (
-          <MaterialPicker
-            type="stone"
-            required={stoneCost}
-            stacks={availableStones}
-            selected={selectedStones}
-            onSelect={handleStoneSelect}
-          />
-        )}
+        {requiredMaterialTypes.map((type) => {
+          const cost = getCostForType(type);
+          if (cost === 0) return null;
 
-        {woodCost > 0 && (
-          <MaterialPicker
-            type="wood"
-            required={woodCost}
-            stacks={availableWoods}
-            selected={selectedWoods}
-            onSelect={handleWoodSelect}
-          />
-        )}
+          return (
+            <MaterialPicker
+              key={type}
+              type={type}
+              required={cost}
+              stacks={availableMaterials[type] || []}
+              selected={selectedMaterials[type] || []}
+              onSelect={(resourceId, quantity) => handleMaterialSelect(type, resourceId, quantity)}
+            />
+          );
+        })}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -243,8 +238,7 @@ export default function TechResourceModal({
   onConfirm,
   techName,
   resourceCosts,
-  availableStones,
-  availableWoods,
+  availableMaterials,
 }: TechResourceModalProps) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -254,8 +248,7 @@ export default function TechResourceModal({
           onConfirm={onConfirm}
           techName={techName}
           resourceCosts={resourceCosts}
-          availableStones={availableStones}
-          availableWoods={availableWoods}
+          availableMaterials={availableMaterials}
         />
       )}
     </Modal>
