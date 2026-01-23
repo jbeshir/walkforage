@@ -22,6 +22,7 @@ import {
   calculateGatheringAbility,
 } from '../config/gathering';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 
 let toastId = 0;
 
@@ -50,6 +51,7 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   } = stepGathering;
 
   const { state } = useGameState();
+  const { colors } = useTheme().theme;
 
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
   const gatherableCount = calculateGatherableAmount(availableSteps);
@@ -147,8 +149,14 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, compact && styles.containerCompact]}>
-        <ActivityIndicator size="small" color="#4CAF50" />
+      <View
+        style={[
+          styles.container,
+          compact && styles.containerCompact,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
@@ -156,9 +164,20 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   // Health Connect needs to be installed (Android)
   if (needsInstall) {
     return (
-      <View style={[styles.container, compact && styles.containerCompact]}>
-        <Text style={styles.permissionText}>Health Connect app is required to track steps</Text>
-        <TouchableOpacity style={styles.installButton} onPress={handleInstallHealthConnect}>
+      <View
+        style={[
+          styles.container,
+          compact && styles.containerCompact,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+          Health Connect app is required to track steps
+        </Text>
+        <TouchableOpacity
+          style={[styles.installButton, { backgroundColor: colors.info }]}
+          onPress={handleInstallHealthConnect}
+        >
           <Text style={styles.permissionButtonText}>Install Health Connect</Text>
         </TouchableOpacity>
       </View>
@@ -168,13 +187,24 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   // Permission not yet requested
   if (permissionStatus === 'not_determined') {
     return (
-      <View style={[styles.container, compact && styles.containerCompact]}>
-        <Text style={styles.permissionText}>Connect health to gather resources with steps</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={handleRequestPermission}>
+      <View
+        style={[
+          styles.container,
+          compact && styles.containerCompact,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+          Connect health to gather resources with steps
+        </Text>
+        <TouchableOpacity
+          style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+          onPress={handleRequestPermission}
+        >
           <Text style={styles.permissionButtonText}>Connect Health</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowRationale(true)} style={styles.learnWhyLink}>
-          <Text style={styles.learnWhyText}>Learn why we need this</Text>
+          <Text style={[styles.learnWhyText, { color: colors.info }]}>Learn why we need this</Text>
         </TouchableOpacity>
         <Modal
           visible={showRationale}
@@ -190,15 +220,27 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   // Permission denied - show settings button
   if (permissionStatus === 'denied') {
     return (
-      <View style={[styles.container, compact && styles.containerCompact]}>
-        <Text style={styles.permissionText}>
+      <View
+        style={[
+          styles.container,
+          compact && styles.containerCompact,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
           Step access denied. Enable it in Health Connect settings.
         </Text>
         <View style={styles.deniedButtons}>
-          <TouchableOpacity style={styles.settingsButton} onPress={handleOpenSettings}>
+          <TouchableOpacity
+            style={[styles.settingsButton, { backgroundColor: colors.warning }]}
+            onPress={handleOpenSettings}
+          >
             <Text style={styles.settingsButtonText}>Open Settings</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRequestPermission}>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={handleRequestPermission}
+          >
             <Text style={styles.permissionButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -216,19 +258,30 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
     return (
       <>
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-        <View style={[styles.container, styles.containerCompact]}>
-          <Text style={styles.compactLabel}>Forage</Text>
+        <View
+          style={[
+            styles.container,
+            styles.containerCompact,
+            { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+          ]}
+        >
+          <Text style={[styles.compactLabel, { color: colors.textSecondary }]}>Forage</Text>
           <View style={styles.compactHeader}>
             <View>
-              <Text style={styles.stepCount}>{availableSteps.toLocaleString()} steps</Text>
-              <Text style={styles.gatherInfo}>
+              <Text style={[styles.stepCount, { color: colors.primary }]}>
+                {availableSteps.toLocaleString()} steps
+              </Text>
+              <Text style={[styles.gatherInfo, { color: colors.textTertiary }]}>
                 {gatherableCount > 0
                   ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available`
                   : `${STEPS_PER_GATHER - (availableSteps % STEPS_PER_GATHER)} more for next`}
               </Text>
             </View>
-            <TouchableOpacity onPress={handleSync} style={styles.syncButton}>
-              <Text style={styles.syncButtonText}>Sync</Text>
+            <TouchableOpacity
+              onPress={handleSync}
+              style={[styles.syncButton, { backgroundColor: colors.surfaceSecondary }]}
+            >
+              <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.compactButtons}>
@@ -238,7 +291,7 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
                 style={[
                   styles.gatherButton,
                   { backgroundColor: config.buttonColor },
-                  !canGather && styles.disabledButton,
+                  !canGather && { backgroundColor: colors.border },
                 ]}
                 onPress={() => handleGatherMaterial(materialType)}
                 disabled={!canGather}
@@ -250,7 +303,11 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
               </TouchableOpacity>
             ))}
           </View>
-          {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
+          {!geoData && (
+            <Text style={[styles.locationWarning, { color: colors.warning }]}>
+              Waiting for location...
+            </Text>
+          )}
         </View>
       </>
     );
@@ -260,19 +317,29 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      <View style={styles.container}>
-        <Text style={styles.title}>Forage</Text>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Forage</Text>
 
         <View style={styles.stepSection}>
-          <Text style={styles.stepCount}>{availableSteps.toLocaleString()}</Text>
-          <Text style={styles.stepLabel}>steps available</Text>
-          <Text style={styles.gatherInfoFull}>
+          <Text style={[styles.stepCount, { color: colors.primary }]}>
+            {availableSteps.toLocaleString()}
+          </Text>
+          <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>steps available</Text>
+          <Text style={[styles.gatherInfoFull, { color: colors.textSecondary }]}>
             {gatherableCount > 0
               ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available (${STEPS_PER_GATHER} steps each)`
               : `${STEPS_PER_GATHER - (availableSteps % STEPS_PER_GATHER)} more steps for next gather`}
           </Text>
-          <TouchableOpacity onPress={handleSync} style={styles.syncButtonFull}>
-            <Text style={styles.syncButtonText}>Sync Steps</Text>
+          <TouchableOpacity
+            onPress={handleSync}
+            style={[styles.syncButtonFull, { backgroundColor: colors.surfaceSecondary }]}
+          >
+            <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
           </TouchableOpacity>
         </View>
 
@@ -283,7 +350,7 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
               style={[
                 styles.gatherButtonFull,
                 { backgroundColor: config.buttonColor },
-                !canGather && styles.disabledButton,
+                !canGather && { backgroundColor: colors.border },
               ]}
               onPress={() => handleGatherMaterial(materialType)}
               disabled={!canGather}
@@ -295,9 +362,13 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
             </TouchableOpacity>
           ))}
         </View>
-        {!geoData && <Text style={styles.locationWarning}>Waiting for location...</Text>}
+        {!geoData && (
+          <Text style={[styles.locationWarning, { color: colors.warning }]}>
+            Waiting for location...
+          </Text>
+        )}
 
-        <Text style={styles.totalGathered}>
+        <Text style={[styles.totalGathered, { color: colors.textTertiary }]}>
           Total gathered: {totalStepsGathered.toLocaleString()} steps
         </Text>
       </View>
@@ -307,10 +378,8 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -322,7 +391,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 12,
   },
   stepSection: {
@@ -332,27 +400,22 @@ const styles = StyleSheet.create({
   stepCount: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4CAF50',
   },
   stepLabel: {
     fontSize: 14,
-    color: '#666',
     marginTop: 2,
   },
   gatherInfo: {
     fontSize: 11,
-    color: '#888',
     marginTop: 2,
   },
   gatherInfoFull: {
     fontSize: 13,
-    color: '#666',
     marginTop: 4,
   },
   compactLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -370,19 +433,16 @@ const styles = StyleSheet.create({
   syncButton: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#E3F2FD',
     borderRadius: 4,
   },
   syncButtonFull: {
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#E3F2FD',
     borderRadius: 6,
   },
   syncButtonText: {
     fontSize: 12,
-    color: '#1976D2',
     fontWeight: '500',
   },
   gatherSection: {
@@ -403,9 +463,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
   },
-  disabledButton: {
-    backgroundColor: '#BDBDBD',
-  },
   gatherButtonText: {
     color: '#fff',
     fontSize: 14,
@@ -418,12 +475,10 @@ const styles = StyleSheet.create({
   },
   permissionText: {
     fontSize: 13,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 8,
   },
   permissionButton: {
-    backgroundColor: '#4CAF50',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -439,12 +494,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   learnWhyText: {
-    color: '#1976D2',
     fontSize: 13,
     textDecorationLine: 'underline',
   },
   installButton: {
-    backgroundColor: '#2196F3',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -456,7 +509,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   settingsButton: {
-    backgroundColor: '#FF9800',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -467,20 +519,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   retryButton: {
-    backgroundColor: '#4CAF50',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
   },
   totalGathered: {
     fontSize: 12,
-    color: '#999',
     textAlign: 'center',
     marginTop: 12,
   },
   locationWarning: {
     fontSize: 11,
-    color: '#FF9800',
     textAlign: 'center',
     marginTop: 6,
     fontStyle: 'italic',

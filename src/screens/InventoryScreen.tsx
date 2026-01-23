@@ -1,26 +1,31 @@
 // Materials Screen - View collected resources
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 import { ResourceStack, isToolstone } from '../types/resources';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
+import { ThemeColors } from '../config/theme';
 
 interface ResourceItemProps {
   stack: ResourceStack;
   type: MaterialType;
+  colors: ThemeColors;
 }
 
-function ResourceItem({ stack, type }: ResourceItemProps) {
+function ResourceItem({ stack, type, colors }: ResourceItemProps) {
   const config = getMaterialConfig(type);
   const resourceData = config.getResourceById(stack.resourceId);
 
   if (!resourceData) {
     return (
-      <View style={styles.resourceItem}>
-        <View style={[styles.colorSwatch, styles.colorSwatchUnknown]} />
+      <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
+        <View style={[styles.colorSwatch, { backgroundColor: colors.border }]} />
         <View style={styles.resourceInfo}>
-          <Text style={styles.resourceName}>{stack.resourceId}</Text>
-          <Text style={styles.quantity}>x{stack.quantity}</Text>
+          <Text style={[styles.resourceName, { color: colors.textPrimary }]}>
+            {stack.resourceId}
+          </Text>
+          <Text style={[styles.quantity, { color: colors.primary }]}>x{stack.quantity}</Text>
         </View>
       </View>
     );
@@ -30,29 +35,72 @@ function ResourceItem({ stack, type }: ResourceItemProps) {
   const showToolstoneBadge = config.hasToolstone && isToolstone(resourceData);
 
   return (
-    <View style={styles.resourceItem}>
+    <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.colorSwatch, { backgroundColor: resourceData.color }]} />
       <View style={styles.resourceInfo}>
         <View style={styles.nameRow}>
-          <Text style={styles.resourceName}>{resourceData.name}</Text>
+          <Text style={[styles.resourceName, { color: colors.textPrimary }]}>
+            {resourceData.name}
+          </Text>
           {showToolstoneBadge && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
         </View>
-        <Text style={styles.resourceDescription} numberOfLines={2}>
+        <Text
+          style={[styles.resourceDescription, { color: colors.textSecondary }]}
+          numberOfLines={2}
+        >
           {resourceData.description}
         </Text>
         <View style={styles.propertiesRow}>
-          <Text style={styles.property}>H:{resourceData.properties.hardness}</Text>
-          <Text style={styles.property}>W:{resourceData.properties.workability}</Text>
-          <Text style={styles.property}>D:{resourceData.properties.durability}</Text>
+          <Text
+            style={[
+              styles.property,
+              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
+            ]}
+          >
+            H:{resourceData.properties.hardness}
+          </Text>
+          <Text
+            style={[
+              styles.property,
+              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
+            ]}
+          >
+            W:{resourceData.properties.workability}
+          </Text>
+          <Text
+            style={[
+              styles.property,
+              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
+            ]}
+          >
+            D:{resourceData.properties.durability}
+          </Text>
         </View>
       </View>
-      <Text style={styles.quantity}>x{stack.quantity}</Text>
+      <Text style={[styles.quantity, { color: colors.primary }]}>x{stack.quantity}</Text>
     </View>
   );
 }
 
 export default function InventoryScreen() {
   const { state } = useGameState();
+  const { theme } = useTheme();
+  const { colors } = theme;
+
+  // Track collapsed sections (default all expanded)
+  const [collapsedSections, setCollapsedSections] = useState<Set<MaterialType>>(new Set());
+
+  const toggleSection = (type: MaterialType) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
 
   // Calculate totals for each material type dynamically
   const materialTotals = getAllMaterialTypes().map((type) => {
@@ -63,33 +111,63 @@ export default function InventoryScreen() {
   });
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Summary stats - dynamic for all material types */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Inventory Summary</Text>
+      <View
+        style={[
+          styles.summaryCard,
+          { backgroundColor: colors.surface, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.summaryTitle, { color: colors.textPrimary }]}>Inventory Summary</Text>
         <View style={styles.summaryRow}>
           {materialTotals.map(({ type, config, total }) => (
             <View key={type} style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{total}</Text>
-              <Text style={styles.summaryLabel}>{config.pluralName}</Text>
+              <Text style={[styles.summaryValue, { color: colors.primary }]}>{total}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                {config.pluralName}
+              </Text>
             </View>
           ))}
         </View>
       </View>
 
       {/* Dynamic sections for each material type */}
-      {materialTotals.map(({ type, config, stacks, total }) => (
-        <View key={type} style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {config.icon} {config.pluralName} ({total})
-          </Text>
-          {stacks.length === 0 ? (
-            <Text style={styles.emptyText}>No {config.pluralName.toLowerCase()} collected yet</Text>
-          ) : (
-            stacks.map((stack) => <ResourceItem key={stack.resourceId} stack={stack} type={type} />)
-          )}
-        </View>
-      ))}
+      {materialTotals.map(({ type, config, stacks, total }) => {
+        const isCollapsed = collapsedSections.has(type);
+        return (
+          <View
+            key={type}
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, shadowColor: colors.shadow },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => toggleSection(type)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                {config.icon} {config.pluralName} ({total})
+              </Text>
+              <Text style={[styles.chevron, { color: colors.textTertiary }]}>
+                {isCollapsed ? '▶' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {!isCollapsed &&
+              (stacks.length === 0 ? (
+                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+                  No {config.pluralName.toLowerCase()} collected yet
+                </Text>
+              ) : (
+                stacks.map((stack) => (
+                  <ResourceItem key={stack.resourceId} stack={stack} type={type} colors={colors} />
+                ))
+              ))}
+          </View>
+        );
+      })}
 
       <View style={styles.bottomPadding} />
     </ScrollView>
@@ -99,14 +177,11 @@ export default function InventoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   summaryCard: {
-    backgroundColor: '#fff',
     margin: 15,
     padding: 20,
     borderRadius: 15,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -115,7 +190,6 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
   },
   summaryRow: {
@@ -129,53 +203,51 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4CAF50',
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
     marginTop: 4,
   },
   section: {
-    backgroundColor: '#fff',
     marginHorizontal: 15,
     marginBottom: 15,
     padding: 15,
     borderRadius: 15,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+  },
+  chevron: {
+    fontSize: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#999',
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   colorSwatch: {
     width: 40,
     height: 40,
     borderRadius: 8,
     marginRight: 12,
-  },
-  colorSwatchUnknown: {
-    backgroundColor: '#ccc',
   },
   resourceInfo: {
     flex: 1,
@@ -187,7 +259,6 @@ const styles = StyleSheet.create({
   resourceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   toolstoneBadge: {
     fontSize: 10,
@@ -201,7 +272,6 @@ const styles = StyleSheet.create({
   },
   resourceDescription: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
   propertiesRow: {
@@ -210,9 +280,7 @@ const styles = StyleSheet.create({
   },
   property: {
     fontSize: 10,
-    color: '#999',
     marginRight: 10,
-    backgroundColor: '#f5f5f5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -220,7 +288,6 @@ const styles = StyleSheet.create({
   quantity: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4CAF50',
   },
   bottomPadding: {
     height: 30,

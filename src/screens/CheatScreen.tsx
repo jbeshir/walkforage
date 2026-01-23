@@ -13,12 +13,15 @@ import {
 } from 'react-native';
 import { TECHNOLOGIES } from '../data/techTree';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 
 type ResourceTab = 'steps' | MaterialType | 'tech';
 
 export default function CheatScreen() {
   const { addResource, syncSteps, unlockTech, resetGame, state } = useGameState();
+  const { theme } = useTheme();
+  const { colors } = theme;
   const [activeTab, setActiveTab] = useState<ResourceTab>('steps');
   const [stepsAmount, setStepsAmount] = useState('1000');
 
@@ -56,10 +59,16 @@ export default function CheatScreen() {
   const renderTabButton = (tab: ResourceTab, label: string) => (
     <TouchableOpacity
       key={tab}
-      style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+      style={[styles.tabButton, activeTab === tab && { borderBottomColor: colors.cheat }]}
       onPress={() => setActiveTab(tab)}
     >
-      <Text style={[styles.tabButtonText, activeTab === tab && styles.tabButtonTextActive]}>
+      <Text
+        style={[
+          styles.tabButtonText,
+          { color: colors.textTertiary },
+          activeTab === tab && { color: colors.cheat, fontWeight: 'bold' },
+        ]}
+      >
         {label}
       </Text>
     </TouchableOpacity>
@@ -67,17 +76,23 @@ export default function CheatScreen() {
 
   const renderStepsTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Add Steps</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Add Steps</Text>
       <View style={styles.stepsRow}>
         <TextInput
-          style={styles.stepsInput}
+          style={[
+            styles.stepsInput,
+            { backgroundColor: colors.surfaceSecondary, color: colors.textPrimary },
+          ]}
           value={stepsAmount}
           onChangeText={setStepsAmount}
           keyboardType="numeric"
           placeholder="Amount"
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.textTertiary}
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddSteps}>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.cheat }]}
+          onPress={handleAddSteps}
+        >
           <Text style={styles.addButtonText}>Add Steps</Text>
         </TouchableOpacity>
       </View>
@@ -85,14 +100,16 @@ export default function CheatScreen() {
         {[100, 500, 1000, 5000, 10000].map((amount) => (
           <TouchableOpacity
             key={amount}
-            style={styles.quickButton}
+            style={[styles.quickButton, { backgroundColor: colors.surfaceSecondary }]}
             onPress={() => syncSteps(amount)}
           >
-            <Text style={styles.quickButtonText}>+{amount}</Text>
+            <Text style={[styles.quickButtonText, { color: colors.primary }]}>+{amount}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.currentValue}>Current: {state.availableSteps} steps available</Text>
+      <Text style={[styles.currentValue, { color: colors.textTertiary }]}>
+        Current: {state.availableSteps} steps available
+      </Text>
     </View>
   );
 
@@ -103,29 +120,34 @@ export default function CheatScreen() {
 
     return (
       <ScrollView style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>Add {config.pluralName}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+          Add {config.pluralName}
+        </Text>
         <View style={styles.resourceGrid}>
           {resources.map((resource) => (
-            <View key={resource.id} style={styles.resourceItem}>
+            <View
+              key={resource.id}
+              style={[styles.resourceItem, { backgroundColor: colors.surfaceSecondary }]}
+            >
               <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
-              <Text style={styles.resourceName} numberOfLines={1}>
+              <Text style={[styles.resourceName, { color: colors.textPrimary }]} numberOfLines={1}>
                 {resource.name}
               </Text>
               <View style={styles.quantityButtons}>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
                   onPress={() => handleAddMaterial(materialType, resource.id, 1)}
                 >
                   <Text style={styles.quantityButtonText}>+1</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
                   onPress={() => handleAddMaterial(materialType, resource.id, 10)}
                 >
                   <Text style={styles.quantityButtonText}>+10</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
                   onPress={() => handleAddMaterial(materialType, resource.id, 100)}
                 >
                   <Text style={styles.quantityButtonText}>+100</Text>
@@ -140,30 +162,39 @@ export default function CheatScreen() {
 
   const renderTechTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Technology</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Technology</Text>
       <TouchableOpacity style={styles.unlockAllButton} onPress={handleUnlockAllTech}>
         <Text style={styles.unlockAllButtonText}>Unlock All Technologies</Text>
       </TouchableOpacity>
-      <Text style={styles.currentValue}>
+      <Text style={[styles.currentValue, { color: colors.textTertiary }]}>
         Currently unlocked: {state.unlockedTechs.length} technologies
       </Text>
 
-      <Text style={[styles.sectionTitle, styles.dangerZoneTitle]}>Danger Zone</Text>
-      <TouchableOpacity style={styles.resetButton} onPress={handleResetGame}>
+      <Text style={[styles.sectionTitle, styles.dangerZoneTitle, { color: colors.textPrimary }]}>
+        Danger Zone
+      </Text>
+      <TouchableOpacity
+        style={[styles.resetButton, { backgroundColor: colors.danger }]}
+        onPress={handleResetGame}
+      >
         <Text style={styles.resetButtonText}>Reset All Progress</Text>
       </TouchableOpacity>
-      <Text style={styles.dangerText}>Deletes all resources, tools, tech, and steps</Text>
+      <Text style={[styles.dangerText, { color: colors.danger }]}>
+        Deletes all resources, tools, tech, and steps
+      </Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Cheat Menu</Text>
-        <Text style={styles.headerSubtitle}>Development tools - persists until app restart</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.cheat }]}>Cheat Menu</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
+          Development tools - persists until app restart
+        </Text>
       </View>
 
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
         {renderTabButton('steps', 'Steps')}
         {getAllMaterialTypes().map((type) => {
           const config = getMaterialConfig(type);
@@ -188,45 +219,33 @@ export default function CheatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
   },
   header: {
     padding: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ff6b6b',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#888',
     marginTop: 4,
   },
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   tabButton: {
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
-  },
-  tabButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#ff6b6b',
+    borderBottomColor: 'transparent',
   },
   tabButtonText: {
     fontSize: 14,
-    color: '#888',
-  },
-  tabButtonTextActive: {
-    color: '#ff6b6b',
-    fontWeight: 'bold',
   },
   content: {
     flex: 1,
@@ -238,7 +257,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 16,
   },
   stepsRow: {
@@ -248,16 +266,13 @@ const styles = StyleSheet.create({
   },
   stepsInput: {
     flex: 1,
-    backgroundColor: '#333',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: '#fff',
     fontSize: 16,
     marginRight: 10,
   },
   addButton: {
-    backgroundColor: '#ff6b6b',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -274,19 +289,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   quickButton: {
-    backgroundColor: '#333',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   quickButtonText: {
-    color: '#4CAF50',
     fontWeight: 'bold',
     fontSize: 16,
   },
   currentValue: {
     fontSize: 14,
-    color: '#888',
     marginTop: 8,
   },
   resourceGrid: {
@@ -296,7 +308,6 @@ const styles = StyleSheet.create({
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2a2a2a',
     padding: 12,
     borderRadius: 8,
   },
@@ -308,7 +319,6 @@ const styles = StyleSheet.create({
   },
   resourceName: {
     flex: 1,
-    color: '#fff',
     fontSize: 14,
   },
   quantityButtons: {
@@ -316,7 +326,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quantityButton: {
-    backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
@@ -338,7 +347,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   resetButton: {
-    backgroundColor: '#D32F2F',
     padding: 18,
     borderRadius: 10,
     alignItems: 'center',
@@ -350,7 +358,6 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     fontSize: 12,
-    color: '#D32F2F',
     marginTop: 8,
     textAlign: 'center',
   },

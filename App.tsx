@@ -9,6 +9,7 @@ import { Text, StyleSheet, Modal } from 'react-native';
 import { useHealthRationaleIntent } from './src/hooks/useHealthRationaleIntent';
 import { HealthPermissionRationale } from './src/components/HealthPermissionRationale';
 import { GameStateProvider } from './src/hooks/useGameState';
+import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 
 // Import screens
 import ForageScreen from './src/screens/ForageScreen';
@@ -34,7 +35,11 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   );
 }
 
-export default function App() {
+// Inner app component that uses theme
+function AppContent() {
+  const { theme, isDark } = useTheme();
+  const { colors } = theme;
+
   // Handle Health Connect rationale intent (when user taps privacy policy in HC dialog)
   const { showRationale, dismissRationale } = useHealthRationaleIntent();
 
@@ -46,73 +51,82 @@ export default function App() {
   }, []);
 
   return (
-    <GameStateProvider>
-      <NavigationContainer>
-        <StatusBar style="auto" />
-        {/* Health Connect rationale modal - shown when launched from HC settings */}
-        <Modal visible={showRationale} animationType="slide" onRequestClose={dismissRationale}>
-          <HealthPermissionRationale onClose={dismissRationale} />
-        </Modal>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
-            tabBarActiveTintColor: route.name === 'Cheat' ? '#ff6b6b' : '#4CAF50',
-            tabBarInactiveTintColor: '#999',
-            tabBarStyle: styles.tabBar,
-            headerStyle: styles.header,
-            headerTintColor: '#333',
-            headerTitleStyle: styles.headerTitle,
-          })}
-        >
-          <Tab.Screen name="Forage" component={ForageScreen} options={{ title: 'Forage' }} />
+    <NavigationContainer>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {/* Health Connect rationale modal - shown when launched from HC settings */}
+      <Modal visible={showRationale} animationType="slide" onRequestClose={dismissRationale}>
+        <HealthPermissionRationale onClose={dismissRationale} />
+      </Modal>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
+          tabBarActiveTintColor: route.name === 'Cheat' ? colors.cheat : colors.primary,
+          tabBarInactiveTintColor: colors.textTertiary,
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            paddingTop: 8,
+            paddingBottom: 4,
+          },
+          headerStyle: {
+            backgroundColor: colors.surface,
+            elevation: 2,
+            shadowColor: colors.shadow,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+          },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: styles.headerTitle,
+        })}
+      >
+        <Tab.Screen name="Forage" component={ForageScreen} options={{ title: 'Forage' }} />
+        <Tab.Screen name="Materials" component={InventoryScreen} options={{ title: 'Materials' }} />
+        <Tab.Screen name="Tools" component={CraftingScreen} options={{ title: 'Tools' }} />
+        <Tab.Screen name="Tech" options={{ title: 'Tech Tree' }}>
+          {() => <TechTreeScreen onEnableCheatMode={enableCheatMode} />}
+        </Tab.Screen>
+        {cheatModeEnabled && (
           <Tab.Screen
-            name="Materials"
-            component={InventoryScreen}
-            options={{ title: 'Materials' }}
+            name="Cheat"
+            component={CheatScreen}
+            options={{
+              title: 'Cheat',
+              tabBarActiveTintColor: colors.cheat,
+              headerStyle: {
+                backgroundColor: colors.surface,
+                elevation: 2,
+                shadowColor: colors.shadow,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              },
+              headerTintColor: colors.cheat,
+            }}
           />
-          <Tab.Screen name="Tools" component={CraftingScreen} options={{ title: 'Tools' }} />
-          <Tab.Screen name="Tech" options={{ title: 'Tech Tree' }}>
-            {() => <TechTreeScreen onEnableCheatMode={enableCheatMode} />}
-          </Tab.Screen>
-          {cheatModeEnabled && (
-            <Tab.Screen
-              name="Cheat"
-              component={CheatScreen}
-              options={{
-                title: 'Cheat',
-                tabBarActiveTintColor: '#ff6b6b',
-                headerStyle: { ...styles.header, backgroundColor: '#2a2a2a' },
-                headerTintColor: '#ff6b6b',
-              }}
-            />
-          )}
-        </Tab.Navigator>
-      </NavigationContainer>
-    </GameStateProvider>
+        )}
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <GameStateProvider>
+        <AppContent />
+      </GameStateProvider>
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
   tabIcon: {
     fontSize: 24,
   },
   tabIconFocused: {
     transform: [{ scale: 1.1 }],
-  },
-  header: {
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   headerTitle: {
     fontWeight: 'bold',

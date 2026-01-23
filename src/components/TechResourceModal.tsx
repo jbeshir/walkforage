@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TechResourceCost } from '../types/tech';
 import { ResourceStack } from '../types/resources';
 import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeColors } from '../config/theme';
 
 // Selected resources for each material type
 export interface ResourceSelection {
@@ -26,26 +28,42 @@ interface MaterialPickerProps {
   stacks: ResourceStack[];
   selected: { resourceId: string; quantity: number }[];
   onSelect: (resourceId: string, quantity: number) => void;
+  colors: ThemeColors;
 }
 
-function MaterialPicker({ type, required, stacks, selected, onSelect }: MaterialPickerProps) {
+function MaterialPicker({
+  type,
+  required,
+  stacks,
+  selected,
+  onSelect,
+  colors,
+}: MaterialPickerProps) {
   const config = getMaterialConfig(type);
 
   const totalSelected = selected.reduce((sum, s) => sum + s.quantity, 0);
   const remaining = required - totalSelected;
 
   return (
-    <View style={styles.pickerSection}>
-      <View style={styles.pickerHeader}>
-        <Text style={styles.pickerTitle}>
+    <View style={[styles.pickerSection, { backgroundColor: colors.surfaceSecondary }]}>
+      <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.pickerTitle, { color: colors.textPrimary }]}>
           {config.icon} {config.singularName}: {totalSelected}/{required}
         </Text>
-        {remaining > 0 && <Text style={styles.remainingText}>Need {remaining} more</Text>}
-        {remaining === 0 && <Text style={styles.completeText}>Complete</Text>}
+        {remaining > 0 && (
+          <Text style={[styles.remainingText, { color: colors.warning }]}>
+            Need {remaining} more
+          </Text>
+        )}
+        {remaining === 0 && (
+          <Text style={[styles.completeText, { color: colors.success }]}>Complete</Text>
+        )}
       </View>
 
       {stacks.length === 0 ? (
-        <Text style={styles.emptyText}>No {config.singularName.toLowerCase()} available</Text>
+        <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+          No {config.singularName.toLowerCase()} available
+        </Text>
       ) : (
         stacks.map((stack) => {
           const material = config.getResourceById(stack.resourceId);
@@ -54,41 +72,66 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
           const maxSelectable = Math.min(stack.quantity, selectedQty + remaining);
 
           return (
-            <View key={stack.resourceId} style={styles.materialRow}>
+            <View
+              key={stack.resourceId}
+              style={[styles.materialRow, { borderBottomColor: colors.border }]}
+            >
               <View
-                style={[styles.materialSwatch, { backgroundColor: material?.color || '#888' }]}
+                style={[
+                  styles.materialSwatch,
+                  { backgroundColor: material?.color || colors.border, borderColor: colors.border },
+                ]}
               />
               <View style={styles.materialInfo}>
-                <Text style={styles.materialName}>{material?.name || stack.resourceId}</Text>
-                <Text style={styles.materialAvailable}>Available: {stack.quantity}</Text>
+                <Text style={[styles.materialName, { color: colors.textPrimary }]}>
+                  {material?.name || stack.resourceId}
+                </Text>
+                <Text style={[styles.materialAvailable, { color: colors.textTertiary }]}>
+                  Available: {stack.quantity}
+                </Text>
               </View>
               <View style={styles.quantityControls}>
                 <TouchableOpacity
-                  style={[styles.qtyButtonSmall, selectedQty === 0 && styles.qtyButtonDisabled]}
+                  style={[
+                    styles.qtyButtonSmall,
+                    { backgroundColor: colors.primaryDark },
+                    selectedQty === 0 && { backgroundColor: colors.border },
+                  ]}
                   onPress={() => onSelect(stack.resourceId, 0)}
                   disabled={selectedQty === 0}
                 >
                   <Text style={styles.qtyButtonTextSmall}>0</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.qtyButtonSmall, selectedQty === 0 && styles.qtyButtonDisabled]}
+                  style={[
+                    styles.qtyButtonSmall,
+                    { backgroundColor: colors.primaryDark },
+                    selectedQty === 0 && { backgroundColor: colors.border },
+                  ]}
                   onPress={() => onSelect(stack.resourceId, Math.max(0, selectedQty - 10))}
                   disabled={selectedQty === 0}
                 >
                   <Text style={styles.qtyButtonTextSmall}>-10</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.qtyButton, selectedQty === 0 && styles.qtyButtonDisabled]}
+                  style={[
+                    styles.qtyButton,
+                    { backgroundColor: colors.primary },
+                    selectedQty === 0 && { backgroundColor: colors.border },
+                  ]}
                   onPress={() => onSelect(stack.resourceId, Math.max(0, selectedQty - 1))}
                   disabled={selectedQty === 0}
                 >
                   <Text style={styles.qtyButtonText}>-</Text>
                 </TouchableOpacity>
-                <Text style={styles.qtyDisplay}>{selectedQty}</Text>
+                <Text style={[styles.qtyDisplay, { color: colors.textPrimary }]}>
+                  {selectedQty}
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.qtyButton,
-                    selectedQty >= maxSelectable && styles.qtyButtonDisabled,
+                    { backgroundColor: colors.primary },
+                    selectedQty >= maxSelectable && { backgroundColor: colors.border },
                   ]}
                   onPress={() =>
                     onSelect(stack.resourceId, Math.min(maxSelectable, selectedQty + 1))
@@ -100,7 +143,8 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
                 <TouchableOpacity
                   style={[
                     styles.qtyButtonSmall,
-                    selectedQty >= maxSelectable && styles.qtyButtonDisabled,
+                    { backgroundColor: colors.primaryDark },
+                    selectedQty >= maxSelectable && { backgroundColor: colors.border },
                   ]}
                   onPress={() =>
                     onSelect(stack.resourceId, Math.min(maxSelectable, selectedQty + 10))
@@ -112,7 +156,8 @@ function MaterialPicker({ type, required, stacks, selected, onSelect }: Material
                 <TouchableOpacity
                   style={[
                     styles.qtyButtonSmall,
-                    selectedQty >= maxSelectable && styles.qtyButtonDisabled,
+                    { backgroundColor: colors.primaryDark },
+                    selectedQty >= maxSelectable && { backgroundColor: colors.border },
                   ]}
                   onPress={() => onSelect(stack.resourceId, maxSelectable)}
                   disabled={selectedQty >= maxSelectable}
@@ -136,6 +181,9 @@ function TechResourceModalContent({
   resourceCosts,
   availableMaterials,
 }: Omit<TechResourceModalProps, 'visible'>) {
+  const { theme } = useTheme();
+  const { colors } = theme;
+
   // Dynamic selected materials state
   const [selectedMaterials, setSelectedMaterials] = useState<
     Partial<Record<MaterialType, { resourceId: string; quantity: number }[]>>
@@ -185,17 +233,17 @@ function TechResourceModalContent({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>Cancel</Text>
+          <Text style={[styles.closeButtonText, { color: colors.cheat }]}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Research {techName}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Research {techName}</Text>
         <View style={styles.closeButton} />
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={styles.instructionText}>
+        <Text style={[styles.instructionText, { color: colors.textTertiary }]}>
           Select which materials to spend on this research:
         </Text>
 
@@ -211,18 +259,23 @@ function TechResourceModalContent({
               stacks={availableMaterials[type] || []}
               selected={selectedMaterials[type] || []}
               onSelect={(resourceId, quantity) => handleMaterialSelect(type, resourceId, quantity)}
+              colors={colors}
             />
           );
         })}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.confirmButton, !canConfirm && styles.confirmButtonDisabled]}
+          style={[
+            styles.confirmButton,
+            { backgroundColor: colors.primary },
+            !canConfirm && { backgroundColor: colors.border },
+          ]}
           onPress={handleConfirm}
           disabled={!canConfirm}
         >
-          <Text style={[styles.confirmButtonText, !canConfirm && styles.confirmButtonTextDisabled]}>
+          <Text style={[styles.confirmButtonText, !canConfirm && { color: colors.textTertiary }]}>
             Research
           </Text>
         </TouchableOpacity>
@@ -258,7 +311,6 @@ export default function TechResourceModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
   },
   header: {
     flexDirection: 'row',
@@ -266,19 +318,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   closeButton: {
     width: 60,
   },
   closeButtonText: {
-    color: '#FF6B6B',
     fontSize: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     textAlign: 'center',
     flex: 1,
   },
@@ -287,13 +336,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   instructionText: {
-    color: '#999',
     fontSize: 14,
     marginBottom: 20,
     textAlign: 'center',
   },
   pickerSection: {
-    backgroundColor: '#2a2a2a',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -304,25 +351,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#444',
     paddingBottom: 8,
   },
   pickerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
   },
   remainingText: {
     fontSize: 12,
-    color: '#FF9800',
   },
   completeText: {
     fontSize: 12,
-    color: '#4CAF50',
     fontWeight: '600',
   },
   emptyText: {
-    color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 12,
@@ -332,7 +374,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   materialSwatch: {
     width: 24,
@@ -340,19 +381,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#444',
   },
   materialInfo: {
     flex: 1,
   },
   materialName: {
     fontSize: 14,
-    color: '#fff',
     fontWeight: '500',
   },
   materialAvailable: {
     fontSize: 11,
-    color: '#888',
     marginTop: 2,
   },
   quantityControls: {
@@ -363,7 +401,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -371,13 +408,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     height: 28,
     borderRadius: 6,
-    backgroundColor: '#3d8b40',
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 2,
-  },
-  qtyButtonDisabled: {
-    backgroundColor: '#444',
   },
   qtyButtonText: {
     color: '#fff',
@@ -394,28 +427,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#333',
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    backgroundColor: '#444',
   },
   confirmButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  confirmButtonTextDisabled: {
-    color: '#888',
   },
 });

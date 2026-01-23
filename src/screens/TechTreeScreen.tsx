@@ -2,10 +2,13 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
 import { Technology, LITHIC_ERAS, ERA_COLORS, ERA_NAMES, TechResourceCost } from '../types/tech';
 import { getMaterialIcon, MaterialType } from '../config/materials';
+import { ThemeColors } from '../config/theme';
 import TechResourceModal, { ResourceSelection } from '../components/TechResourceModal';
+import TechUnlockedModal from '../components/TechUnlockedModal';
 
 // Format resource costs as a readable string with icons
 function formatResourceCost(costs: TechResourceCost[]): string {
@@ -18,25 +21,29 @@ interface TechNodeProps {
   isUnlocked: boolean;
   isAvailable: boolean;
   onPress: () => void;
+  colors: ThemeColors;
 }
 
-function TechNode({ tech, isUnlocked, isAvailable, onPress }: TechNodeProps) {
+function TechNode({ tech, isUnlocked, isAvailable, onPress, colors }: TechNodeProps) {
   const bgColor = isUnlocked
     ? ERA_COLORS[tech.era]
     : isAvailable
       ? `${ERA_COLORS[tech.era]}80` // 50% opacity
-      : '#ccc';
+      : colors.border;
 
   return (
     <TouchableOpacity
-      style={[styles.techNode, { backgroundColor: bgColor }]}
+      style={[styles.techNode, { backgroundColor: bgColor, borderColor: colors.borderLight }]}
       onPress={onPress}
-      disabled={isUnlocked}
     >
       <Text style={styles.techName}>{tech.name}</Text>
-      {isUnlocked && <Text style={styles.unlockedBadge}>UNLOCKED</Text>}
+      {isUnlocked && (
+        <Text style={[styles.unlockedBadge, { color: colors.success }]}>UNLOCKED</Text>
+      )}
       {!isUnlocked && isAvailable && <Text style={styles.availableBadge}>AVAILABLE</Text>}
-      {!isUnlocked && !isAvailable && <Text style={styles.lockedBadge}>LOCKED</Text>}
+      {!isUnlocked && !isAvailable && (
+        <Text style={[styles.lockedBadge, { color: colors.textTertiary }]}>LOCKED</Text>
+      )}
       {!isUnlocked && tech.resourceCost.length > 0 && (
         <Text style={styles.costText}>{formatResourceCost(tech.resourceCost)}</Text>
       )}
@@ -54,9 +61,13 @@ interface TechTreeScreenProps {
 
 export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProps) {
   const { state, hasTech, unlockTech, removeResource } = useGameState();
+  const { theme } = useTheme();
+  const { colors } = theme;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTech, setSelectedTech] = useState<Technology | null>(null);
+  const [unlockedModalVisible, setUnlockedModalVisible] = useState(false);
+  const [viewingTech, setViewingTech] = useState<Technology | null>(null);
 
   // Track taps for cheat menu activation
   const tapTimesRef = useRef<number[]>([]);
@@ -86,11 +97,9 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
 
   const handleTechPress = (tech: Technology) => {
     if (hasTech(tech.id)) {
-      // Show tech details
-      Alert.alert(
-        tech.name,
-        `${tech.description}\n\nUnlocks: ${tech.unlocks.join(', ') || 'None'}\nRecipes: ${tech.enablesRecipes.join(', ') || 'None'}`
-      );
+      // Show tech details in modal
+      setViewingTech(tech);
+      setUnlockedModalVisible(true);
       return;
     }
 
@@ -150,12 +159,12 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={handleHeaderTap} activeOpacity={1}>
-          <Text style={styles.headerTitle}>Technology Tree</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Technology Tree</Text>
         </TouchableOpacity>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
           {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
         </Text>
       </View>
@@ -165,14 +174,14 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
         if (eraTechs.length === 0) return null;
 
         return (
-          <View key={era} style={styles.eraSection}>
+          <View key={era} style={[styles.eraSection, { backgroundColor: colors.surface }]}>
             <View style={[styles.eraHeader, { backgroundColor: ERA_COLORS[era] }]}>
               <Text style={styles.eraTitle}>{ERA_NAMES[era]}</Text>
               <Text style={styles.eraCount}>
                 {eraTechs.filter((t) => hasTech(t.id)).length} / {eraTechs.length}
               </Text>
             </View>
-            <View style={styles.techGrid}>
+            <View style={[styles.techGrid, { backgroundColor: colors.surfaceSecondary }]}>
               {eraTechs.map((tech) => (
                 <TechNode
                   key={tech.id}
@@ -180,6 +189,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
                   isUnlocked={hasTech(tech.id)}
                   isAvailable={availableTechs.some((t) => t.id === tech.id)}
                   onPress={() => handleTechPress(tech)}
+                  colors={colors}
                 />
               ))}
             </View>
@@ -203,6 +213,18 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
           availableMaterials={state.inventory}
         />
       )}
+
+      {/* Unlocked Tech Details Modal */}
+      {viewingTech && (
+        <TechUnlockedModal
+          visible={unlockedModalVisible}
+          onClose={() => {
+            setUnlockedModalVisible(false);
+            setViewingTech(null);
+          }}
+          tech={viewingTech}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -210,82 +232,82 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
   },
   header: {
     padding: 20,
     alignItems: 'center',
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#999',
     marginTop: 5,
   },
   eraSection: {
-    marginBottom: 20,
+    marginBottom: 16,
+    marginHorizontal: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   eraHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   eraTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
   },
   eraCount: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
   },
   techGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 10,
+    padding: 8,
   },
   techNode: {
-    width: '45%',
-    margin: '2.5%',
-    padding: 15,
+    width: '46%',
+    margin: '2%',
+    padding: 12,
     borderRadius: 10,
     minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   techName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 5,
   },
   unlockedBadge: {
-    fontSize: 10,
-    color: '#4CAF50',
+    fontSize: 9,
     fontWeight: 'bold',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   availableBadge: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#FFD700',
     fontWeight: 'bold',
   },
   lockedBadge: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
+    fontSize: 9,
   },
   costText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#fff',
     marginTop: 4,
     backgroundColor: 'rgba(0,0,0,0.2)',

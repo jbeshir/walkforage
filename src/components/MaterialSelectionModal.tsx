@@ -14,6 +14,7 @@ import {
 import { OwnedComponent, Craftable, getQualityTier, getUsedMaterialId } from '../types/tools';
 import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 import {
   calculateCraftableQuality,
   calculateMaterialQualityWithWeights,
@@ -21,6 +22,7 @@ import {
   getQualityDisplayName,
 } from '../utils/qualityCalculation';
 import { getComponentById } from '../data/tools';
+import { ThemeColors } from '../config/theme';
 
 interface MaterialSelectionModalProps {
   visible: boolean;
@@ -43,9 +45,17 @@ interface MaterialOptionProps {
   isSelected: boolean;
   quantity: number;
   onSelect: () => void;
+  colors: ThemeColors;
 }
 
-function MaterialOption({ materialId, type, isSelected, quantity, onSelect }: MaterialOptionProps) {
+function MaterialOption({
+  materialId,
+  type,
+  isSelected,
+  quantity,
+  onSelect,
+  colors,
+}: MaterialOptionProps) {
   const config = getMaterialConfig(type);
   const material = config.getResourceById(materialId);
   if (!material) return null;
@@ -54,21 +64,33 @@ function MaterialOption({ materialId, type, isSelected, quantity, onSelect }: Ma
 
   return (
     <TouchableOpacity
-      style={[styles.materialOption, isSelected && styles.materialOptionSelected]}
+      style={[
+        styles.materialOption,
+        { backgroundColor: colors.surfaceSecondary, borderColor: 'transparent' },
+        isSelected && { borderColor: colors.primary, backgroundColor: colors.selectedBackground },
+      ]}
       onPress={onSelect}
     >
-      <View style={[styles.materialColorSwatch, { backgroundColor: material.color }]} />
+      <View
+        style={[
+          styles.materialColorSwatch,
+          { backgroundColor: material.color, borderColor: colors.border },
+        ]}
+      />
       <View style={styles.materialInfo}>
-        <Text style={styles.materialName}>
-          {material.name} <Text style={styles.materialQuantity}>x{quantity}</Text>
+        <Text style={[styles.materialName, { color: colors.textPrimary }]}>
+          {material.name}{' '}
+          <Text style={[styles.materialQuantity, { color: colors.textSecondary }]}>
+            x{quantity}
+          </Text>
         </Text>
         <View style={styles.propertyRow}>
-          <Text style={styles.propertyLabel}>H:</Text>
-          <View style={styles.propertyBar}>
+          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>H:</Text>
+          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
             <View style={[styles.propertyFill, { width: `${props.hardness * 10}%` }]} />
           </View>
-          <Text style={styles.propertyLabel}>W:</Text>
-          <View style={styles.propertyBar}>
+          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>W:</Text>
+          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
             <View
               style={[
                 styles.propertyFill,
@@ -77,8 +99,8 @@ function MaterialOption({ materialId, type, isSelected, quantity, onSelect }: Ma
               ]}
             />
           </View>
-          <Text style={styles.propertyLabel}>D:</Text>
-          <View style={styles.propertyBar}>
+          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>D:</Text>
+          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
             <View
               style={[
                 styles.propertyFill,
@@ -89,7 +111,7 @@ function MaterialOption({ materialId, type, isSelected, quantity, onSelect }: Ma
           </View>
         </View>
       </View>
-      {isSelected && <Text style={styles.checkmark}>✓</Text>}
+      {isSelected && <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>}
     </TouchableOpacity>
   );
 }
@@ -98,9 +120,10 @@ interface ComponentOptionProps {
   component: OwnedComponent;
   isSelected: boolean;
   onSelect: () => void;
+  colors: ThemeColors;
 }
 
-function ComponentOption({ component, isSelected, onSelect }: ComponentOptionProps) {
+function ComponentOption({ component, isSelected, onSelect, colors }: ComponentOptionProps) {
   const componentDef = getComponentById(component.componentId);
   if (!componentDef) return null;
 
@@ -108,11 +131,17 @@ function ComponentOption({ component, isSelected, onSelect }: ComponentOptionPro
 
   return (
     <TouchableOpacity
-      style={[styles.materialOption, isSelected && styles.materialOptionSelected]}
+      style={[
+        styles.materialOption,
+        { backgroundColor: colors.surfaceSecondary, borderColor: 'transparent' },
+        isSelected && { borderColor: colors.primary, backgroundColor: colors.selectedBackground },
+      ]}
       onPress={onSelect}
     >
       <View style={styles.materialInfo}>
-        <Text style={styles.materialName}>{componentDef.name}</Text>
+        <Text style={[styles.materialName, { color: colors.textPrimary }]}>
+          {componentDef.name}
+        </Text>
         <View style={styles.componentDetails}>
           {/* Display used materials dynamically */}
           {getAllMaterialTypes().map((materialType) => {
@@ -122,15 +151,27 @@ function ComponentOption({ component, isSelected, onSelect }: ComponentOptionPro
             const material = config.getResourceById(materialId);
             return (
               <View key={materialType} style={styles.usedMaterial}>
-                <View style={[styles.miniSwatch, { backgroundColor: material?.color || '#888' }]} />
-                <Text style={styles.usedMaterialText}>{material?.name || materialId}</Text>
+                <View
+                  style={[
+                    styles.miniSwatch,
+                    {
+                      backgroundColor: material?.color || colors.border,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                />
+                <Text style={[styles.usedMaterialText, { color: colors.textSecondary }]}>
+                  {material?.name || materialId}
+                </Text>
               </View>
             );
           })}
-          <Text style={styles.componentQuality}>Quality: {qualityPercent}%</Text>
+          <Text style={[styles.componentQuality, { color: colors.textTertiary }]}>
+            Quality: {qualityPercent}%
+          </Text>
         </View>
       </View>
-      {isSelected && <Text style={styles.checkmark}>✓</Text>}
+      {isSelected && <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>}
     </TouchableOpacity>
   );
 }
@@ -145,6 +186,8 @@ export default function MaterialSelectionModal({
   availableComponentIds = [],
 }: MaterialSelectionModalProps) {
   const { getResourceCount, state } = useGameState();
+  const { theme } = useTheme();
+  const { colors } = theme;
 
   // requiredComponents is now part of Craftable interface
   const { requiredComponents } = craftable;
@@ -303,19 +346,27 @@ export default function MaterialSelectionModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>X</Text>
+      <Pressable style={[styles.overlay, { backgroundColor: colors.overlay }]} onPress={onClose}>
+        <Pressable
+          style={[styles.modalContainer, { backgroundColor: colors.surface }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
+            >
+              <Text style={[styles.closeButtonText, { color: colors.textSecondary }]}>X</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.content}>
             {/* Quality Preview */}
-            <View style={styles.qualityPreview}>
-              <Text style={styles.qualityLabel}>Quality Preview:</Text>
+            <View style={[styles.qualityPreview, { backgroundColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.qualityLabel, { color: colors.textPrimary }]}>
+                Quality Preview:
+              </Text>
               <View
                 style={[
                   styles.qualityBadge,
@@ -326,30 +377,30 @@ export default function MaterialSelectionModal({
                   {getQualityDisplayName(qualityPreview.tier)}
                 </Text>
               </View>
-              <Text style={styles.qualityScoreText}>
+              <Text style={[styles.qualityScoreText, { color: colors.textSecondary }]}>
                 ({Math.round(qualityPreview.score * 100)}%)
               </Text>
             </View>
 
             {/* Quality Weights Info */}
-            <View style={styles.weightsInfo}>
-              <Text style={styles.weightsTitle}>Quality Weights:</Text>
+            <View style={[styles.weightsInfo, { backgroundColor: colors.selectedBackgroundAlt }]}>
+              <Text style={[styles.weightsTitle, { color: colors.info }]}>Quality Weights:</Text>
               <View style={styles.weightsRow}>
                 <View style={styles.weightItem}>
                   <Text style={styles.weightLabel}>H</Text>
-                  <Text style={styles.weightValue}>
+                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
                     {Math.round(qualityWeights.hardnessWeight * 100)}%
                   </Text>
                 </View>
                 <View style={styles.weightItem}>
                   <Text style={[styles.weightLabel, styles.workabilityLabel]}>W</Text>
-                  <Text style={styles.weightValue}>
+                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
                     {Math.round(qualityWeights.workabilityWeight * 100)}%
                   </Text>
                 </View>
                 <View style={styles.weightItem}>
                   <Text style={[styles.weightLabel, styles.durabilityLabel]}>D</Text>
-                  <Text style={styles.weightValue}>
+                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
                     {Math.round(qualityWeights.durabilityWeight * 100)}%
                   </Text>
                 </View>
@@ -364,15 +415,17 @@ export default function MaterialSelectionModal({
 
               return (
                 <View key={materialType} style={styles.section}>
-                  <Text style={styles.sectionTitle}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
                     Select {config.singularName} ({requirement.quantity} needed)
                     {requirement.requiresToolstone && config.hasToolstone && (
                       <Text style={styles.toolstoneNote}> - Toolstone required</Text>
                     )}
                   </Text>
-                  <Text style={styles.sortNote}>Sorted by expected quality (best first)</Text>
+                  <Text style={[styles.sortNote, { color: colors.textTertiary }]}>
+                    Sorted by expected quality (best first)
+                  </Text>
                   {sortedMaterials.length === 0 ? (
-                    <Text style={styles.noOptionsText}>
+                    <Text style={[styles.noOptionsText, { color: colors.textTertiary }]}>
                       No suitable {config.pluralName.toLowerCase()} in inventory
                     </Text>
                   ) : (
@@ -384,6 +437,7 @@ export default function MaterialSelectionModal({
                         isSelected={selectedMaterials[materialType] === materialId}
                         quantity={getResourceCount(materialType, materialId)}
                         onSelect={() => selectMaterial(materialType, materialId)}
+                        colors={colors}
                       />
                     ))
                   )}
@@ -394,7 +448,9 @@ export default function MaterialSelectionModal({
             {/* Component Selection */}
             {needsComponents && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Select Components</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                  Select Components
+                </Text>
                 {requiredComponents.map((req) => {
                   const compDef = getComponentById(req.componentId);
                   const availableForType = availableComponentIds
@@ -403,11 +459,13 @@ export default function MaterialSelectionModal({
 
                   return (
                     <View key={req.componentId} style={styles.componentSection}>
-                      <Text style={styles.componentTypeTitle}>
+                      <Text style={[styles.componentTypeTitle, { color: colors.textSecondary }]}>
                         {compDef?.name || req.componentId} ({req.quantity} needed)
                       </Text>
                       {availableForType.length === 0 ? (
-                        <Text style={styles.noOptionsText}>No {req.componentId} available</Text>
+                        <Text style={[styles.noOptionsText, { color: colors.textTertiary }]}>
+                          No {req.componentId} available
+                        </Text>
                       ) : (
                         availableForType.map((comp) => (
                           <ComponentOption
@@ -415,6 +473,7 @@ export default function MaterialSelectionModal({
                             component={comp}
                             isSelected={selectedComponentIds.includes(comp.instanceId)}
                             onSelect={() => toggleComponent(comp.instanceId)}
+                            colors={colors}
                           />
                         ))
                       )}
@@ -425,27 +484,42 @@ export default function MaterialSelectionModal({
             )}
 
             {/* Property Legend */}
-            <View style={styles.legend}>
-              <Text style={styles.legendTitle}>Property Legend:</Text>
-              <Text style={styles.legendItem}>H = Hardness (tool edge sharpness)</Text>
-              <Text style={styles.legendItem}>W = Workability (crafting ease)</Text>
-              <Text style={styles.legendItem}>D = Durability (tool longevity)</Text>
+            <View style={[styles.legend, { backgroundColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.legendTitle, { color: colors.textSecondary }]}>
+                Property Legend:
+              </Text>
+              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
+                H = Hardness (tool edge sharpness)
+              </Text>
+              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
+                W = Workability (crafting ease)
+              </Text>
+              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
+                D = Durability (tool longevity)
+              </Text>
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: colors.surfaceSecondary }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.confirmButton, !isSelectionValid() && styles.confirmButtonDisabled]}
+              style={[
+                styles.confirmButton,
+                { backgroundColor: colors.primary },
+                !isSelectionValid() && { backgroundColor: colors.border },
+              ]}
               onPress={handleConfirm}
               disabled={!isSelectionValid()}
             >
               <Text
                 style={[
                   styles.confirmButtonText,
-                  !isSelectionValid() && styles.confirmButtonTextDisabled,
+                  !isSelectionValid() && { color: colors.textTertiary },
                 ]}
               >
                 Craft
@@ -461,11 +535,9 @@ export default function MaterialSelectionModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
@@ -476,25 +548,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
   },
   closeButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#666',
   },
   content: {
     padding: 16,
@@ -502,7 +570,6 @@ const styles = StyleSheet.create({
   qualityPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 10,
     marginBottom: 16,
@@ -510,7 +577,6 @@ const styles = StyleSheet.create({
   qualityLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
     marginRight: 10,
   },
   qualityBadge: {
@@ -525,7 +591,6 @@ const styles = StyleSheet.create({
   },
   qualityScoreText: {
     fontSize: 12,
-    color: '#666',
     marginLeft: 8,
   },
   section: {
@@ -534,7 +599,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 10,
   },
   toolstoneNote: {
@@ -544,23 +608,16 @@ const styles = StyleSheet.create({
   },
   noOptionsText: {
     fontSize: 13,
-    color: '#999',
     fontStyle: 'italic',
     padding: 10,
   },
   materialOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
     padding: 12,
     borderRadius: 10,
     marginBottom: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  materialOptionSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
   },
   materialColorSwatch: {
     width: 32,
@@ -568,7 +625,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   materialInfo: {
     flex: 1,
@@ -576,12 +632,10 @@ const styles = StyleSheet.create({
   materialName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   materialQuantity: {
     fontSize: 12,
-    color: '#666',
     fontWeight: 'normal',
   },
   propertyRow: {
@@ -590,13 +644,11 @@ const styles = StyleSheet.create({
   },
   propertyLabel: {
     fontSize: 10,
-    color: '#666',
     width: 14,
   },
   propertyBar: {
     width: 40,
     height: 6,
-    backgroundColor: '#e0e0e0',
     borderRadius: 3,
     marginRight: 8,
     overflow: 'hidden',
@@ -614,7 +666,6 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 20,
-    color: '#4CAF50',
     fontWeight: 'bold',
   },
   componentSection: {
@@ -623,7 +674,6 @@ const styles = StyleSheet.create({
   componentTypeTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#555',
     marginBottom: 6,
   },
   componentDetails: {
@@ -642,18 +692,14 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginRight: 4,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   usedMaterialText: {
     fontSize: 11,
-    color: '#666',
   },
   componentQuality: {
     fontSize: 11,
-    color: '#888',
   },
   weightsInfo: {
-    backgroundColor: '#E3F2FD',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
@@ -661,7 +707,6 @@ const styles = StyleSheet.create({
   weightsTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1565C0',
     marginBottom: 8,
   },
   weightsRow: {
@@ -686,16 +731,13 @@ const styles = StyleSheet.create({
   weightValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
   },
   sortNote: {
     fontSize: 10,
-    color: '#888',
     fontStyle: 'italic',
     marginBottom: 8,
   },
   legend: {
-    backgroundColor: '#f9f9f9',
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
@@ -703,50 +745,38 @@ const styles = StyleSheet.create({
   legendTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#555',
     marginBottom: 6,
   },
   legendItem: {
     fontSize: 11,
-    color: '#666',
     marginBottom: 2,
   },
   footer: {
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#f0f0f0',
     marginRight: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
   },
   confirmButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#4CAF50',
     marginLeft: 8,
     alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    backgroundColor: '#e0e0e0',
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-  },
-  confirmButtonTextDisabled: {
-    color: '#999',
   },
 });

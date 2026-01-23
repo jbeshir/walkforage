@@ -4,7 +4,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useGameState } from '../hooks/useGameState';
+import { useTheme } from '../hooks/useTheme';
 import { CraftCheckResult } from '../services/CraftingService';
+import { ThemeColors } from '../config/theme';
 import {
   TOOLS,
   COMPONENTS,
@@ -32,9 +34,10 @@ type TabType = 'owned' | 'tools' | 'components';
 
 interface OwnedToolItemProps {
   owned: OwnedTool;
+  colors: ThemeColors;
 }
 
-function OwnedToolItem({ owned }: OwnedToolItemProps) {
+function OwnedToolItem({ owned, colors }: OwnedToolItemProps) {
   const tool = getToolById(owned.toolId);
   if (!tool) return null;
 
@@ -43,15 +46,19 @@ function OwnedToolItem({ owned }: OwnedToolItemProps) {
   const gatheringBonus = calculateGatheringBonus(tool, owned.quality);
 
   return (
-    <View style={styles.ownedToolItem}>
+    <View style={[styles.ownedToolItem, { borderBottomColor: colors.border }]}>
       <View style={styles.toolInfo}>
         <View style={styles.toolNameRow}>
           <View style={[styles.qualityBadge, { backgroundColor: qualityColor }]}>
             <Text style={styles.qualityBadgeText}>{getQualityDisplayName(qualityTier)}</Text>
           </View>
-          <Text style={styles.qualityPercent}>{Math.round(owned.quality * 100)}%</Text>
+          <Text style={[styles.qualityPercent, { color: colors.textTertiary }]}>
+            {Math.round(owned.quality * 100)}%
+          </Text>
           {gatheringBonus > 0 && (
-            <Text style={styles.gatheringBonus}>+{gatheringBonus.toFixed(1)}</Text>
+            <Text style={[styles.gatheringBonus, { color: colors.primary }]}>
+              +{gatheringBonus.toFixed(1)}
+            </Text>
           )}
         </View>
 
@@ -63,11 +70,22 @@ function OwnedToolItem({ owned }: OwnedToolItemProps) {
             const config = getMaterialConfig(materialType);
             const material = config.getResourceById(materialId);
             return (
-              <View key={materialType} style={styles.materialTag}>
+              <View
+                key={materialType}
+                style={[styles.materialTag, { backgroundColor: colors.surfaceSecondary }]}
+              >
                 <View
-                  style={[styles.materialSwatch, { backgroundColor: material?.color || '#888' }]}
+                  style={[
+                    styles.materialSwatch,
+                    {
+                      backgroundColor: material?.color || colors.border,
+                      borderColor: colors.border,
+                    },
+                  ]}
                 />
-                <Text style={styles.materialTagText}>{material?.name || materialId}</Text>
+                <Text style={[styles.materialTagText, { color: colors.textSecondary }]}>
+                  {material?.name || materialId}
+                </Text>
               </View>
             );
           })}
@@ -101,21 +119,24 @@ function ToolTypeBadge({ toolId }: { toolId: string }) {
 
 interface OwnedComponentItemProps {
   component: OwnedComponent;
+  colors: ThemeColors;
 }
 
-function OwnedComponentItem({ component }: OwnedComponentItemProps) {
+function OwnedComponentItem({ component, colors }: OwnedComponentItemProps) {
   const componentDef = getComponentById(component.componentId);
   if (!componentDef) return null;
 
   const qualityPercent = Math.round(component.quality * 100);
 
   return (
-    <View style={styles.ownedComponentItem}>
+    <View style={[styles.ownedComponentItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[componentDef.era] }]}>
         <Text style={styles.eraText}>{ERA_LABELS[componentDef.era]}</Text>
       </View>
       <View style={styles.componentInfo}>
-        <Text style={styles.componentName}>{componentDef.name}</Text>
+        <Text style={[styles.componentName, { color: colors.textPrimary }]}>
+          {componentDef.name}
+        </Text>
         <View style={styles.materialsRow}>
           {/* Display used materials dynamically */}
           {getAllMaterialTypes().map((materialType) => {
@@ -124,17 +145,30 @@ function OwnedComponentItem({ component }: OwnedComponentItemProps) {
             const config = getMaterialConfig(materialType);
             const material = config.getResourceById(materialId);
             return (
-              <View key={materialType} style={styles.materialTag}>
+              <View
+                key={materialType}
+                style={[styles.materialTag, { backgroundColor: colors.surfaceSecondary }]}
+              >
                 <View
-                  style={[styles.materialSwatch, { backgroundColor: material?.color || '#888' }]}
+                  style={[
+                    styles.materialSwatch,
+                    {
+                      backgroundColor: material?.color || colors.border,
+                      borderColor: colors.border,
+                    },
+                  ]}
                 />
-                <Text style={styles.materialTagText}>{material?.name || materialId}</Text>
+                <Text style={[styles.materialTagText, { color: colors.textSecondary }]}>
+                  {material?.name || materialId}
+                </Text>
               </View>
             );
           })}
         </View>
       </View>
-      <Text style={styles.componentQualityText}>{qualityPercent}%</Text>
+      <Text style={[styles.componentQualityText, { color: colors.primary }]}>
+        {qualityPercent}%
+      </Text>
     </View>
   );
 }
@@ -143,30 +177,31 @@ interface ToolRecipeItemProps {
   tool: Tool;
   craftCheck: CraftCheckResult;
   onCraft: () => void;
+  colors: ThemeColors;
 }
 
-function ToolRecipeItem({ tool, craftCheck, onCraft }: ToolRecipeItemProps) {
+function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemProps) {
   return (
-    <View style={styles.recipeItem}>
+    <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
         <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
       </View>
       <View style={styles.recipeInfo}>
         <View style={styles.recipeHeader}>
-          <Text style={styles.recipeName}>{tool.name}</Text>
+          <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{tool.name}</Text>
           <ToolTypeBadge toolId={tool.id} />
         </View>
-        <Text style={styles.recipeDescription} numberOfLines={2}>
+        <Text style={[styles.recipeDescription, { color: colors.textSecondary }]} numberOfLines={2}>
           {tool.description}
         </Text>
         <View style={styles.requirementsContainer}>
           {tool.requiredTools.length > 0 && (
-            <Text style={styles.requirementLabel}>
+            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Tools: {tool.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {tool.requiredComponents.length > 0 && (
-            <Text style={styles.requirementLabel}>
+            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Components:{' '}
               {tool.requiredComponents
                 .map((c) => `${c.quantity}x ${c.componentId.replace(/_/g, ' ')}`)
@@ -174,7 +209,7 @@ function ToolRecipeItem({ tool, craftCheck, onCraft }: ToolRecipeItemProps) {
             </Text>
           )}
           {(tool.materials.stone || tool.materials.wood) && (
-            <Text style={styles.requirementLabel}>
+            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Materials:{' '}
               {[
                 tool.materials.stone &&
@@ -198,12 +233,16 @@ function ToolRecipeItem({ tool, craftCheck, onCraft }: ToolRecipeItemProps) {
         )}
       </View>
       <TouchableOpacity
-        style={[styles.craftButton, !craftCheck.canCraft && styles.craftButtonDisabled]}
+        style={[
+          styles.craftButton,
+          { backgroundColor: colors.primary },
+          !craftCheck.canCraft && { backgroundColor: colors.border },
+        ]}
         onPress={onCraft}
         disabled={!craftCheck.canCraft}
       >
         <Text
-          style={[styles.craftButtonText, !craftCheck.canCraft && styles.craftButtonTextDisabled]}
+          style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
         >
           Craft
         </Text>
@@ -217,6 +256,7 @@ interface ComponentRecipeItemProps {
   craftCheck: CraftCheckResult;
   ownedCount: number;
   onCraft: () => void;
+  colors: ThemeColors;
 }
 
 function ComponentRecipeItem({
@@ -224,28 +264,31 @@ function ComponentRecipeItem({
   craftCheck,
   ownedCount,
   onCraft,
+  colors,
 }: ComponentRecipeItemProps) {
   return (
-    <View style={styles.recipeItem}>
+    <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[component.era] }]}>
         <Text style={styles.eraText}>{ERA_LABELS[component.era]}</Text>
       </View>
       <View style={styles.recipeInfo}>
         <View style={styles.recipeHeader}>
-          <Text style={styles.recipeName}>{component.name}</Text>
-          {ownedCount > 0 && <Text style={styles.ownedCount}>x{ownedCount}</Text>}
+          <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{component.name}</Text>
+          {ownedCount > 0 && (
+            <Text style={[styles.ownedCount, { color: colors.primary }]}>x{ownedCount}</Text>
+          )}
         </View>
-        <Text style={styles.recipeDescription} numberOfLines={2}>
+        <Text style={[styles.recipeDescription, { color: colors.textSecondary }]} numberOfLines={2}>
           {component.description}
         </Text>
         <View style={styles.requirementsContainer}>
           {component.requiredTools.length > 0 && (
-            <Text style={styles.requirementLabel}>
+            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Tools: {component.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
             </Text>
           )}
           {(component.materials.stone || component.materials.wood) && (
-            <Text style={styles.requirementLabel}>
+            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Materials:{' '}
               {[
                 component.materials.stone && `${component.materials.stone.quantity}x stone`,
@@ -268,12 +311,16 @@ function ComponentRecipeItem({
         )}
       </View>
       <TouchableOpacity
-        style={[styles.craftButton, !craftCheck.canCraft && styles.craftButtonDisabled]}
+        style={[
+          styles.craftButton,
+          { backgroundColor: colors.primary },
+          !craftCheck.canCraft && { backgroundColor: colors.border },
+        ]}
         onPress={onCraft}
         disabled={!craftCheck.canCraft}
       >
         <Text
-          style={[styles.craftButtonText, !craftCheck.canCraft && styles.craftButtonTextDisabled]}
+          style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
         >
           Craft
         </Text>
@@ -284,6 +331,8 @@ function ComponentRecipeItem({
 
 export default function CraftingScreen() {
   const { state, canCraft, craft, hasTech, getOwnedComponents } = useGameState();
+  const { theme } = useTheme();
+  const { colors } = theme;
   const [activeTab, setActiveTab] = useState<TabType>('owned');
 
   // Modal state - stores the actual craftable object instead of just id/type
@@ -379,9 +428,9 @@ export default function CraftingScreen() {
       const gatheringBonus = toolDef ? calculateGatheringBonus(toolDef, bestTool.quality) : 0;
 
       return (
-        <View key={toolId} style={styles.toolGroup}>
+        <View key={toolId} style={[styles.toolGroup, { backgroundColor: colors.surfaceSecondary }]}>
           <TouchableOpacity
-            style={styles.toolGroupHeader}
+            style={[styles.toolGroupHeader, { backgroundColor: colors.background }]}
             onPress={() => toggleGroupExpanded(toolId)}
             activeOpacity={0.7}
           >
@@ -395,8 +444,14 @@ export default function CraftingScreen() {
             </View>
             <View style={styles.toolGroupInfo}>
               <View style={styles.toolGroupNameRow}>
-                <Text style={styles.toolGroupName}>{toolDef?.name || toolId}</Text>
-                {count > 1 && <Text style={styles.toolGroupCount}>x{count}</Text>}
+                <Text style={[styles.toolGroupName, { color: colors.textPrimary }]}>
+                  {toolDef?.name || toolId}
+                </Text>
+                {count > 1 && (
+                  <Text style={[styles.toolGroupCount, { color: colors.textTertiary }]}>
+                    x{count}
+                  </Text>
+                )}
               </View>
               <View style={styles.toolGroupSummary}>
                 <View style={[styles.qualityBadgeSmall, { backgroundColor: bestQualityColor }]}>
@@ -406,7 +461,9 @@ export default function CraftingScreen() {
                 </View>
                 {gatheringBonus > 0 && toolDef?.gatheringMaterial && (
                   <>
-                    <Text style={styles.gatheringBonusSmall}>+{gatheringBonus.toFixed(1)}</Text>
+                    <Text style={[styles.gatheringBonusSmall, { color: colors.primary }]}>
+                      +{gatheringBonus.toFixed(1)}
+                    </Text>
                     <Text style={styles.gatheringMaterialSmall}>
                       {getMaterialIcon(toolDef.gatheringMaterial)}
                     </Text>
@@ -414,48 +471,68 @@ export default function CraftingScreen() {
                 )}
               </View>
             </View>
-            <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
+            <Text style={[styles.expandIcon, { color: colors.textTertiary }]}>
+              {isExpanded ? '▼' : '▶'}
+            </Text>
           </TouchableOpacity>
           {isExpanded &&
-            tools.map((owned) => <OwnedToolItem key={owned.instanceId} owned={owned} />)}
+            tools.map((owned) => (
+              <OwnedToolItem key={owned.instanceId} owned={owned} colors={colors} />
+            ))}
         </View>
       );
     };
 
     return (
-      <View style={styles.section}>
+      <View
+        style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}
+      >
         {/* Crafting Tools */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
           Crafting Tools ({craftingGroups.length} {craftingGroups.length === 1 ? 'type' : 'types'})
         </Text>
-        <Text style={styles.sectionSubtitle}>Used as prerequisites for other tools</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.textTertiary }]}>
+          Used as prerequisites for other tools
+        </Text>
         {craftingGroups.length === 0 ? (
-          <Text style={styles.emptyText}>No crafting tools yet.</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            No crafting tools yet.
+          </Text>
         ) : (
           craftingGroups.map(([toolId, tools]) => renderToolGroup(toolId, tools))
         )}
 
         {/* Gathering Tools */}
-        <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
+        <Text
+          style={[styles.sectionTitle, styles.sectionTitleMarginTop, { color: colors.textPrimary }]}
+        >
           Gathering Tools ({gatheringGroups.length}{' '}
           {gatheringGroups.length === 1 ? 'type' : 'types'})
         </Text>
-        <Text style={styles.sectionSubtitle}>Provide bonuses when gathering resources</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.textTertiary }]}>
+          Provide bonuses when gathering resources
+        </Text>
         {gatheringGroups.length === 0 ? (
-          <Text style={styles.emptyText}>No gathering tools yet.</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            No gathering tools yet.
+          </Text>
         ) : (
           gatheringGroups.map(([toolId, tools]) => renderToolGroup(toolId, tools))
         )}
 
         {/* Components inventory */}
-        <Text style={[styles.sectionTitle, styles.sectionTitleMarginTop]}>
+        <Text
+          style={[styles.sectionTitle, styles.sectionTitleMarginTop, { color: colors.textPrimary }]}
+        >
           Components ({state.ownedComponents.length})
         </Text>
         {state.ownedComponents.length === 0 ? (
-          <Text style={styles.emptyText}>No components crafted yet.</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            No components crafted yet.
+          </Text>
         ) : (
           state.ownedComponents.map((comp) => (
-            <OwnedComponentItem key={comp.instanceId} component={comp} />
+            <OwnedComponentItem key={comp.instanceId} component={comp} colors={colors} />
           ))
         )}
       </View>
@@ -463,10 +540,14 @@ export default function CraftingScreen() {
   };
 
   const renderToolRecipes = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Tool Recipes ({availableTools.length})</Text>
+    <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+        Tool Recipes ({availableTools.length})
+      </Text>
       {availableTools.length === 0 ? (
-        <Text style={styles.emptyText}>Research more tech to unlock tool recipes.</Text>
+        <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+          Research more tech to unlock tool recipes.
+        </Text>
       ) : (
         availableTools.map((tool) => {
           const craftCheck = canCraft(tool);
@@ -476,6 +557,7 @@ export default function CraftingScreen() {
               tool={tool}
               craftCheck={craftCheck}
               onCraft={() => handleCraft(tool)}
+              colors={colors}
             />
           );
         })
@@ -484,10 +566,14 @@ export default function CraftingScreen() {
   );
 
   const renderComponentRecipes = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Component Recipes ({availableComponents.length})</Text>
+    <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+        Component Recipes ({availableComponents.length})
+      </Text>
       {availableComponents.length === 0 ? (
-        <Text style={styles.emptyText}>Research more tech to unlock component recipes.</Text>
+        <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+          Research more tech to unlock component recipes.
+        </Text>
       ) : (
         availableComponents.map((comp) => {
           const craftCheck = canCraft(comp);
@@ -499,6 +585,7 @@ export default function CraftingScreen() {
               craftCheck={craftCheck}
               ownedCount={ownedCount}
               onCraft={() => handleCraft(comp)}
+              colors={colors}
             />
           );
         })
@@ -522,26 +609,53 @@ export default function CraftingScreen() {
   const modalProps = getModalProps();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tab bar */}
-      <View style={styles.tabBar}>
+      <View
+        style={[
+          styles.tabBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'owned' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'owned' && { borderBottomColor: colors.primary }]}
           onPress={() => setActiveTab('owned')}
         >
-          <Text style={[styles.tabText, activeTab === 'owned' && styles.tabTextActive]}>Owned</Text>
+          <Text
+            style={[
+              styles.tabText,
+              { color: colors.textSecondary },
+              activeTab === 'owned' && { color: colors.primary, fontWeight: '600' },
+            ]}
+          >
+            Owned
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'tools' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'tools' && { borderBottomColor: colors.primary }]}
           onPress={() => setActiveTab('tools')}
         >
-          <Text style={[styles.tabText, activeTab === 'tools' && styles.tabTextActive]}>Tools</Text>
+          <Text
+            style={[
+              styles.tabText,
+              { color: colors.textSecondary },
+              activeTab === 'tools' && { color: colors.primary, fontWeight: '600' },
+            ]}
+          >
+            Tools
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'components' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'components' && { borderBottomColor: colors.primary }]}
           onPress={() => setActiveTab('components')}
         >
-          <Text style={[styles.tabText, activeTab === 'components' && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              { color: colors.textSecondary },
+              activeTab === 'components' && { color: colors.primary, fontWeight: '600' },
+            ]}
+          >
             Components
           </Text>
         </TouchableOpacity>
@@ -573,15 +687,12 @@ export default function CraftingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     paddingHorizontal: 15,
     paddingTop: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   tab: {
     flex: 1,
@@ -590,27 +701,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: {
-    borderBottomColor: '#4CAF50',
-  },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
-  },
-  tabTextActive: {
-    color: '#4CAF50',
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   section: {
-    backgroundColor: '#fff',
     margin: 15,
     padding: 15,
     borderRadius: 15,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -619,7 +720,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
   },
   sectionTitleMarginTop: {
@@ -627,13 +727,11 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: '#888',
     marginTop: -12,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: '#999',
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 20,
@@ -644,11 +742,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   toolGroup: {
     marginBottom: 8,
-    backgroundColor: '#fafafa',
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -656,7 +752,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    backgroundColor: '#f5f5f5',
   },
   toolGroupInfo: {
     flex: 1,
@@ -669,11 +764,9 @@ const styles = StyleSheet.create({
   toolGroupName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
   },
   toolGroupCount: {
     fontSize: 12,
-    color: '#888',
     marginLeft: 6,
   },
   toolGroupSummary: {
@@ -683,7 +776,6 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     fontSize: 10,
-    color: '#888',
     marginLeft: 8,
   },
   qualityBadgeSmall: {
@@ -698,7 +790,6 @@ const styles = StyleSheet.create({
   },
   gatheringBonusSmall: {
     fontSize: 10,
-    color: '#4CAF50',
     fontWeight: '500',
     marginLeft: 6,
   },
@@ -711,7 +802,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   eraBadge: {
     width: 32,
@@ -740,7 +830,6 @@ const styles = StyleSheet.create({
   componentName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
   },
   qualityBadge: {
     paddingHorizontal: 8,
@@ -760,7 +849,6 @@ const styles = StyleSheet.create({
   materialTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -773,33 +861,27 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginRight: 4,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   materialTagText: {
     fontSize: 10,
-    color: '#666',
   },
   gatheringBonus: {
     fontSize: 11,
-    color: '#4CAF50',
     fontWeight: '500',
     marginLeft: 8,
   },
   qualityPercent: {
     fontSize: 10,
-    color: '#888',
     marginLeft: 6,
   },
   componentQualityText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4CAF50',
   },
   recipeItem: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   recipeInfo: {
     flex: 1,
@@ -833,17 +915,14 @@ const styles = StyleSheet.create({
   recipeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   ownedCount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4CAF50',
     marginLeft: 8,
   },
   recipeDescription: {
     fontSize: 12,
-    color: '#666',
     marginTop: 4,
   },
   requirementsContainer: {
@@ -851,7 +930,6 @@ const styles = StyleSheet.create({
   },
   requirementLabel: {
     fontSize: 11,
-    color: '#888',
     marginBottom: 2,
   },
   missingContainer: {
@@ -871,23 +949,16 @@ const styles = StyleSheet.create({
     color: '#F57C00',
   },
   craftButton: {
-    backgroundColor: '#4CAF50',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     marginLeft: 10,
     alignSelf: 'center',
   },
-  craftButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-  },
   craftButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
-  },
-  craftButtonTextDisabled: {
-    color: '#999',
   },
   bottomPadding: {
     height: 30,
