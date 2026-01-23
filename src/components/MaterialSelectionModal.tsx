@@ -61,6 +61,7 @@ function MaterialOption({
   if (!material) return null;
 
   const props = material.properties;
+  const schema = config.propertySchema;
 
   return (
     <TouchableOpacity
@@ -85,30 +86,26 @@ function MaterialOption({
           </Text>
         </Text>
         <View style={styles.propertyRow}>
-          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>H:</Text>
-          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
-            <View style={[styles.propertyFill, { width: `${props.hardness * 10}%` }]} />
-          </View>
-          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>W:</Text>
-          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.propertyFill,
-                styles.workabilityFill,
-                { width: `${props.workability * 10}%` },
-              ]}
-            />
-          </View>
-          <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>D:</Text>
-          <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.propertyFill,
-                styles.durabilityFill,
-                { width: `${props.durability * 10}%` },
-              ]}
-            />
-          </View>
+          {schema.map((propDef) => {
+            const value = props[propDef.id] ?? 0;
+            const percent =
+              ((value - propDef.minValue) / (propDef.maxValue - propDef.minValue)) * 100;
+            return (
+              <React.Fragment key={propDef.id}>
+                <Text style={[styles.propertyLabel, { color: colors.textSecondary }]}>
+                  {propDef.abbreviation}:
+                </Text>
+                <View style={[styles.propertyBar, { backgroundColor: colors.border }]}>
+                  <View
+                    style={[
+                      styles.propertyFill,
+                      { width: `${percent}%`, backgroundColor: propDef.color },
+                    ]}
+                  />
+                </View>
+              </React.Fragment>
+            );
+          })}
         </View>
       </View>
       {isSelected && <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>}
@@ -382,30 +379,38 @@ export default function MaterialSelectionModal({
               </Text>
             </View>
 
-            {/* Quality Weights Info */}
-            <View style={[styles.weightsInfo, { backgroundColor: colors.selectedBackgroundAlt }]}>
-              <Text style={[styles.weightsTitle, { color: colors.info }]}>Quality Weights:</Text>
-              <View style={styles.weightsRow}>
-                <View style={styles.weightItem}>
-                  <Text style={styles.weightLabel}>H</Text>
-                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
-                    {Math.round(qualityWeights.hardnessWeight * 100)}%
+            {/* Quality Weights Info - show weights for each material type being used */}
+            {requiredMaterialTypes.map((materialType) => {
+              const config = getMaterialConfig(materialType);
+              const schema = config.propertySchema;
+              const typeWeights = qualityWeights[materialType] || config.defaultQualityWeights;
+
+              return (
+                <View
+                  key={materialType}
+                  style={[styles.weightsInfo, { backgroundColor: colors.selectedBackgroundAlt }]}
+                >
+                  <Text style={[styles.weightsTitle, { color: colors.info }]}>
+                    {config.singularName} Quality Weights:
                   </Text>
+                  <View style={styles.weightsRow}>
+                    {schema.map((propDef) => {
+                      const weight = typeWeights[propDef.id] ?? 0;
+                      return (
+                        <View key={propDef.id} style={styles.weightItem}>
+                          <Text style={[styles.weightLabel, { color: propDef.color }]}>
+                            {propDef.abbreviation}
+                          </Text>
+                          <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
+                            {Math.round(weight * 100)}%
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
                 </View>
-                <View style={styles.weightItem}>
-                  <Text style={[styles.weightLabel, styles.workabilityLabel]}>W</Text>
-                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
-                    {Math.round(qualityWeights.workabilityWeight * 100)}%
-                  </Text>
-                </View>
-                <View style={styles.weightItem}>
-                  <Text style={[styles.weightLabel, styles.durabilityLabel]}>D</Text>
-                  <Text style={[styles.weightValue, { color: colors.textPrimary }]}>
-                    {Math.round(qualityWeights.durabilityWeight * 100)}%
-                  </Text>
-                </View>
-              </View>
-            </View>
+              );
+            })}
 
             {/* Material Selections - Dynamic for all material types */}
             {requiredMaterialTypes.map((materialType) => {
@@ -483,21 +488,22 @@ export default function MaterialSelectionModal({
               </View>
             )}
 
-            {/* Property Legend */}
-            <View style={[styles.legend, { backgroundColor: colors.surfaceSecondary }]}>
-              <Text style={[styles.legendTitle, { color: colors.textSecondary }]}>
-                Property Legend:
-              </Text>
-              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
-                H = Hardness (tool edge sharpness)
-              </Text>
-              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
-                W = Workability (crafting ease)
-              </Text>
-              <Text style={[styles.legendItem, { color: colors.textSecondary }]}>
-                D = Durability (tool longevity)
-              </Text>
-            </View>
+            {/* Property Legend - dynamically generated from first material type's schema */}
+            {requiredMaterialTypes.length > 0 && (
+              <View style={[styles.legend, { backgroundColor: colors.surfaceSecondary }]}>
+                <Text style={[styles.legendTitle, { color: colors.textSecondary }]}>
+                  Property Legend:
+                </Text>
+                {getMaterialConfig(requiredMaterialTypes[0]).propertySchema.map((propDef) => (
+                  <Text
+                    key={propDef.id}
+                    style={[styles.legendItem, { color: colors.textSecondary }]}
+                  >
+                    {propDef.abbreviation} = {propDef.displayName} ({propDef.description})
+                  </Text>
+                ))}
+              </View>
+            )}
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
@@ -655,14 +661,7 @@ const styles = StyleSheet.create({
   },
   propertyFill: {
     height: '100%',
-    backgroundColor: '#F44336',
     borderRadius: 3,
-  },
-  workabilityFill: {
-    backgroundColor: '#2196F3',
-  },
-  durabilityFill: {
-    backgroundColor: '#4CAF50',
   },
   checkmark: {
     fontSize: 20,
@@ -719,14 +718,7 @@ const styles = StyleSheet.create({
   weightLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#F44336',
     marginBottom: 2,
-  },
-  workabilityLabel: {
-    color: '#2196F3',
-  },
-  durabilityLabel: {
-    color: '#4CAF50',
   },
   weightValue: {
     fontSize: 16,

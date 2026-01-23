@@ -6,19 +6,34 @@ import { Tool, CraftedComponent, ToolCategory, QualityWeights } from '../types/t
 import { createByIdMap } from '../utils/collections';
 
 // Quality weights by category - determines how material properties affect tool quality
+// Weights are defined per material type (stone and wood may have different weightings)
 const QUALITY_WEIGHTS: Record<ToolCategory, QualityWeights> = {
-  knapping: { hardnessWeight: 0.5, workabilityWeight: 0.2, durabilityWeight: 0.3 },
-  cutting: { hardnessWeight: 0.4, workabilityWeight: 0.4, durabilityWeight: 0.2 },
-  woodworking: { hardnessWeight: 0.35, workabilityWeight: 0.25, durabilityWeight: 0.4 },
-  foraging: { hardnessWeight: 0.2, workabilityWeight: 0.4, durabilityWeight: 0.4 },
-  general: { hardnessWeight: 0.33, workabilityWeight: 0.33, durabilityWeight: 0.34 },
+  knapping: {
+    stone: { hardness: 0.5, workability: 0.2, durability: 0.3 },
+    wood: { hardness: 0.3, workability: 0.4, durability: 0.3 },
+  },
+  cutting: {
+    stone: { hardness: 0.4, workability: 0.4, durability: 0.2 },
+    wood: { hardness: 0.3, workability: 0.4, durability: 0.3 },
+  },
+  woodworking: {
+    stone: { hardness: 0.35, workability: 0.25, durability: 0.4 },
+    wood: { hardness: 0.3, workability: 0.3, durability: 0.4 },
+  },
+  foraging: {
+    stone: { hardness: 0.2, workability: 0.4, durability: 0.4 },
+    wood: { hardness: 0.2, workability: 0.4, durability: 0.4 },
+  },
+  general: {
+    stone: { hardness: 0.33, workability: 0.34, durability: 0.33 },
+    wood: { hardness: 0.33, workability: 0.34, durability: 0.33 },
+  },
 };
 
-// Component quality weights (workability-focused)
+// Component quality weights (workability-focused for handle shaping)
 const COMPONENT_QUALITY_WEIGHTS: QualityWeights = {
-  hardnessWeight: 0.2,
-  workabilityWeight: 0.5,
-  durabilityWeight: 0.3,
+  stone: { hardness: 0.2, workability: 0.5, durability: 0.3 },
+  wood: { hardness: 0.2, workability: 0.5, durability: 0.3 },
 };
 
 // ===== COMPONENTS =====

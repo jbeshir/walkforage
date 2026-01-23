@@ -30,12 +30,9 @@ export type BiomeCode =
   | 'mangrove' // 14: Mangroves
   | 'unknown'; // Sentinel for unmapped areas
 
-export interface ResourceProperties {
-  hardness: number; // 1-10 scale (Mohs-inspired)
-  workability: number; // 1-10 scale (ease of working)
-  durability: number; // 1-10 scale
-  rarity: number; // 0-1 probability weight
-}
+// Quality-affecting properties - dynamic per material type
+// Each material type defines its own property schema in config/materials.ts
+export type ResourceProperties = Record<string, number>;
 
 export interface StoneType {
   id: string;
@@ -43,6 +40,7 @@ export interface StoneType {
   category: StoneCategory;
   description: string;
   properties: ResourceProperties;
+  rarity: number; // 0-1 probability weight for spawning
   lithologies: string[]; // Macrostrat lithology names this stone maps to
   isToolstone?: boolean; // Can be knapped for tools (flint, chert, obsidian, etc.)
   color: string; // Display color
@@ -55,6 +53,7 @@ export interface WoodType {
   category: WoodCategory;
   description: string;
   properties: ResourceProperties;
+  rarity: number; // 0-1 probability weight for spawning
   biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
   realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])
   nativeRealms?: string[]; // Biogeographic realms (e.g., ["Palearctic"])

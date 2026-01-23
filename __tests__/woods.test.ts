@@ -35,8 +35,9 @@ describe('Woods Data', () => {
         expect(wood.properties.workability).toBeLessThanOrEqual(10);
         expect(wood.properties.durability).toBeGreaterThanOrEqual(1);
         expect(wood.properties.durability).toBeLessThanOrEqual(10);
-        expect(wood.properties.rarity).toBeGreaterThanOrEqual(0);
-        expect(wood.properties.rarity).toBeLessThanOrEqual(1);
+        // Rarity is now a separate field
+        expect(wood.rarity).toBeGreaterThanOrEqual(0);
+        expect(wood.rarity).toBeLessThanOrEqual(1);
       });
     });
 
@@ -298,7 +299,7 @@ describe('Woods Data', () => {
 
     it('should have tropical woods include rare specimens', () => {
       const tropical = getWoodsByCategory('tropical');
-      const hasRareWood = tropical.some((w) => w.properties.rarity < 0.1);
+      const hasRareWood = tropical.some((w) => w.rarity < 0.1);
       expect(hasRareWood).toBe(true);
     });
   });

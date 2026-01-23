@@ -103,13 +103,13 @@ class ResourceSpawnService {
    * Select resource weighted by rarity
    * Higher rarity value = more common (higher spawn probability)
    */
-  private selectByRarity<T extends { properties: { rarity: number } }>(resources: T[]): T {
+  private selectByRarity<T extends { rarity: number }>(resources: T[]): T {
     if (resources.length === 0) {
       throw new Error('Cannot select from empty array');
     }
 
     // Use rarity as weight (higher rarity = more likely to spawn)
-    const weights = resources.map((r) => r.properties.rarity);
+    const weights = resources.map((r) => r.rarity);
     const totalWeight = weights.reduce((a, b) => a + b, 0);
 
     if (totalWeight === 0) {

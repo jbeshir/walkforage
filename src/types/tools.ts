@@ -19,11 +19,11 @@ export type ComponentCategory =
   | 'binding'; // Fiber bindings
 
 // Quality calculation weights - determines how material properties affect quality
-export interface QualityWeights {
-  hardnessWeight: number;
-  workabilityWeight: number;
-  durabilityWeight: number;
-}
+// Maps property ids to their weights (e.g., { hardness: 0.4, workability: 0.3, durability: 0.3 })
+export type MaterialQualityWeights = Record<string, number>;
+
+// Quality weights per material type (material type -> property weights)
+export type QualityWeights = Record<MaterialType, MaterialQualityWeights>;
 
 // Generic material requirement (works for any material type)
 export interface MaterialRequirement {

@@ -21,8 +21,9 @@ describe('Stones Data', () => {
         expect(stone.properties.workability).toBeLessThanOrEqual(10);
         expect(stone.properties.durability).toBeGreaterThanOrEqual(1);
         expect(stone.properties.durability).toBeLessThanOrEqual(10);
-        expect(stone.properties.rarity).toBeGreaterThanOrEqual(0);
-        expect(stone.properties.rarity).toBeLessThanOrEqual(1);
+        // Rarity is now a separate field
+        expect(stone.rarity).toBeGreaterThanOrEqual(0);
+        expect(stone.rarity).toBeLessThanOrEqual(1);
       });
     });
 

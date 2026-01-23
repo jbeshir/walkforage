@@ -11,12 +11,24 @@ import { WOODS, WOODS_BY_ID } from '../data/woods';
 import { LocationGeoData } from '../types/gis';
 import { resourceSpawnService } from '../services/ResourceSpawnService';
 
+// Property definition for material types
+export interface PropertyDefinition {
+  id: string; // Property identifier (e.g., 'hardness')
+  abbreviation: string; // Short display name (e.g., 'H')
+  displayName: string; // Full display name (e.g., 'Hardness')
+  description: string; // Description of what this property affects
+  color: string; // Color for UI bars/display
+  minValue: number; // Minimum value (usually 1)
+  maxValue: number; // Maximum value (usually 10)
+}
+
 // Base resource type that all materials share
 export interface BaseResourceType {
   id: string;
   name: string;
   description: string;
   properties: ResourceProperties;
+  rarity: number;
   color: string;
 }
 
@@ -41,6 +53,12 @@ export interface MaterialTypeConfig<T extends BaseResourceType = BaseResourceTyp
   getAllResources: () => T[];
   getResourceById: (id: string) => T | undefined;
 
+  // Property schema - defines what properties this material type has
+  propertySchema: PropertyDefinition[];
+
+  // Default quality weights for tools that don't specify per-material weights
+  defaultQualityWeights: Record<string, number>;
+
   // Gathering (optional - some materials may not be gatherable)
   gathering?: MaterialGatheringConfig<T>;
 
@@ -52,6 +70,44 @@ export interface MaterialTypeConfig<T extends BaseResourceType = BaseResourceTyp
   hasToolstone?: boolean; // stone has isToolstone flag
 }
 
+// Common property schema for stone and wood (same properties)
+const COMMON_PROPERTY_SCHEMA: PropertyDefinition[] = [
+  {
+    id: 'hardness',
+    abbreviation: 'H',
+    displayName: 'Hardness',
+    description: 'Tool edge sharpness and cutting ability',
+    color: '#F44336',
+    minValue: 1,
+    maxValue: 10,
+  },
+  {
+    id: 'workability',
+    abbreviation: 'W',
+    displayName: 'Workability',
+    description: 'Ease of shaping and crafting',
+    color: '#2196F3',
+    minValue: 1,
+    maxValue: 10,
+  },
+  {
+    id: 'durability',
+    abbreviation: 'D',
+    displayName: 'Durability',
+    description: 'Resistance to wear and breakage',
+    color: '#4CAF50',
+    minValue: 1,
+    maxValue: 10,
+  },
+];
+
+// Default quality weights (balanced)
+const DEFAULT_QUALITY_WEIGHTS: Record<string, number> = {
+  hardness: 0.33,
+  workability: 0.34,
+  durability: 0.33,
+};
+
 // Registry of all material types
 export const MATERIAL_TYPES = {
   stone: {
@@ -62,6 +118,8 @@ export const MATERIAL_TYPES = {
     buttonColor: '#78909C',
     getAllResources: () => STONES,
     getResourceById: (id: string) => STONES_BY_ID[id],
+    propertySchema: COMMON_PROPERTY_SCHEMA,
+    defaultQualityWeights: DEFAULT_QUALITY_WEIGHTS,
     gathering: {
       getRandomResource: () => resourceSpawnService.getRandomStone(),
       getRandomResourceForLocation: (geo: LocationGeoData) =>
@@ -79,6 +137,8 @@ export const MATERIAL_TYPES = {
     buttonColor: '#8D6E63',
     getAllResources: () => WOODS,
     getResourceById: (id: string) => WOODS_BY_ID[id],
+    propertySchema: COMMON_PROPERTY_SCHEMA,
+    defaultQualityWeights: DEFAULT_QUALITY_WEIGHTS,
     gathering: {
       getRandomResource: () => resourceSpawnService.getRandomWood(),
       getRandomResourceForLocation: (geo: LocationGeoData) =>

@@ -34,6 +34,9 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
   // Check toolstone flag - only applicable for materials that support it
   const showToolstoneBadge = config.hasToolstone && isToolstone(resourceData);
 
+  // Get property schema for dynamic display
+  const schema = config.propertySchema;
+
   return (
     <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.colorSwatch, { backgroundColor: resourceData.color }]} />
@@ -51,30 +54,20 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
           {resourceData.description}
         </Text>
         <View style={styles.propertiesRow}>
-          <Text
-            style={[
-              styles.property,
-              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
-            ]}
-          >
-            H:{resourceData.properties.hardness}
-          </Text>
-          <Text
-            style={[
-              styles.property,
-              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
-            ]}
-          >
-            W:{resourceData.properties.workability}
-          </Text>
-          <Text
-            style={[
-              styles.property,
-              { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
-            ]}
-          >
-            D:{resourceData.properties.durability}
-          </Text>
+          {schema.map((propDef) => {
+            const value = resourceData.properties[propDef.id] ?? 0;
+            return (
+              <Text
+                key={propDef.id}
+                style={[
+                  styles.property,
+                  { color: colors.textTertiary, backgroundColor: colors.surfaceSecondary },
+                ]}
+              >
+                {propDef.abbreviation}:{value}
+              </Text>
+            );
+          })}
         </View>
       </View>
       <Text style={[styles.quantity, { color: colors.primary }]}>x{stack.quantity}</Text>
