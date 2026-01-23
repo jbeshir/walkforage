@@ -6,6 +6,7 @@
 import { RealmBiomeMapping } from '../../../types/gis';
 import { BiomeCode } from '../../../types/resources';
 import realmBiomeMappings from './realmBiomesToWoods.json';
+import realmBiomeFoodMappings from './realmBiomesToFoods.json';
 
 // Realm name to code mapping
 const REALM_CODES: Record<string, string> = {
@@ -37,11 +38,28 @@ const BIOME_NUMBERS: Record<BiomeCode, string> = {
   unknown: '', // No mapping for unknown biomes
 };
 
-// Type for the raw JSON structure
+// Type for the raw JSON structure (wood)
 interface RawRealmBiomeMapping {
   realm: string;
   biome: string;
   woodIds: string[];
+  weights: number[];
+}
+
+// Type for the raw JSON structure (food)
+interface RawRealmBiomeFoodMapping {
+  realm: string;
+  biome: string;
+  foodIds: string[];
+  weights: number[];
+}
+
+// Food mapping type
+export interface RealmBiomeFoodMapping {
+  realmBiome: string;
+  realm: string;
+  biome: BiomeCode;
+  foodIds: string[];
   weights: number[];
 }
 
@@ -118,5 +136,75 @@ export function hasRealmBiomeMapping(realm: string, biome: BiomeCode): boolean {
  */
 export function getAvailableRealmBiomes(): string[] {
   const mappings = getRealmBiomeMappings();
+  return Object.keys(mappings);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Food Mappings
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Cache the processed food mappings
+let processedFoodMappings: Record<string, RealmBiomeFoodMapping> | null = null;
+
+/**
+ * Get all realm-biome food mappings
+ */
+export function getRealmBiomeFoodMappings(): Record<string, RealmBiomeFoodMapping> {
+  if (processedFoodMappings) {
+    return processedFoodMappings;
+  }
+
+  processedFoodMappings = {};
+
+  for (const [key, value] of Object.entries(realmBiomeFoodMappings)) {
+    // Skip metadata
+    if (key === '_meta') continue;
+
+    const raw = value as RawRealmBiomeFoodMapping;
+    processedFoodMappings[key] = {
+      realmBiome: key,
+      realm: raw.realm,
+      biome: raw.biome as BiomeCode,
+      foodIds: raw.foodIds,
+      weights: raw.weights,
+    };
+  }
+
+  return processedFoodMappings;
+}
+
+/**
+ * Get food mapping for a realm and biome type
+ * @param realm e.g., "Palearctic"
+ * @param biome e.g., "temperate_broadleaf_mixed"
+ */
+export function getRealmBiomeFoodMapping(
+  realm: string,
+  biome: BiomeCode
+): RealmBiomeFoodMapping | null {
+  const realmCode = REALM_CODES[realm];
+  const biomeNumber = BIOME_NUMBERS[biome];
+
+  if (!realmCode || !biomeNumber) {
+    return null;
+  }
+
+  const code = `${realmCode}${biomeNumber}`;
+  const mappings = getRealmBiomeFoodMappings();
+  return mappings[code] || null;
+}
+
+/**
+ * Check if a realm and biome type has a food mapping
+ */
+export function hasRealmBiomeFoodMapping(realm: string, biome: BiomeCode): boolean {
+  return getRealmBiomeFoodMapping(realm, biome) !== null;
+}
+
+/**
+ * Get all available realm+biome codes for foods
+ */
+export function getAvailableFoodRealmBiomes(): string[] {
+  const mappings = getRealmBiomeFoodMappings();
   return Object.keys(mappings);
 }

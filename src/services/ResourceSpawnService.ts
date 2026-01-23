@@ -2,11 +2,12 @@
 // Pure resource selection logic - no React Native dependencies
 
 import { LocationGeoData } from '../types/gis';
-import { StoneType, WoodType } from '../types/resources';
+import { StoneType, WoodType, FoodType } from '../types/resources';
 import { STONES, STONES_BY_ID, getToolstones } from '../data/stones';
 import { WOODS, WOODS_BY_ID, getWoodsByBiome } from '../data/woods';
+import { FOODS, FOODS_BY_ID, getFoodsByBiome } from '../data/foods';
 import { getLithologyMapping } from '../data/gis';
-import { getRealmBiomeMapping } from '../data/gis/mappings';
+import { getRealmBiomeMapping, getRealmBiomeFoodMapping } from '../data/gis/mappings';
 
 class ResourceSpawnService {
   /**
@@ -97,6 +98,52 @@ class ResourceSpawnService {
    */
   private selectRandomWood(): WoodType {
     return this.selectByRarity(WOODS);
+  }
+
+  /**
+   * Select a food type based on biome data
+   */
+  private selectFoodFromGeo(geoData: LocationGeoData): FoodType | null {
+    const { type: biomeType, realm, confidence } = geoData.biome;
+
+    // If confidence is too low, fall back to random
+    if (confidence < 0.2) {
+      return this.selectRandomFood();
+    }
+
+    // Try realm+biome mapping first
+    if (realm) {
+      const realmMapping = getRealmBiomeFoodMapping(realm, biomeType);
+      if (realmMapping && realmMapping.foodIds.length > 0) {
+        const foodId = this.weightedRandomSelect(realmMapping.foodIds, realmMapping.weights);
+        const food = FOODS_BY_ID[foodId];
+        if (food) return food;
+      }
+
+      // If no curated mapping exists, filter biome foods by realm
+      const biomeFoods = getFoodsByBiome(biomeType);
+      const realmFiltered = biomeFoods.filter(
+        (f) => f.nativeRealms && f.nativeRealms.includes(realm)
+      );
+      if (realmFiltered.length > 0) {
+        return this.selectByRarity(realmFiltered);
+      }
+    }
+
+    // Fallback: biome-only (no realm info)
+    const biomeFoods = getFoodsByBiome(biomeType);
+    if (biomeFoods.length > 0) {
+      return this.selectByRarity(biomeFoods);
+    }
+
+    return this.selectRandomFood();
+  }
+
+  /**
+   * Select a random food weighted by rarity
+   */
+  private selectRandomFood(): FoodType {
+    return this.selectByRarity(FOODS);
   }
 
   /**
@@ -194,6 +241,22 @@ class ResourceSpawnService {
    */
   getRandomWood(): WoodType {
     return this.selectRandomWood();
+  }
+
+  /**
+   * Get a single random food appropriate for the location's biome
+   * Used for step-based gathering
+   */
+  getRandomFoodForLocation(geoData: LocationGeoData): FoodType | null {
+    return this.selectFoodFromGeo(geoData);
+  }
+
+  /**
+   * Get a random food (no location data)
+   * Used when geo data is not available
+   */
+  getRandomFood(): FoodType {
+    return this.selectRandomFood();
   }
 }
 

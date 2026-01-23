@@ -11,6 +11,7 @@ export type StoneCategory =
   | 'metamorphic'
   | 'ore';
 export type WoodCategory = 'softwood' | 'hardwood' | 'tropical' | 'fruit';
+export type FoodCategory = 'berry' | 'fruit' | 'nut' | 'greens' | 'root';
 
 // Resolve Ecoregions 2017 biome codes
 export type BiomeCode =
@@ -53,6 +54,20 @@ export interface WoodType {
   category: WoodCategory;
   description: string;
   properties: ResourceProperties;
+  rarity: number; // 0-1 probability weight for spawning
+  biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
+  realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])
+  nativeRealms?: string[]; // Biogeographic realms (e.g., ["Palearctic"])
+  color: string;
+}
+
+export interface FoodType {
+  id: string;
+  name: string;
+  scientificName?: string; // Latin/botanical name
+  category: FoodCategory;
+  description: string;
+  properties: ResourceProperties; // Empty for food: {}
   rarity: number; // 0-1 probability weight for spawning
   biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
   realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])

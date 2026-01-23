@@ -5,9 +5,10 @@
 // 2. Adding ResourceSpawnService methods if gatherable
 // 3. Adding an entry here
 
-import { StoneType, WoodType, ResourceProperties } from '../types/resources';
+import { StoneType, WoodType, FoodType, ResourceProperties } from '../types/resources';
 import { STONES, STONES_BY_ID } from '../data/stones';
 import { WOODS, WOODS_BY_ID } from '../data/woods';
+import { FOODS, FOODS_BY_ID } from '../data/foods';
 import { LocationGeoData } from '../types/gis';
 import { resourceSpawnService } from '../services/ResourceSpawnService';
 
@@ -146,6 +147,24 @@ export const MATERIAL_TYPES = {
     },
     baseGatheringAbility: 1,
   } as MaterialTypeConfig<WoodType>,
+
+  food: {
+    id: 'food',
+    icon: '🍎',
+    singularName: 'Food',
+    pluralName: 'Foods',
+    buttonColor: '#66BB6A',
+    getAllResources: () => FOODS,
+    getResourceById: (id: string) => FOODS_BY_ID[id],
+    propertySchema: [], // Food has no properties
+    defaultQualityWeights: {},
+    gathering: {
+      getRandomResource: () => resourceSpawnService.getRandomFood(),
+      getRandomResourceForLocation: (geo: LocationGeoData) =>
+        resourceSpawnService.getRandomFoodForLocation(geo),
+    },
+    baseGatheringAbility: 1,
+  } as MaterialTypeConfig<FoodType>,
 } as const;
 
 // Derived type from registry keys

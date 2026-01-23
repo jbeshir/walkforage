@@ -1,0 +1,279 @@
+{
+  "_meta": {
+    "description": "Maps realm+biome codes to food species with spawn weights",
+    "format": "realmBiome -> { realm, biome, foodIds[], weights[] }",
+    "biomeNumbers": {
+      "01": "tropical_moist_broadleaf",
+      "02": "tropical_dry_broadleaf",
+      "03": "tropical_conifer",
+      "04": "temperate_broadleaf_mixed",
+      "05": "temperate_conifer",
+      "06": "boreal",
+      "07": "tropical_grassland",
+      "08": "temperate_grassland",
+      "09": "flooded_grassland",
+      "10": "montane",
+      "11": "tundra",
+      "12": "mediterranean",
+      "13": "desert",
+      "14": "mangrove"
+    },
+    "realmCodes": {
+      "PA": "Palearctic",
+      "NE": "Nearctic",
+      "NO": "Neotropic",
+      "AF": "Afrotropic",
+      "IN": "Indomalayan",
+      "AU": "Australasia",
+      "OC": "Oceania"
+    }
+  },
+  "PA04": {
+    "realm": "Palearctic",
+    "biome": "temperate_broadleaf_mixed",
+    "foodIds": [
+      "wild_garlic",
+      "stinging_nettle",
+      "chickweed",
+      "elderberry",
+      "wild_strawberry_pa",
+      "rosehip",
+      "hazelnut"
+    ],
+    "weights": [0.15, 0.2, 0.15, 0.15, 0.1, 0.15, 0.1]
+  },
+  "PA05": {
+    "realm": "Palearctic",
+    "biome": "temperate_conifer",
+    "foodIds": ["bilberry", "lingonberry", "wild_strawberry_pa"],
+    "weights": [0.4, 0.4, 0.2]
+  },
+  "PA06": {
+    "realm": "Palearctic",
+    "biome": "boreal",
+    "foodIds": ["bilberry", "lingonberry", "stinging_nettle"],
+    "weights": [0.4, 0.4, 0.2]
+  },
+  "PA08": {
+    "realm": "Palearctic",
+    "biome": "temperate_grassland",
+    "foodIds": ["stinging_nettle", "chickweed", "elderberry", "rosehip"],
+    "weights": [0.3, 0.25, 0.25, 0.2]
+  },
+  "PA10": {
+    "realm": "Palearctic",
+    "biome": "montane",
+    "foodIds": ["bilberry", "lingonberry"],
+    "weights": [0.5, 0.5]
+  },
+  "PA11": {
+    "realm": "Palearctic",
+    "biome": "tundra",
+    "foodIds": ["lingonberry"],
+    "weights": [1.0]
+  },
+  "PA12": {
+    "realm": "Palearctic",
+    "biome": "mediterranean",
+    "foodIds": ["blackthorn_sloe", "rosehip"],
+    "weights": [0.5, 0.5]
+  },
+  "NE04": {
+    "realm": "Nearctic",
+    "biome": "temperate_broadleaf_mixed",
+    "foodIds": [
+      "blueberry",
+      "serviceberry",
+      "wild_strawberry_ne",
+      "elderberry_ne",
+      "pawpaw",
+      "wild_grape",
+      "persimmon",
+      "hickory_nut",
+      "acorn"
+    ],
+    "weights": [0.15, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.15]
+  },
+  "NE05": {
+    "realm": "Nearctic",
+    "biome": "temperate_conifer",
+    "foodIds": ["blueberry", "serviceberry"],
+    "weights": [0.6, 0.4]
+  },
+  "NE06": {
+    "realm": "Nearctic",
+    "biome": "boreal",
+    "foodIds": ["blueberry", "cranberry"],
+    "weights": [0.6, 0.4]
+  },
+  "NE08": {
+    "realm": "Nearctic",
+    "biome": "temperate_grassland",
+    "foodIds": ["wild_strawberry_ne", "elderberry_ne"],
+    "weights": [0.5, 0.5]
+  },
+  "NE09": {
+    "realm": "Nearctic",
+    "biome": "flooded_grassland",
+    "foodIds": ["cranberry"],
+    "weights": [1.0]
+  },
+  "NE10": {
+    "realm": "Nearctic",
+    "biome": "montane",
+    "foodIds": ["serviceberry", "blueberry"],
+    "weights": [0.5, 0.5]
+  },
+  "NE12": {
+    "realm": "Nearctic",
+    "biome": "mediterranean",
+    "foodIds": ["acorn", "wild_grape"],
+    "weights": [0.6, 0.4]
+  },
+  "NO01": {
+    "realm": "Neotropic",
+    "biome": "tropical_moist_broadleaf",
+    "foodIds": [
+      "acai",
+      "cupuacu",
+      "camu_camu",
+      "cocona",
+      "aguaje",
+      "brazil_nut_food",
+      "cashew_fruit",
+      "passion_fruit",
+      "guava",
+      "cherimoya"
+    ],
+    "weights": [0.12, 0.1, 0.08, 0.1, 0.1, 0.1, 0.1, 0.1, 0.12, 0.08]
+  },
+  "NO02": {
+    "realm": "Neotropic",
+    "biome": "tropical_dry_broadleaf",
+    "foodIds": ["cashew_fruit", "passion_fruit", "guava"],
+    "weights": [0.35, 0.35, 0.3]
+  },
+  "NO07": {
+    "realm": "Neotropic",
+    "biome": "tropical_grassland",
+    "foodIds": ["guava"],
+    "weights": [1.0]
+  },
+  "NO09": {
+    "realm": "Neotropic",
+    "biome": "flooded_grassland",
+    "foodIds": ["acai", "camu_camu", "aguaje"],
+    "weights": [0.4, 0.3, 0.3]
+  },
+  "NO10": {
+    "realm": "Neotropic",
+    "biome": "montane",
+    "foodIds": ["cherimoya"],
+    "weights": [1.0]
+  },
+  "AF01": {
+    "realm": "Afrotropic",
+    "biome": "tropical_moist_broadleaf",
+    "foodIds": ["bush_mango", "wild_fig_af"],
+    "weights": [0.5, 0.5]
+  },
+  "AF02": {
+    "realm": "Afrotropic",
+    "biome": "tropical_dry_broadleaf",
+    "foodIds": [
+      "baobab_fruit",
+      "marula_fruit",
+      "tamarind",
+      "shea_nut",
+      "wild_fig_af",
+      "amaranth_greens",
+      "moringa"
+    ],
+    "weights": [0.15, 0.15, 0.15, 0.1, 0.15, 0.15, 0.15]
+  },
+  "AF07": {
+    "realm": "Afrotropic",
+    "biome": "tropical_grassland",
+    "foodIds": [
+      "baobab_fruit",
+      "marula_fruit",
+      "tamarind",
+      "shea_nut",
+      "wild_fig_af",
+      "natal_plum",
+      "amaranth_greens",
+      "moringa"
+    ],
+    "weights": [0.12, 0.15, 0.12, 0.12, 0.12, 0.12, 0.12, 0.13]
+  },
+  "AF12": {
+    "realm": "Afrotropic",
+    "biome": "mediterranean",
+    "foodIds": ["natal_plum"],
+    "weights": [1.0]
+  },
+  "AF13": {
+    "realm": "Afrotropic",
+    "biome": "desert",
+    "foodIds": ["baobab_fruit", "moringa"],
+    "weights": [0.5, 0.5]
+  },
+  "IN01": {
+    "realm": "Indomalayan",
+    "biome": "tropical_moist_broadleaf",
+    "foodIds": [
+      "durian",
+      "rambutan",
+      "mangosteen",
+      "jackfruit",
+      "dragon_fruit",
+      "lychee",
+      "longan",
+      "coconut",
+      "wild_banana"
+    ],
+    "weights": [0.08, 0.12, 0.08, 0.12, 0.1, 0.1, 0.1, 0.15, 0.15]
+  },
+  "IN02": {
+    "realm": "Indomalayan",
+    "biome": "tropical_dry_broadleaf",
+    "foodIds": ["jackfruit", "dragon_fruit", "lychee", "longan"],
+    "weights": [0.3, 0.2, 0.25, 0.25]
+  },
+  "IN14": {
+    "realm": "Indomalayan",
+    "biome": "mangrove",
+    "foodIds": ["coconut"],
+    "weights": [1.0]
+  },
+  "AU01": {
+    "realm": "Australasia",
+    "biome": "tropical_moist_broadleaf",
+    "foodIds": ["davidson_plum", "kakadu_plum", "finger_lime", "macadamia"],
+    "weights": [0.25, 0.25, 0.25, 0.25]
+  },
+  "AU04": {
+    "realm": "Australasia",
+    "biome": "temperate_broadleaf_mixed",
+    "foodIds": ["davidson_plum", "finger_lime", "muntries", "macadamia"],
+    "weights": [0.25, 0.25, 0.25, 0.25]
+  },
+  "AU07": {
+    "realm": "Australasia",
+    "biome": "tropical_grassland",
+    "foodIds": ["kakadu_plum", "bush_tomato"],
+    "weights": [0.5, 0.5]
+  },
+  "AU12": {
+    "realm": "Australasia",
+    "biome": "mediterranean",
+    "foodIds": ["quandong", "muntries"],
+    "weights": [0.5, 0.5]
+  },
+  "AU13": {
+    "realm": "Australasia",
+    "biome": "desert",
+    "foodIds": ["quandong", "bush_tomato"],
+    "weights": [0.5, 0.5]
+  }
+}

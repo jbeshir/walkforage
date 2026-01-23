@@ -23,7 +23,8 @@ export type ComponentCategory =
 export type MaterialQualityWeights = Record<string, number>;
 
 // Quality weights per material type (material type -> property weights)
-export type QualityWeights = Record<MaterialType, MaterialQualityWeights>;
+// Partial because not all material types have properties (e.g., food has none)
+export type QualityWeights = Partial<Record<MaterialType, MaterialQualityWeights>>;
 
 // Generic material requirement (works for any material type)
 export interface MaterialRequirement {
