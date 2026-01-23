@@ -14,7 +14,10 @@ export const TECHNOLOGIES: Technology[] = [
     description:
       'The fundamental skill of striking stone to create sharp edges. The foundation of all stone tool technology.',
     prerequisites: [],
-    resourceCost: [{ resourceType: 'stone', quantity: 10 }],
+    resourceCost: [
+      { resourceType: 'stone', quantity: 10 },
+      { resourceType: 'food', quantity: 5 },
+    ],
     unlocks: ['grinding', 'cordage_making'],
     enablesRecipes: ['hammerstone', 'hand_axe'],
   },
@@ -25,7 +28,10 @@ export const TECHNOLOGIES: Technology[] = [
     description:
       'Using abrasive stones to smooth and shape other stones. Essential for creating certain tool types.',
     prerequisites: ['basic_knapping'],
-    resourceCost: [{ resourceType: 'stone', quantity: 15 }],
+    resourceCost: [
+      { resourceType: 'stone', quantity: 15 },
+      { resourceType: 'food', quantity: 5 },
+    ],
     unlocks: [],
     enablesRecipes: ['grinding_stone'],
   },
@@ -36,7 +42,10 @@ export const TECHNOLOGIES: Technology[] = [
     description:
       'Twisting plant fibers into cordage. Essential for binding tools and creating complex items.',
     prerequisites: ['basic_knapping'],
-    resourceCost: [{ resourceType: 'wood', quantity: 10 }],
+    resourceCost: [
+      { resourceType: 'wood', quantity: 10 },
+      { resourceType: 'food', quantity: 5 },
+    ],
     unlocks: ['hafting'],
     enablesRecipes: ['fiber_binding'],
   },
@@ -53,6 +62,7 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [
       { resourceType: 'stone', quantity: 25 },
       { resourceType: 'wood', quantity: 15 },
+      { resourceType: 'food', quantity: 10 },
     ],
     unlocks: ['blade_technology'],
     enablesRecipes: ['crude_handle', 'shaped_handle', 'stone_knife', 'hafted_axe', 'digging_stick'],
@@ -70,6 +80,7 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [
       { resourceType: 'stone', quantity: 40 },
       { resourceType: 'wood', quantity: 10 },
+      { resourceType: 'food', quantity: 20 },
     ],
     unlocks: ['composite_tools'],
     enablesRecipes: ['pressure_flaker'],
@@ -84,6 +95,7 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [
       { resourceType: 'stone', quantity: 60 },
       { resourceType: 'wood', quantity: 25 },
+      { resourceType: 'food', quantity: 20 },
     ],
     unlocks: ['polished_stone'],
     enablesRecipes: ['stone_adze'],
@@ -101,6 +113,7 @@ export const TECHNOLOGIES: Technology[] = [
     resourceCost: [
       { resourceType: 'stone', quantity: 100 },
       { resourceType: 'wood', quantity: 40 },
+      { resourceType: 'food', quantity: 40 },
     ],
     unlocks: [],
     enablesRecipes: ['polished_axe'],

@@ -40,7 +40,7 @@ describe('Tech Tree Data', () => {
       TECHNOLOGIES.forEach((tech) => {
         tech.resourceCost.forEach((cost) => {
           expect(cost.quantity).toBeGreaterThan(0);
-          expect(['stone', 'wood']).toContain(cost.resourceType);
+          expect(['stone', 'wood', 'food']).toContain(cost.resourceType);
         });
       });
     });

@@ -31,6 +31,10 @@ export interface CraftCheckResult {
   availableMaterials: Partial<Record<MaterialType, string[]>>;
   // Available component instance IDs
   availableComponents: string[];
+  // Food cost for this craft (represents time/effort)
+  foodCost: number;
+  // Available food IDs that have enough quantity
+  availableFoods: string[];
 }
 
 // Parameters for crafting
@@ -39,6 +43,8 @@ export interface CraftParams {
   selectedMaterials?: Partial<Record<MaterialType, string>>;
   // Selected component instance IDs
   selectedComponentIds?: string[];
+  // Selected foods with quantities (resourceId -> quantity)
+  selectedFoods?: Record<string, number>;
 }
 
 // Successful craft result
@@ -128,6 +134,97 @@ function generateInstanceId(baseId: string): string {
 }
 
 /**
+ * Calculate the food cost for crafting based on materials used.
+ * Food cost = sum of (quantity × workability factor) for each non-food material.
+ * Higher workability = easier to work = less food consumed.
+ * Formula: quantity × (11 - workability) / 10
+ * - Workability 10 → 0.1× multiplier (very easy, minimal food)
+ * - Workability 1 → 1.0× multiplier (very hard, maximum food)
+ */
+export function calculateFoodCost(
+  materials: MaterialRequirements,
+  selectedMaterials: Partial<Record<MaterialType, string>>
+): number {
+  let totalCost = 0;
+
+  for (const materialType of getAllMaterialTypes()) {
+    // Skip food - it's not a cost input
+    if (materialType === 'food') continue;
+
+    const requirement = materials[materialType];
+    if (!requirement) continue;
+
+    const selectedId = selectedMaterials[materialType];
+    if (!selectedId) continue;
+
+    const config = getMaterialConfig(materialType);
+    const resource = config.getResourceById(selectedId);
+    if (!resource) continue;
+
+    // Get workability from resource properties (default to 5 if not defined)
+    const workability = resource.properties.workability ?? 5;
+
+    // Calculate cost: harder to work (lower workability) = more food
+    // workability 1 → factor 1.0, workability 10 → factor 0.1
+    const workabilityFactor = (11 - workability) / 10;
+    totalCost += requirement.quantity * workabilityFactor;
+  }
+
+  // Round up to ensure at least 1 food if any materials used
+  return Math.ceil(totalCost);
+}
+
+/**
+ * Calculate estimated food cost based on best available materials.
+ * Uses the highest workability material available for each type to give
+ * the most optimistic estimate (lowest possible food cost).
+ */
+function estimateFoodCostFromAvailable(
+  materials: MaterialRequirements,
+  availableMaterials: Partial<Record<MaterialType, string[]>>
+): number {
+  let totalCost = 0;
+
+  for (const materialType of getAllMaterialTypes()) {
+    if (materialType === 'food') continue;
+
+    const requirement = materials[materialType];
+    if (!requirement) continue;
+
+    const available = availableMaterials[materialType] || [];
+    if (available.length === 0) continue;
+
+    // Find the best workability among available materials
+    const config = getMaterialConfig(materialType);
+    let bestWorkability = 1; // Default to worst case
+
+    for (const materialId of available) {
+      const resource = config.getResourceById(materialId);
+      if (resource) {
+        const workability = resource.properties.workability ?? 5;
+        if (workability > bestWorkability) {
+          bestWorkability = workability;
+        }
+      }
+    }
+
+    // Calculate cost using best available workability
+    const workabilityFactor = (11 - bestWorkability) / 10;
+    totalCost += requirement.quantity * workabilityFactor;
+  }
+
+  return Math.ceil(totalCost);
+}
+
+/**
+ * Find available foods that have enough quantity for the food cost
+ */
+function findAvailableFoods(foodStacks: ResourceStack[], requiredQuantity: number): string[] {
+  if (requiredQuantity === 0) return [];
+  return foodStacks.filter((s) => s.quantity >= requiredQuantity).map((s) => s.resourceId);
+}
+
+/**
  * Check if a craftable (Tool or CraftedComponent) can be crafted
  * Returns available material options and any missing requirements
  */
@@ -167,6 +264,9 @@ export function canCraft(
   // Check material requirements and find available options - now dynamic
   const { materials } = craftable;
   for (const materialType of getAllMaterialTypes()) {
+    // Skip food in material requirements - it's handled separately as food cost
+    if (materialType === 'food') continue;
+
     const requirement = materials[materialType];
     if (requirement) {
       const config = getMaterialConfig(materialType);
@@ -186,11 +286,20 @@ export function canCraft(
     }
   }
 
+  // Calculate estimated food cost based on best available materials
+  const estimatedFoodCost = estimateFoodCostFromAvailable(materials, availableMaterials);
+
+  // Find available foods that can cover the cost
+  // Note: Food is NOT a blocking requirement - player can enter modal without sufficient food
+  const availableFoods = findAvailableFoods(state.inventory.food, estimatedFoodCost);
+
   return {
     canCraft: missing.length === 0,
     missingRequirements: missing,
     availableMaterials,
     availableComponents: availableComponentIds,
+    foodCost: estimatedFoodCost,
+    availableFoods,
   };
 }
 
@@ -302,6 +411,40 @@ export function craft(
   }
   const { usedMaterials } = materialValidation;
 
+  // Calculate actual food cost based on selected materials' workability
+  const actualFoodCost = calculateFoodCost(craftable.materials, params.selectedMaterials || {});
+
+  // Validate food selection if there's a cost
+  if (actualFoodCost > 0) {
+    if (!params.selectedFoods || Object.keys(params.selectedFoods).length === 0) {
+      return { success: false, error: 'Food not selected for crafting effort' };
+    }
+
+    // Check total selected quantity meets the cost
+    const totalSelectedFood = Object.values(params.selectedFoods).reduce(
+      (sum, qty) => sum + qty,
+      0
+    );
+    if (totalSelectedFood < actualFoodCost) {
+      return {
+        success: false,
+        error: `Not enough food selected (need ${actualFoodCost}, selected ${totalSelectedFood})`,
+      };
+    }
+
+    // Check each selected food has enough quantity in inventory
+    for (const [foodId, quantity] of Object.entries(params.selectedFoods)) {
+      if (quantity <= 0) continue;
+      const available = getResourceCount(state.inventory.food, foodId);
+      if (available < quantity) {
+        return {
+          success: false,
+          error: `Not enough ${foodId} (need ${quantity}, have ${available})`,
+        };
+      }
+    }
+  }
+
   // Validate component selection
   const componentValidation = validateComponentSelection(
     craftable.requiredComponents,
@@ -318,6 +461,9 @@ export function craft(
   // Build new inventory (consume materials) - now dynamic
   const newInventory: Inventory = { ...state.inventory };
   for (const materialType of getAllMaterialTypes()) {
+    // Skip food here - we handle it separately below
+    if (materialType === 'food') continue;
+
     const used = usedMaterials[materialType];
     if (used) {
       newInventory[materialType] = consumeFromStacks(
@@ -326,6 +472,17 @@ export function craft(
         used.quantity
       );
     }
+  }
+
+  // Consume food for crafting effort
+  if (actualFoodCost > 0 && params.selectedFoods) {
+    let foodStacks = [...state.inventory.food];
+    for (const [foodId, quantity] of Object.entries(params.selectedFoods)) {
+      if (quantity > 0) {
+        foodStacks = consumeFromStacks(foodStacks, foodId, quantity);
+      }
+    }
+    newInventory.food = foodStacks;
   }
 
   // Consume components

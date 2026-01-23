@@ -362,6 +362,7 @@ export default function CraftingScreen() {
       craftable,
       selectedMaterials: selection.selectedMaterials,
       selectedComponentIds: selection.componentIds,
+      selectedFoods: selection.selectedFoods,
     });
 
     if (result.success) {

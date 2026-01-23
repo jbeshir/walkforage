@@ -46,7 +46,7 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }], // Food for crafting effort
           },
         });
         const result = CraftingService.canCraft(hammerstone, state);
@@ -54,6 +54,7 @@ describe('CraftingService', () => {
         expect(result.canCraft).toBe(true);
         expect(result.missingRequirements).toEqual([]);
         expect(result.availableMaterials.stone).toContain('granite');
+        expect(result.foodCost).toBeGreaterThan(0); // Should have a food cost
       });
 
       it('should check for toolstone requirement', () => {
@@ -72,7 +73,7 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }], // Not a toolstone
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }],
           },
         });
 
@@ -92,7 +93,7 @@ describe('CraftingService', () => {
               { resourceId: 'basalt', quantity: 10 }, // Enough for requirements
             ],
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }],
           },
         });
 
@@ -100,6 +101,7 @@ describe('CraftingService', () => {
 
         expect(result.availableMaterials.stone).toContain('granite');
         expect(result.availableMaterials.stone).toContain('basalt');
+        expect(result.availableFoods).toContain('wild_garlic');
       });
     });
 
@@ -184,11 +186,16 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }], // Has food
           },
         });
 
-        const result = CraftingService.craft(hammerstone, {}, state);
+        // Pass food but no stone selection
+        const result = CraftingService.craft(
+          hammerstone,
+          { selectedFoods: { wild_garlic: 10 } }, // No selectedMaterials
+          state
+        );
 
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -196,20 +203,21 @@ describe('CraftingService', () => {
         }
       });
 
-      it('should succeed and consume materials', () => {
+      it('should succeed and consume materials including food', () => {
         const initialQuantity = 20; // More than required so some remains
+        const initialFoodQuantity = 20;
         const state = createTestState({
           unlockedTechs: [hammerstone.requiredTech],
           inventory: {
             stone: [{ resourceId: 'granite', quantity: initialQuantity }],
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: initialFoodQuantity }],
           },
         });
 
         const result = CraftingService.craft(
           hammerstone,
-          { selectedMaterials: { stone: 'granite' } },
+          { selectedMaterials: { stone: 'granite' }, selectedFoods: { wild_garlic: 10 } },
           state
         );
 
@@ -221,6 +229,13 @@ describe('CraftingService', () => {
           );
           expect(stoneStack).toBeDefined();
           expect(stoneStack!.quantity).toBeLessThan(initialQuantity);
+
+          // Food should be consumed
+          const foodStack = result.newState.inventory.food.find(
+            (s) => s.resourceId === 'wild_garlic'
+          );
+          expect(foodStack).toBeDefined();
+          expect(foodStack!.quantity).toBeLessThan(initialFoodQuantity);
 
           // Tool should be added
           expect(result.newState.ownedTools.length).toBe(1);
@@ -238,13 +253,13 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'granite', quantity: 10 }],
             wood: [],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }],
           },
         });
 
         const result = CraftingService.craft(
           hammerstone,
-          { selectedMaterials: { stone: 'granite' } },
+          { selectedMaterials: { stone: 'granite' }, selectedFoods: { wild_garlic: 10 } },
           state
         );
 
@@ -254,6 +269,87 @@ describe('CraftingService', () => {
           expect(tool.quality).toBeGreaterThanOrEqual(0);
           expect(tool.quality).toBeLessThanOrEqual(1);
         }
+      });
+
+      it('should fail when food not selected', () => {
+        const state = createTestState({
+          unlockedTechs: [hammerstone.requiredTech],
+          inventory: {
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }],
+          },
+        });
+
+        const result = CraftingService.craft(
+          hammerstone,
+          { selectedMaterials: { stone: 'granite' } }, // No selectedFood
+          state
+        );
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toContain('Food not selected');
+        }
+      });
+
+      it('should allow entering craft modal without food (non-blocking)', () => {
+        // State with no food - canCraft should still pass (food is not blocking)
+        const stateNoFood = createTestState({
+          unlockedTechs: [hammerstone.requiredTech],
+          inventory: {
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            food: [], // No food
+          },
+        });
+
+        const canCraftResult = CraftingService.canCraft(hammerstone, stateNoFood);
+        // Food is NOT a blocking requirement - can enter modal without it
+        expect(canCraftResult.canCraft).toBe(true);
+        expect(canCraftResult.missingRequirements.some((r) => r.includes('Food:'))).toBe(false);
+        expect(canCraftResult.foodCost).toBeGreaterThan(0);
+        expect(canCraftResult.availableFoods).toEqual([]); // No food available
+      });
+
+      it('should fail craft when food not available', () => {
+        // State with no food - craft should fail
+        const stateNoFood = createTestState({
+          unlockedTechs: [hammerstone.requiredTech],
+          inventory: {
+            stone: [{ resourceId: 'granite', quantity: 10 }],
+            wood: [],
+            food: [], // No food
+          },
+        });
+
+        const result = CraftingService.craft(
+          hammerstone,
+          { selectedMaterials: { stone: 'granite' } }, // No food selected
+          stateNoFood
+        );
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toContain('Food not selected');
+        }
+      });
+
+      it('should calculate food cost based on material quantity', () => {
+        const state = createTestState({
+          unlockedTechs: [hammerstone.requiredTech],
+          inventory: {
+            stone: [{ resourceId: 'granite', quantity: 20 }],
+            wood: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 50 }],
+          },
+        });
+
+        const result = CraftingService.canCraft(hammerstone, state);
+        expect(result.foodCost).toBeGreaterThan(0);
+        // Hammerstone requires 10 stone, so food cost should be based on that
+        expect(result.foodCost).toBeLessThanOrEqual(10); // Max if workability is 1
+        expect(result.foodCost).toBeGreaterThanOrEqual(1); // Min if workability is 10
       });
     });
 
@@ -274,7 +370,7 @@ describe('CraftingService', () => {
           inventory: {
             stone: [],
             wood: [{ resourceId: 'european_ash', quantity: 10 }],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 20 }],
           },
         });
 
@@ -288,7 +384,7 @@ describe('CraftingService', () => {
 
         const result = CraftingService.craft(
           crudeHandle,
-          { selectedMaterials: { wood: 'european_ash' } },
+          { selectedMaterials: { wood: 'european_ash' }, selectedFoods: { wild_garlic: 10 } },
           state
         );
 
@@ -331,7 +427,7 @@ describe('CraftingService', () => {
           inventory: {
             stone: [{ resourceId: 'flint', quantity: 20 }],
             wood: [{ resourceId: 'european_ash', quantity: 20 }],
-            food: [],
+            food: [{ resourceId: 'wild_garlic', quantity: 50 }],
           },
         });
 
@@ -346,6 +442,7 @@ describe('CraftingService', () => {
           {
             selectedMaterials: { stone: 'flint', wood: 'european_ash' },
             selectedComponentIds: [componentInstanceId],
+            selectedFoods: { wild_garlic: 10 },
           },
           state
         );
@@ -378,13 +475,13 @@ describe('CraftingService', () => {
         inventory: {
           stone: [{ resourceId: 'granite', quantity: 10 }],
           wood: [],
-          food: [],
+          food: [{ resourceId: 'wild_garlic', quantity: 20 }],
         },
       });
 
       const result = CraftingService.craft(
         hammerstone,
-        { selectedMaterials: { stone: 'granite' } },
+        { selectedMaterials: { stone: 'granite' }, selectedFoods: { wild_garlic: 10 } },
         state
       );
 

@@ -23,6 +23,7 @@ import {
 } from '../utils/qualityCalculation';
 import { getComponentById } from '../data/tools';
 import { ThemeColors } from '../config/theme';
+import { calculateFoodCost } from '../services/CraftingService';
 
 interface MaterialSelectionModalProps {
   visible: boolean;
@@ -37,6 +38,7 @@ interface MaterialSelectionModalProps {
 export interface MaterialSelection {
   selectedMaterials: Partial<Record<MaterialType, string>>;
   componentIds?: string[];
+  selectedFoods?: Record<string, number>;
 }
 
 interface MaterialOptionProps {
@@ -110,6 +112,92 @@ function MaterialOption({
       </View>
       {isSelected && <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>}
     </TouchableOpacity>
+  );
+}
+
+interface FoodQuantitySelectorProps {
+  foodId: string;
+  availableQuantity: number;
+  selectedQuantity: number;
+  onQuantityChange: (quantity: number) => void;
+  colors: ThemeColors;
+}
+
+function FoodQuantitySelector({
+  foodId,
+  availableQuantity,
+  selectedQuantity,
+  onQuantityChange,
+  colors,
+}: FoodQuantitySelectorProps) {
+  const config = getMaterialConfig('food');
+  const food = config.getResourceById(foodId);
+  if (!food) return null;
+
+  const increment = () => {
+    if (selectedQuantity < availableQuantity) {
+      onQuantityChange(selectedQuantity + 1);
+    }
+  };
+
+  const decrement = () => {
+    if (selectedQuantity > 0) {
+      onQuantityChange(selectedQuantity - 1);
+    }
+  };
+
+  const isActive = selectedQuantity > 0;
+
+  return (
+    <View
+      style={[
+        styles.foodQuantityRow,
+        { backgroundColor: colors.surfaceSecondary, borderColor: 'transparent' },
+        isActive && { borderColor: colors.primary, backgroundColor: colors.selectedBackground },
+      ]}
+    >
+      <View
+        style={[
+          styles.materialColorSwatch,
+          { backgroundColor: food.color, borderColor: colors.border },
+        ]}
+      />
+      <View style={styles.materialInfo}>
+        <Text style={[styles.materialName, { color: colors.textPrimary }]}>
+          {food.name}{' '}
+          <Text style={[styles.materialQuantity, { color: colors.textSecondary }]}>
+            ({availableQuantity} available)
+          </Text>
+        </Text>
+      </View>
+      <View style={styles.quantityControls}>
+        <TouchableOpacity
+          style={[
+            styles.quantityButton,
+            { backgroundColor: colors.border },
+            selectedQuantity === 0 && { opacity: 0.4 },
+          ]}
+          onPress={decrement}
+          disabled={selectedQuantity === 0}
+        >
+          <Text style={[styles.quantityButtonText, { color: colors.textPrimary }]}>−</Text>
+        </TouchableOpacity>
+        <Text style={[styles.quantityValue, { color: colors.textPrimary }]}>
+          {selectedQuantity}
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.quantityButton,
+            { backgroundColor: colors.primary },
+            selectedQuantity >= availableQuantity && { opacity: 0.4 },
+          ]}
+          onPress={increment}
+          disabled={selectedQuantity >= availableQuantity}
+        >
+          <Text style={[styles.quantityButtonText, { color: '#fff' }]}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
@@ -194,6 +282,8 @@ export default function MaterialSelectionModal({
     {}
   );
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+  // Food quantities keyed by resourceId
+  const [selectedFoods, setSelectedFoods] = useState<Record<string, number>>({});
 
   // Track previous visibility to detect when modal opens
   const prevVisibleRef = useRef(false);
@@ -250,6 +340,9 @@ export default function MaterialSelectionModal({
         }
       }
       setSelectedComponentIds(autoSelectedComponents);
+
+      // Reset food selections - user will select quantities manually
+      setSelectedFoods({});
     };
 
     // Schedule initialization for next tick to avoid sync setState in effect
@@ -287,6 +380,12 @@ export default function MaterialSelectionModal({
 
   const qualityPreview = getQualityPreview();
 
+  // Calculate actual food cost based on selected materials' workability
+  const actualFoodCost = calculateFoodCost(materials, selectedMaterials);
+
+  // Calculate total selected food quantity
+  const totalSelectedFood = Object.values(selectedFoods).reduce((sum, qty) => sum + qty, 0);
+
   // Check if selection is valid
   const isSelectionValid = () => {
     // Check all required materials are selected
@@ -304,13 +403,34 @@ export default function MaterialSelectionModal({
         if (selectedOfType.length < req.quantity) return false;
       }
     }
+
+    // Check enough food is selected if there's a food cost
+    if (actualFoodCost > 0 && totalSelectedFood < actualFoodCost) return false;
+
+    // Check each selected food doesn't exceed available quantity
+    for (const [foodId, quantity] of Object.entries(selectedFoods)) {
+      if (quantity > 0) {
+        const available = getResourceCount('food', foodId);
+        if (quantity > available) return false;
+      }
+    }
+
     return true;
   };
 
   const handleConfirm = () => {
+    // Filter out zero quantities
+    const foodsToUse: Record<string, number> = {};
+    for (const [foodId, quantity] of Object.entries(selectedFoods)) {
+      if (quantity > 0) {
+        foodsToUse[foodId] = quantity;
+      }
+    }
+
     onConfirm({
       selectedMaterials,
       componentIds: selectedComponentIds.length > 0 ? selectedComponentIds : undefined,
+      selectedFoods: Object.keys(foodsToUse).length > 0 ? foodsToUse : undefined,
     });
   };
 
@@ -485,6 +605,38 @@ export default function MaterialSelectionModal({
                     </View>
                   );
                 })}
+              </View>
+            )}
+
+            {/* Food Selection - for crafting effort cost */}
+            {actualFoodCost > 0 && (
+              <View style={styles.section}>
+                <View style={styles.foodCostHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                    Select Food ({totalSelectedFood}/{actualFoodCost})
+                  </Text>
+                  <Text style={[styles.foodCostNote, { color: colors.textTertiary }]}>
+                    🍎 Food sustains you during the time spent crafting
+                  </Text>
+                </View>
+                {state.inventory.food.length === 0 ? (
+                  <Text style={[styles.noOptionsText, { color: colors.textTertiary }]}>
+                    No food available
+                  </Text>
+                ) : (
+                  state.inventory.food.map((stack) => (
+                    <FoodQuantitySelector
+                      key={stack.resourceId}
+                      foodId={stack.resourceId}
+                      availableQuantity={stack.quantity}
+                      selectedQuantity={selectedFoods[stack.resourceId] || 0}
+                      onQuantityChange={(qty) =>
+                        setSelectedFoods((prev) => ({ ...prev, [stack.resourceId]: qty }))
+                      }
+                      colors={colors}
+                    />
+                  ))
+                )}
               </View>
             )}
 
@@ -742,6 +894,43 @@ const styles = StyleSheet.create({
   legendItem: {
     fontSize: 11,
     marginBottom: 2,
+  },
+  foodCostHeader: {
+    marginBottom: 10,
+  },
+  foodCostNote: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  foodQuantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 2,
+  },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quantityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quantityButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  quantityValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    minWidth: 32,
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',

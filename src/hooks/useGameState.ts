@@ -396,11 +396,11 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   // Unified craft using CraftingService
   const craft = useCallback(
     (params: CraftItemParams): { success: boolean; error?: string } => {
-      const { craftable, selectedMaterials, selectedComponentIds } = params;
+      const { craftable, selectedMaterials, selectedComponentIds, selectedFoods } = params;
 
       const result = CraftingService.craft(
         craftable,
-        { selectedMaterials, selectedComponentIds },
+        { selectedMaterials, selectedComponentIds, selectedFoods },
         getCraftingState()
       );
 
