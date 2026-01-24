@@ -1,7 +1,7 @@
 // Location tracking hook for WalkForage
 // Handles GPS for map display
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Location from 'expo-location';
 
 export interface LocationState {
@@ -11,9 +11,17 @@ export interface LocationState {
   timestamp: number;
 }
 
+export type LocationStatus =
+  | 'idle'
+  | 'requesting_permission'
+  | 'getting_location'
+  | 'tracking'
+  | 'error';
+
 export interface LocationHookResult {
   location: LocationState | null;
   error: string | null;
+  status: LocationStatus;
   isTracking: boolean;
   startTracking: () => Promise<void>;
   stopTracking: () => void;
@@ -22,19 +30,48 @@ export interface LocationHookResult {
 export function useLocation(): LocationHookResult {
   const [location, setLocation] = useState<LocationState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isTracking, setIsTracking] = useState(false);
-  const [subscription, setSubscription] = useState<Location.LocationSubscription | null>(null);
+  const [status, setStatus] = useState<LocationStatus>('idle');
+  const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
 
   const startTracking = useCallback(async () => {
+    // Prevent multiple simultaneous starts
+    if (status === 'requesting_permission' || status === 'getting_location') {
+      return;
+    }
+
     try {
+      setStatus('requesting_permission');
+      setError(null);
+
       // Request permissions
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
       if (foregroundStatus !== 'granted') {
-        setError('Location permission denied');
+        setError('Location permission denied. Please enable in Settings.');
+        setStatus('error');
         return;
       }
 
-      // Start watching position
+      setStatus('getting_location');
+
+      // Get current position immediately (with timeout)
+      try {
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        const initialState: LocationState = {
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+          accuracy: currentLocation.coords.accuracy,
+          timestamp: currentLocation.timestamp,
+        };
+        setLocation(initialState);
+      } catch (posErr) {
+        // Log but don't fail - we'll still try to watch for updates
+        console.warn('Could not get immediate location, waiting for updates:', posErr);
+      }
+
+      // Start watching position for ongoing updates
       const sub = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced,
@@ -49,38 +86,42 @@ export function useLocation(): LocationHookResult {
             timestamp: newLocation.timestamp,
           };
           setLocation(newState);
+          setStatus('tracking');
         }
       );
 
-      setSubscription(sub);
-      setIsTracking(true);
+      subscriptionRef.current = sub;
+      setStatus('tracking');
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start location tracking');
+      const message = err instanceof Error ? err.message : 'Failed to start location tracking';
+      setError(message);
+      setStatus('error');
     }
-  }, []);
+  }, [status]);
 
   const stopTracking = useCallback(() => {
-    if (subscription) {
-      subscription.remove();
-      setSubscription(null);
+    if (subscriptionRef.current) {
+      subscriptionRef.current.remove();
+      subscriptionRef.current = null;
     }
-    setIsTracking(false);
-  }, [subscription]);
+    setStatus('idle');
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (subscription) {
-        subscription.remove();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.remove();
       }
     };
-  }, [subscription]);
+  }, []);
 
   return {
     location,
     error,
-    isTracking,
+    status,
+    isTracking: status === 'tracking',
     startTracking,
     stopTracking,
   };

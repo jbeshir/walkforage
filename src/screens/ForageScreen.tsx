@@ -36,12 +36,27 @@ export default function ForageScreen() {
     autoSyncInterval: 60000, // Sync every minute
   });
 
-  const { location, error, startTracking } = useLocation();
+  const { location, error, status, startTracking } = useLocation();
 
   // Auto-start tracking on mount
   useEffect(() => {
     void startTracking();
   }, [startTracking]);
+
+  // Get user-friendly status message
+  const getStatusMessage = () => {
+    if (error) return error;
+    switch (status) {
+      case 'requesting_permission':
+        return 'Requesting location permission...';
+      case 'getting_location':
+        return 'Getting your location...';
+      case 'idle':
+        return 'Starting location services...';
+      default:
+        return 'Waiting for location...';
+    }
+  };
 
   // Fetch geo data when location changes
   useEffect(() => {
@@ -73,8 +88,16 @@ export default function ForageScreen() {
       ) : (
         <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            {error || 'Waiting for location...'}
+            {getStatusMessage()}
           </Text>
+          {status === 'error' && (
+            <Text
+              style={[styles.retryText, { color: colors.primary }]}
+              onPress={() => void startTracking()}
+            >
+              Tap to retry
+            </Text>
+          )}
         </View>
       )}
 
@@ -104,7 +127,12 @@ export default function ForageScreen() {
 
       {/* Forage panel */}
       <View style={styles.forageOverlay}>
-        <StepGatherPanel stepGathering={stepGathering} geoData={geoData} compact={true} />
+        <StepGatherPanel
+          stepGathering={stepGathering}
+          geoData={geoData}
+          hasLocation={location !== null}
+          compact={true}
+        />
       </View>
     </View>
   );
@@ -125,6 +153,11 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
+  },
+  retryText: {
+    fontSize: 14,
+    marginTop: 12,
+    fontWeight: '600',
   },
   terrainOverlay: {
     position: 'absolute',

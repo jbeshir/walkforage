@@ -50,7 +50,7 @@ describe('useLocation', () => {
         await result.current.startTracking();
       });
 
-      expect(result.current.error).toBe('Location permission denied');
+      expect(result.current.error).toBe('Location permission denied. Please enable in Settings.');
       expect(result.current.isTracking).toBe(false);
     });
 

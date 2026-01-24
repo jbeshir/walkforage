@@ -31,11 +31,18 @@ export interface StepGatherPanelProps {
   stepGathering: UseStepGatheringReturn;
   /** Current location geo data for geo-appropriate resource selection */
   geoData: LocationGeoData | null;
+  /** Whether we have GPS location (even if geoData is still loading) */
+  hasLocation?: boolean;
   /** Whether to show in compact mode (for overlay) */
   compact?: boolean;
 }
 
-export function StepGatherPanel({ stepGathering, geoData, compact = false }: StepGatherPanelProps) {
+export function StepGatherPanel({
+  stepGathering,
+  geoData,
+  hasLocation = false,
+  compact = false,
+}: StepGatherPanelProps) {
   const {
     availableSteps,
     totalStepsGathered,
@@ -304,8 +311,8 @@ export function StepGatherPanel({ stepGathering, geoData, compact = false }: Ste
             ))}
           </View>
           {!geoData && (
-            <Text style={[styles.locationWarning, { color: colors.warning }]}>
-              Waiting for location...
+            <Text style={[styles.locationWarning, { color: colors.textTertiary }]}>
+              {hasLocation ? 'Loading terrain data...' : 'Waiting for location...'}
             </Text>
           )}
         </View>
