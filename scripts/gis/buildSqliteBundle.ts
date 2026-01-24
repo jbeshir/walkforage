@@ -62,86 +62,201 @@ const DB_PATH = path.join(ASSETS_DIR, 'tiles.db');
 const TEMP_DB_PATH = path.join(os.tmpdir(), `walkforage-tiles-${Date.now()}.db`);
 
 /**
+ * Complete list of specific rock types we can map to game resources.
+ * Ordered roughly by specificity and commonality.
+ */
+const SPECIFIC_ROCKS = [
+  // Igneous - Plutonic
+  'granite',
+  'granodiorite',
+  'diorite',
+  'gabbro',
+  'syenite',
+  'tonalite',
+  'monzonite',
+  'peridotite',
+  'dunite',
+  'pyroxenite',
+
+  // Igneous - Volcanic
+  'basalt',
+  'andesite',
+  'rhyolite',
+  'dacite',
+  'trachyte',
+  'phonolite',
+  'obsidian',
+  'pumice',
+  'tuff',
+  'ignimbrite',
+
+  // Sedimentary - Clastic
+  'sandstone',
+  'siltstone',
+  'shale',
+  'mudstone',
+  'claystone',
+  'conglomerate',
+  'breccia',
+  'greywacke',
+  'arkose',
+
+  // Sedimentary - Carbonate
+  'limestone',
+  'dolomite',
+  'dolostone',
+  'chalk',
+  'marl',
+  'travertine',
+  'tufa',
+
+  // Sedimentary - Chemical/Organic
+  'chert',
+  'novaculite',
+  'flint',
+  'jasper',
+  'coal',
+  'lignite',
+  'peat',
+
+  // Metamorphic - Foliated
+  'slate',
+  'phyllite',
+  'schist',
+  'gneiss',
+  'migmatite',
+
+  // Metamorphic - Non-foliated
+  'marble',
+  'quartzite',
+  'amphibolite',
+  'hornfels',
+  'serpentinite',
+  'soapstone',
+  'greenstone',
+  'blueschist',
+  'eclogite',
+  'granulite',
+];
+
+/**
+ * Parse structured lithology fields like "Major:{granite,gneiss};Minor:{schist}"
+ * Also handles variants without colon: "Major{...}" and "Minor{...}"
+ */
+function parseStructuredFields(lith: string): { major: string[]; minor: string[] } {
+  const major: string[] = [];
+  const minor: string[] = [];
+
+  // Match both "Major:{...}" and "Major{...}" (some data has typos)
+  const majorMatch = lith.match(/Major:?\{([^}]+)\}/i);
+  if (majorMatch) {
+    major.push(...majorMatch[1].split(',').map((s) => s.trim().toLowerCase()));
+  }
+
+  // Match both "Minor:{...}" and "Minor{...}"
+  const minorMatch = lith.match(/Minor:?\{([^}]+)\}/i);
+  if (minorMatch) {
+    minor.push(...minorMatch[1].split(',').map((s) => s.trim().toLowerCase()));
+  }
+
+  return { major, minor };
+}
+
+/**
+ * Find a specific rock type in a string.
+ * Returns the first matching specific rock, or null if none found.
+ */
+function findSpecificRock(text: string): string | null {
+  const lower = text.toLowerCase();
+  for (const rock of SPECIFIC_ROCKS) {
+    if (lower.includes(rock)) return rock;
+  }
+  return null;
+}
+
+/**
  * Normalize Macrostrat lithology names to simple mapping keys.
+ *
+ * Priority order:
+ * 1. Parse structured Major:{...} fields first (most reliable)
+ * 2. Direct matches for specific rock types
+ * 3. Compositional inference (e.g., "mafic volcanic" → basalt)
+ * 4. Generic fallback (LAST RESORT)
  */
 function normalizeLithology(lith: string): string {
   const lower = lith.toLowerCase().trim();
 
-  const directMatches = [
-    'sandstone',
-    'siltstone',
-    'shale',
-    'mudstone',
-    'claystone',
-    'conglomerate',
-    'breccia',
-    'limestone',
-    'dolomite',
-    'dolostone',
-    'chalk',
-    'marl',
-    'chert',
-    'novaculite',
-    'granite',
-    'granodiorite',
-    'diorite',
-    'gabbro',
-    'basalt',
-    'andesite',
-    'rhyolite',
-    'dacite',
-    'tuff',
-    'pumice',
-    'obsidian',
-    'ignimbrite',
-    'marble',
-    'slate',
-    'phyllite',
-    'schist',
-    'gneiss',
-    'quartzite',
-    'amphibolite',
-  ];
+  // PRIORITY 1: Parse structured fields like "Major:{granite,gneiss}"
+  // These are the most reliable as they come from structured Macrostrat data
+  const structured = parseStructuredFields(lith);
 
-  for (const match of directMatches) {
-    if (lower.includes(match)) return match;
+  // Check major lithologies first
+  for (const majorLith of structured.major) {
+    const specific = findSpecificRock(majorLith);
+    if (specific) return specific;
   }
 
-  if (lower.includes('volcanic') && lower.includes('mafic')) return 'basalt';
-  if (lower.includes('volcanic') && lower.includes('felsic')) return 'rhyolite';
-  if (lower.includes('volcanic') && lower.includes('intermediate')) return 'andesite';
-  if (lower.includes('mafic volcanic') || lower.includes('mafic-volcanic')) return 'basalt';
-  if (lower.includes('felsic volcanic') || lower.includes('felsic-volcanic')) return 'rhyolite';
-  if (lower.includes('flood basalt')) return 'basalt';
-  if (lower.includes('basalt group')) return 'basalt';
+  // Check minor lithologies
+  for (const minorLith of structured.minor) {
+    const specific = findSpecificRock(minorLith);
+    if (specific) return specific;
+  }
+
+  // PRIORITY 2: Direct matches for specific rock types in unstructured text
+  const directMatch = findSpecificRock(lower);
+  if (directMatch) return directMatch;
+
+  // PRIORITY 3: Compositional/textural inference
+  // Volcanic compositions
+  if (lower.includes('mafic') && lower.includes('volcanic')) return 'basalt';
+  if (lower.includes('felsic') && lower.includes('volcanic')) return 'rhyolite';
+  if (lower.includes('intermediate') && lower.includes('volcanic')) return 'andesite';
+  if (lower.includes('flood basalt') || lower.includes('basalt group')) return 'basalt';
+
+  // Plutonic compositions
+  if (lower.includes('mafic') && lower.includes('plutonic')) return 'gabbro';
+  if (lower.includes('felsic') && lower.includes('plutonic')) return 'granite';
+  if (lower.includes('intermediate') && lower.includes('plutonic')) return 'diorite';
   if (lower.includes('plutonic') && lower.includes('granit')) return 'granite';
   if (lower.includes('intrusive') && lower.includes('igneous')) return 'granite';
+
+  // Metamorphic textures
   if (lower.includes('crystalline') && lower.includes('metamorphic')) return 'gneiss';
-  if (lower.includes('sedimentary') && lower.includes('volcanic')) return 'tuff';
+  if (lower.includes('foliated') && lower.includes('metamorphic')) return 'schist';
+  if (lower.includes('high-grade') && lower.includes('metamorphic')) return 'gneiss';
+  if (lower.includes('low-grade') && lower.includes('metamorphic')) return 'slate';
+
+  // Sedimentary textures and compositions
   if (lower.includes('volcaniclastic')) return 'tuff';
+  if (lower.includes('sedimentary') && lower.includes('volcanic')) return 'tuff';
+  if (lower.includes('carbonate') && !lower.includes('non-carbonate')) return 'limestone';
+  if (lower.includes('calcareous')) return 'limestone';
+
+  // Unconsolidated sediments (map to consolidated equivalents)
   if (lower.includes('alluvium') || lower.includes('alluvial')) return 'conglomerate';
   if (lower.includes('glacial') || lower.includes('drift') || lower.includes('till'))
     return 'conglomerate';
   if (lower.includes('sand') && !lower.includes('sandstone')) return 'sandstone';
+  if (lower.includes('gravel')) return 'conglomerate';
+  if (lower.includes('silt') && !lower.includes('siltstone')) return 'siltstone';
   if (lower.includes('clay') && !lower.includes('claystone')) return 'clay';
-  if (lower.includes('iron') || lower.includes('hematite') || lower.includes('magnetite'))
+  if (lower.includes('mud') && !lower.includes('mudstone')) return 'mudstone';
+
+  // Iron-rich rocks
+  if (
+    lower.includes('iron formation') ||
+    lower.includes('banded iron') ||
+    lower.includes('hematite') ||
+    lower.includes('magnetite')
+  )
     return 'iron_formation';
+
+  // PRIORITY 4: Generic fallback (LAST RESORT)
+  // Only use these if we couldn't find anything more specific
   if (lower.includes('sedimentary')) return 'mixed_sedimentary';
   if (lower.includes('metamorphic')) return 'mixed_metamorphic';
   if (lower.includes('igneous')) return 'mixed_igneous';
-  if (lower.includes('volcanic')) return 'tuff';
-
-  const majorMatch = lower.match(/major:\{([^}]+)\}/);
-  if (majorMatch) {
-    const majorRock = majorMatch[1].split(',')[0].trim();
-    for (const match of directMatches) {
-      if (majorRock.includes(match)) return match;
-    }
-    if (majorRock.includes('sand')) return 'sandstone';
-    if (majorRock.includes('clay')) return 'clay';
-    if (majorRock.includes('lime')) return 'limestone';
-    if (majorRock.includes('alluvium')) return 'conglomerate';
-  }
+  if (lower.includes('volcanic')) return 'tuff'; // Assume volcaniclastic
 
   return 'unknown';
 }
@@ -173,6 +288,22 @@ function loadBiomeData(): BiomeRecord[] {
 
   const content = fs.readFileSync(dataPath, 'utf-8');
   const data: RawDataFile<BiomeRecord> = JSON.parse(content);
+  return data.records;
+}
+
+/**
+ * Load high-resolution city geology data (precision-5).
+ * This data takes precedence over global precision-4 data.
+ */
+function loadCityGeologyData(): GeologyRecord[] {
+  const dataPath = path.join(OUTPUT_DIR, 'cities_geology.json');
+  if (!fs.existsSync(dataPath)) {
+    console.log('  No city geology data found at', dataPath);
+    return [];
+  }
+
+  const content = fs.readFileSync(dataPath, 'utf-8');
+  const data: RawDataFile<GeologyRecord> = JSON.parse(content);
   return data.records;
 }
 
@@ -272,14 +403,17 @@ async function main() {
   // Load raw data
   console.log('Loading raw data...');
   const geologyRecords = loadGeologyData();
+  const cityGeologyRecords = loadCityGeologyData();
   const biomeRecords = loadBiomeData();
 
-  console.log(`  Geology records: ${geologyRecords.length}`);
+  console.log(`  Global geology records (precision-4): ${geologyRecords.length}`);
+  console.log(`  City geology records (precision-5): ${cityGeologyRecords.length}`);
   console.log(`  Biome records: ${biomeRecords.length}`);
 
-  if (geologyRecords.length === 0 && biomeRecords.length === 0) {
+  if (geologyRecords.length === 0 && cityGeologyRecords.length === 0 && biomeRecords.length === 0) {
     console.log('\nNo data to process. Run these scripts first:');
     console.log('  npx tsx scripts/gis/fetchMacrostrat.ts');
+    console.log('  npx tsx scripts/gis/fetchCityGeology.ts (optional)');
     console.log('  node scripts/gis/processEcoregionsShapefile.mjs');
     return;
   }
@@ -309,9 +443,26 @@ async function main() {
   `);
 
   // Create lookup maps
+  // Start with global geology data (precision-4)
   const geologyMap = new Map<string, GeologyRecord>();
   for (const record of geologyRecords) {
     geologyMap.set(record.geohash, record);
+  }
+
+  // Overlay city geology data (precision-5) - takes precedence
+  // City data is more specific and queried at exact coordinates
+  let cityOverrides = 0;
+  for (const record of cityGeologyRecords) {
+    if (geologyMap.has(record.geohash)) {
+      cityOverrides++;
+    }
+    geologyMap.set(record.geohash, record);
+  }
+
+  if (cityGeologyRecords.length > 0) {
+    console.log(
+      `  City data: ${cityGeologyRecords.length} records (${cityOverrides} overriding global)`
+    );
   }
 
   const biomeMap = new Map<string, BiomeRecord>();
@@ -476,4 +627,9 @@ async function main() {
 }
 
 // Run if called directly
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+// Export for testing
+export { normalizeLithology, SPECIFIC_ROCKS };

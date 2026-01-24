@@ -18,6 +18,12 @@
     "validate:recipes": "tsx src/scripts/validateRecipes.ts",
     "validate:display": "tsx src/scripts/validateDisplay.ts",
     "validate:balance": "tsx src/scripts/validateBalance.ts",
+    "report:lithology": "tsx src/scripts/reportLithology.ts",
+    "gis:fetch": "tsx scripts/gis/fetchMacrostrat.ts",
+    "gis:fetch-cities": "tsx scripts/gis/fetchCityGeology.ts",
+    "gis:build": "tsx scripts/gis/buildSqliteBundle.ts",
+    "gis:validate": "tsx scripts/gis/validateLithology.ts",
+    "gis:test-strategy": "tsx scripts/gis/testLithologyStrategy.ts",
     "doctor": "npx expo-doctor",
     "deps:check": "npx expo install --check",
     "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run validate:recipes && npm run validate:display && npm run validate:balance && npm run doctor && npm run deps:check"
