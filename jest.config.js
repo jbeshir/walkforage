@@ -1,5 +1,7 @@
 module.exports = {
   testEnvironment: 'jsdom',
+  // Use single worker to prevent SQLite database locking issues
+  maxWorkers: 1,
   roots: ['<rootDir>/src', '<rootDir>/__tests__'],
   testMatch: ['**/__tests__/**/*.test.ts?(x)', '**/*.test.ts?(x)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

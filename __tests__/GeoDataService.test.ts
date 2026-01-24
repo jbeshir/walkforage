@@ -1,12 +1,58 @@
 /**
  * Tests for GeoDataService
  */
-import { geoDataService } from '../src/services/GeoDataService';
+import { GeoDataService } from '../src/services/GeoDataService';
+import { NodeTileLoader } from '../src/services/NodeTileLoader';
+import { TileLoader } from '../src/services/TileLoader';
+import { BiomeData, CoarseGeologyEntry } from '../src/types/gis';
+
+// Create a test instance using NodeTileLoader
+function createTestGeoDataService(): { service: GeoDataService; tileLoader: TileLoader } {
+  const tileLoader = new NodeTileLoader();
+  const service = new GeoDataService({
+    tileLoader,
+    loadCoarseIndexes: async () => {
+      let geology: Record<string, CoarseGeologyEntry> = {};
+      let biome: Record<string, BiomeData> = {};
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const geologyIndex = require('../src/data/gis/geology/index.json');
+        if (geologyIndex?.data) {
+          geology = geologyIndex.data;
+        }
+      } catch {
+        // Geology index not available
+      }
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const biomeIndex = require('../src/data/gis/biomes/index.json');
+        if (biomeIndex?.data) {
+          biome = biomeIndex.data;
+        }
+      } catch {
+        // Biome index not available
+      }
+
+      return { geology, biome };
+    },
+  });
+  return { service, tileLoader };
+}
 
 describe('GeoDataService', () => {
+  let geoDataService: GeoDataService;
+  let tileLoader: TileLoader;
+
   beforeEach(() => {
-    // Clear cache before each test
-    geoDataService.clearCache();
+    const result = createTestGeoDataService();
+    geoDataService = result.service;
+    tileLoader = result.tileLoader;
+  });
+
+  afterEach(async () => {
+    await geoDataService.close();
   });
 
   describe('getLocationData', () => {
@@ -60,12 +106,12 @@ describe('GeoDataService', () => {
       expect(arctic.biome.type).not.toBe(tropical.biome.type);
     });
 
-    it('should cache tile lookups', async () => {
+    it('should track cache stats', async () => {
       // First call
       await geoDataService.getLocationData(40.7128, -74.006);
 
-      // Get cache stats
-      const stats = geoDataService.getCacheStats();
+      // Get cache stats from tile loader (NodeTileLoader returns 0 since it doesn't cache)
+      const stats = tileLoader.getCacheStats();
       expect(stats.tilesCached).toBeGreaterThanOrEqual(0);
     });
   });
@@ -132,12 +178,12 @@ describe('GeoDataService', () => {
     it('should clear cache when requested', async () => {
       await geoDataService.getLocationData(40.7128, -74.006);
 
-      let stats = geoDataService.getCacheStats();
+      let stats = tileLoader.getCacheStats();
       expect(stats.tilesCached + stats.filesCached).toBeGreaterThanOrEqual(0);
 
-      geoDataService.clearCache();
+      tileLoader.clearCache();
 
-      stats = geoDataService.getCacheStats();
+      stats = tileLoader.getCacheStats();
       expect(stats.tilesCached).toBe(0);
       expect(stats.filesCached).toBe(0);
     });

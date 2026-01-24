@@ -2,44 +2,86 @@
 // Uses geohash-indexed tiles for efficient spatial lookup
 // Hierarchical lookup: detailed tile -> coarse index -> latitude-based fallback
 
-import { LocationGeoData, GeoTile, BiomeData, GeologyData, CoarseGeologyEntry } from '../types/gis';
-import { BiomeCode } from '../types/resources';
+import { LocationGeoData, BiomeData, CoarseGeologyEntry } from '../types/gis';
 import { encodeGeohash } from '../utils/geohash';
-import { getTile, clearTileCache, getTileCacheStats } from '../data/gis/tile-loader';
+import { TileLoader } from './TileLoader';
+import {
+  estimateRealmFromCoordinates,
+  estimateBiomeFromLatitude,
+  getDefaultGeology,
+  FALLBACK_CONFIDENCE,
+} from '../utils/geoFallbacks';
 
-// Coarse index data (loaded on init) - uses minimal CoarseGeologyEntry type
-let coarseGeologyIndex: Record<string, CoarseGeologyEntry> = {};
-let coarseBiomeIndex: Record<string, BiomeData> = {};
+/**
+ * Options for creating a GeoDataService
+ */
+export interface GeoDataServiceOptions {
+  tileLoader: TileLoader;
+  /**
+   * Optional function to load coarse indexes.
+   * If not provided, uses dynamic import (Expo-compatible).
+   */
+  loadCoarseIndexes?: () => Promise<{
+    geology: Record<string, CoarseGeologyEntry>;
+    biome: Record<string, BiomeData>;
+  }>;
+}
 
-class GeoDataService {
+/**
+ * GeoDataService - Provides geological and biome data for locations
+ *
+ * Usage:
+ * - In React Native app: Use GeoDataProvider to create and provide the service
+ * - In scripts/tests: Create directly with NodeTileLoader
+ */
+export class GeoDataService {
   private initialized = false;
+  private tileLoader: TileLoader;
+  private loadCoarseIndexes?: GeoDataServiceOptions['loadCoarseIndexes'];
+  private coarseGeologyIndex: Record<string, CoarseGeologyEntry> = {};
+  private coarseBiomeIndex: Record<string, BiomeData> = {};
+
+  constructor(options: GeoDataServiceOptions) {
+    this.tileLoader = options.tileLoader;
+    this.loadCoarseIndexes = options.loadCoarseIndexes;
+  }
 
   /**
-   * Initialize the service (load coarse indexes)
+   * Initialize the service (load coarse indexes and tile loader)
    * Call this on app startup
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    // Try to load bundled index files
-    try {
-      const geologyIndex = await import('../data/gis/geology/index.json');
-      if (geologyIndex?.data) {
-        coarseGeologyIndex = geologyIndex.data as Record<string, CoarseGeologyEntry>;
-        console.log(`Loaded geology index: ${Object.keys(coarseGeologyIndex).length} cells`);
-      }
-    } catch {
-      // Geology index not yet bundled, will use fallback
-    }
+    // Initialize tile loader
+    await this.tileLoader.initialize();
 
-    try {
-      const biomeIndex = await import('../data/gis/biomes/index.json');
-      if (biomeIndex?.data) {
-        coarseBiomeIndex = biomeIndex.data as Record<string, BiomeData>;
-        console.log(`Loaded biome index: ${Object.keys(coarseBiomeIndex).length} cells`);
+    // Load coarse indexes
+    if (this.loadCoarseIndexes) {
+      const indexes = await this.loadCoarseIndexes();
+      this.coarseGeologyIndex = indexes.geology;
+      this.coarseBiomeIndex = indexes.biome;
+    } else {
+      // Default: use dynamic import (Expo-compatible)
+      try {
+        const geologyIndex = await import('../data/gis/geology/index.json');
+        if (geologyIndex?.data) {
+          this.coarseGeologyIndex = geologyIndex.data as Record<string, CoarseGeologyEntry>;
+          console.log(`Loaded geology index: ${Object.keys(this.coarseGeologyIndex).length} cells`);
+        }
+      } catch {
+        // Geology index not yet bundled, will use fallback
       }
-    } catch {
-      // Biome index not yet bundled, will use fallback
+
+      try {
+        const biomeIndex = await import('../data/gis/biomes/index.json');
+        if (biomeIndex?.data) {
+          this.coarseBiomeIndex = biomeIndex.data as Record<string, BiomeData>;
+          console.log(`Loaded biome index: ${Object.keys(this.coarseBiomeIndex).length} cells`);
+        }
+      } catch {
+        // Biome index not yet bundled, will use fallback
+      }
     }
 
     this.initialized = true;
@@ -61,11 +103,11 @@ class GeoDataService {
     const coarseHash = encodeGeohash(lat, lng, 3); // ~156km precision
 
     // Get coarse index data (used as fallback for unknown fields)
-    const coarseGeology = coarseGeologyIndex[coarseHash];
-    const coarseBiome = coarseBiomeIndex[coarseHash];
+    const coarseGeology = this.coarseGeologyIndex[coarseHash];
+    const coarseBiome = this.coarseBiomeIndex[coarseHash];
 
     // Try detailed tile first
-    const detailedTile = await this.loadDetailedTile(detailedHash);
+    const detailedTile = await this.tileLoader.getTile(detailedHash);
     if (detailedTile) {
       // Check if detailed tile has unknown values that need fallback
       const hasUnknownGeology = detailedTile.geology.primaryLithology === 'unknown';
@@ -81,7 +123,7 @@ class GeoDataService {
                 confidence: coarseGeology.confidence,
               }
             : hasUnknownGeology
-              ? this.getDefaultGeology()
+              ? getDefaultGeology()
               : {
                   primaryLithology: detailedTile.geology.primaryLithology,
                   secondaryLithologies: detailedTile.geology.secondaryLithologies,
@@ -92,19 +134,19 @@ class GeoDataService {
             ? {
                 type: coarseBiome.type,
                 ecoregionId: coarseBiome.ecoregionId,
-                realm: coarseBiome.realm || this.getRealmFromCoordinates(lat, lng),
+                realm: coarseBiome.realm || estimateRealmFromCoordinates(lat, lng),
                 confidence: coarseBiome.confidence,
               }
             : hasUnknownBiome
               ? {
-                  type: this.getBiomeFromLatitude(lat),
-                  realm: this.getRealmFromCoordinates(lat, lng),
-                  confidence: 0.3,
+                  type: estimateBiomeFromLatitude(lat),
+                  realm: estimateRealmFromCoordinates(lat, lng),
+                  confidence: FALLBACK_CONFIDENCE,
                 }
               : {
                   type: detailedTile.biome.type,
                   ecoregionId: detailedTile.biome.ecoregionId,
-                  realm: detailedTile.biome.realm || this.getRealmFromCoordinates(lat, lng),
+                  realm: detailedTile.biome.realm || estimateRealmFromCoordinates(lat, lng),
                   confidence: detailedTile.biome.confidence,
                 },
         dataSource: 'detailed',
@@ -122,11 +164,11 @@ class GeoDataService {
               secondaryLithologies: [], // Not stored in coarse index
               confidence: coarseGeology.confidence,
             }
-          : this.getDefaultGeology(),
+          : getDefaultGeology(),
         biome: {
-          type: coarseBiome?.type || this.getBiomeFromLatitude(lat),
+          type: coarseBiome?.type || estimateBiomeFromLatitude(lat),
           ecoregionId: coarseBiome?.ecoregionId,
-          realm: coarseBiome?.realm || this.getRealmFromCoordinates(lat, lng),
+          realm: coarseBiome?.realm || estimateRealmFromCoordinates(lat, lng),
           confidence: coarseBiome?.confidence || 0.5,
         },
         dataSource: 'coarse',
@@ -135,136 +177,23 @@ class GeoDataService {
     }
 
     // Ultimate fallback for unmapped areas
-    return this.getFallbackData(lat, lng, coarseHash);
-  }
-
-  /**
-   * Lazy-load detailed tile data from bundled assets
-   * Uses expo-file-system Paths.bundle to read tile files dynamically
-   */
-  private async loadDetailedTile(geohash: string): Promise<GeoTile | null> {
-    return getTile(geohash);
-  }
-
-  /**
-   * Generate fallback data based on latitude (rough climate zones)
-   */
-  private getFallbackData(lat: number, lng: number, geohash: string): LocationGeoData {
-    const biomeType = this.getBiomeFromLatitude(lat);
-    const realm = this.getRealmFromCoordinates(lat, lng);
-
     return {
-      geology: {
-        primaryLithology: 'mixed_sedimentary',
-        secondaryLithologies: ['sandstone', 'limestone', 'shale'],
-        confidence: 0.3,
-      },
+      geology: getDefaultGeology(),
       biome: {
-        type: biomeType,
-        realm,
-        confidence: 0.3,
+        type: estimateBiomeFromLatitude(lat),
+        realm: estimateRealmFromCoordinates(lat, lng),
+        confidence: FALLBACK_CONFIDENCE,
       },
       dataSource: 'fallback',
-      geohash,
+      geohash: coarseHash,
     };
   }
 
   /**
-   * Estimate biogeographic realm from coordinates (rough approximation)
-   * Based on major continental boundaries
+   * Close the service and release resources
    */
-  private getRealmFromCoordinates(lat: number, lng: number): string {
-    // Palearctic: Europe, North Africa, Northern Asia
-    if (lat > 23 && lng >= -30 && lng <= 170) {
-      if (lat > 35 || (lat > 23 && lng >= 30)) {
-        return 'Palearctic';
-      }
-    }
-
-    // Nearctic: North America
-    if (lat > 23 && lng >= -170 && lng <= -30) {
-      return 'Nearctic';
-    }
-
-    // Neotropic: Central and South America
-    if (lng >= -120 && lng <= -30 && lat <= 30) {
-      return 'Neotropic';
-    }
-
-    // Afrotropic: Sub-Saharan Africa
-    if (lat <= 23 && lng >= -20 && lng <= 55) {
-      return 'Afrotropic';
-    }
-
-    // Indomalayan: South and Southeast Asia
-    if (lat <= 35 && lat > -10 && lng >= 60 && lng <= 150) {
-      return 'Indomalayan';
-    }
-
-    // Australasia: Australia, New Zealand, New Guinea
-    if (lat <= 0 && lng >= 110 && lng <= 180) {
-      return 'Australasia';
-    }
-    if (lat <= -10 && lng >= 165) {
-      return 'Australasia';
-    }
-
-    // Oceania: Pacific Islands
-    if (lat >= -30 && lat <= 30 && lng >= 150) {
-      return 'Oceania';
-    }
-
-    // Default to Palearctic for unmapped areas
-    return 'Palearctic';
-  }
-
-  /**
-   * Estimate biome from latitude (very rough approximation)
-   */
-  private getBiomeFromLatitude(lat: number): BiomeCode {
-    const absLat = Math.abs(lat);
-
-    if (absLat > 66) {
-      return 'tundra';
-    } else if (absLat > 55) {
-      return 'boreal';
-    } else if (absLat > 45) {
-      return 'temperate_conifer';
-    } else if (absLat > 35) {
-      return 'temperate_broadleaf_mixed';
-    } else if (absLat > 23) {
-      return 'mediterranean';
-    } else {
-      return 'tropical_moist_broadleaf';
-    }
-  }
-
-  /**
-   * Get default geology for unknown areas
-   */
-  private getDefaultGeology(): GeologyData {
-    return {
-      primaryLithology: 'mixed_sedimentary',
-      secondaryLithologies: ['sandstone', 'limestone'],
-      confidence: 0.3,
-    };
-  }
-
-  /**
-   * Clear the tile cache (useful for testing or memory management)
-   */
-  clearCache(): void {
-    clearTileCache();
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getCacheStats(): { filesCached: number; tilesCached: number } {
-    return getTileCacheStats();
+  async close(): Promise<void> {
+    await this.tileLoader.close();
+    this.initialized = false;
   }
 }
-
-// Export singleton instance
-export const geoDataService = new GeoDataService();
-export default geoDataService;

@@ -225,6 +225,35 @@ function findAvailableFoods(foodStacks: ResourceStack[], requiredQuantity: numbe
 }
 
 /**
+ * Select food from multiple stacks to meet a required quantity.
+ * Returns a map of foodId -> quantity to consume, or null if insufficient food.
+ * Food can be mixed from multiple types unlike other materials.
+ */
+export function selectFoodForCost(
+  foodStacks: ResourceStack[],
+  requiredQuantity: number
+): Record<string, number> | null {
+  if (requiredQuantity <= 0) return {};
+
+  const selected: Record<string, number> = {};
+  let remaining = requiredQuantity;
+
+  for (const stack of foodStacks) {
+    if (remaining <= 0) break;
+    const take = Math.min(stack.quantity, remaining);
+    if (take > 0) {
+      selected[stack.resourceId] = take;
+      remaining -= take;
+    }
+  }
+
+  // Return null if we couldn't get enough food
+  if (remaining > 0) return null;
+
+  return selected;
+}
+
+/**
  * Check if a craftable (Tool or CraftedComponent) can be crafted
  * Returns available material options and any missing requirements
  */
@@ -533,4 +562,6 @@ export function craft(
 export const CraftingService = {
   canCraft,
   craft,
+  calculateFoodCost,
+  selectFoodForCost,
 };

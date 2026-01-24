@@ -7,7 +7,7 @@ import { useLocation } from '../hooks/useLocation';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { useStepGathering } from '../hooks/useStepGathering';
-import { geoDataService } from '../services/GeoDataService';
+import { useGeoData } from '../providers/GeoDataProvider';
 import { StepGatherPanel } from '../components/StepGatherPanel';
 import { LocationGeoData } from '../types/gis';
 import { MaterialType } from '../config/materials';
@@ -20,6 +20,7 @@ export default function ForageScreen() {
   const { addResource } = useGameState();
   const { theme } = useTheme();
   const { colors } = theme;
+  const { geoDataService } = useGeoData();
   const [geoData, setGeoData] = useState<LocationGeoData | null>(null);
 
   // Step gathering integration
@@ -44,13 +45,13 @@ export default function ForageScreen() {
 
   // Fetch geo data when location changes
   useEffect(() => {
-    if (location) {
+    if (location && geoDataService) {
       geoDataService
         .getLocationData(location.latitude, location.longitude)
         .then(setGeoData)
-        .catch((err) => console.warn('Failed to get geo data:', err));
+        .catch((err: Error) => console.warn('Failed to get geo data:', err));
     }
-  }, [location]);
+  }, [location, geoDataService]);
 
   const { overlayPanel } = colors;
 

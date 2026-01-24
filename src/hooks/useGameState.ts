@@ -14,8 +14,8 @@ import React, {
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Inventory, ResourceStack, createEmptyInventory } from '../types/resources';
-import { getAllMaterialTypes } from '../config/materials';
+import { Inventory, createEmptyInventory } from '../types/resources';
+import { MaterialType, getAllMaterialTypes } from '../config/materials';
 import { OwnedTool, OwnedComponent, CraftingJob, Tool, CraftedComponent } from '../types/tools';
 import {
   CraftingService,
@@ -23,6 +23,13 @@ import {
   CraftParams,
   CraftingState,
 } from '../services/CraftingService';
+import {
+  addResource as addResourcePure,
+  removeResource as removeResourcePure,
+  hasResource as hasResourcePure,
+  getResourceCount as getResourceCountPure,
+} from '../services/InventoryService';
+import { hasTech as hasTechPure } from '../services/TechService';
 
 const STORAGE_KEY = 'walkforage_gamestate';
 
@@ -252,31 +259,13 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     };
   }, [state, isLoading, throttledSave]);
 
-  // Inventory helpers
-  const findResourceIndex = (stacks: ResourceStack[], resourceId: string): number => {
-    return stacks.findIndex((s) => s.resourceId === resourceId);
-  };
-
+  // Inventory helpers - delegate to InventoryService pure functions
   const addResource = useCallback(
     (category: keyof Inventory, resourceId: string, quantity: number) => {
-      setState((prev) => {
-        const stacks = [...prev.inventory[category]];
-        const index = findResourceIndex(stacks, resourceId);
-
-        if (index >= 0) {
-          stacks[index] = {
-            ...stacks[index],
-            quantity: stacks[index].quantity + quantity,
-          };
-        } else {
-          stacks.push({ resourceId, quantity });
-        }
-
-        return {
-          ...prev,
-          inventory: { ...prev.inventory, [category]: stacks },
-        };
-      });
+      setState((prev) => ({
+        ...prev,
+        inventory: addResourcePure(prev.inventory, category as MaterialType, resourceId, quantity),
+      }));
     },
     []
   );
@@ -285,22 +274,15 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     (category: keyof Inventory, resourceId: string, quantity: number): boolean => {
       let success = false;
       setState((prev) => {
-        const stacks = [...prev.inventory[category]];
-        const index = findResourceIndex(stacks, resourceId);
-
-        if (index >= 0 && stacks[index].quantity >= quantity) {
-          stacks[index] = {
-            ...stacks[index],
-            quantity: stacks[index].quantity - quantity,
-          };
-          if (stacks[index].quantity === 0) {
-            stacks.splice(index, 1);
-          }
+        const result = removeResourcePure(
+          prev.inventory,
+          category as MaterialType,
+          resourceId,
+          quantity
+        );
+        if (result) {
           success = true;
-          return {
-            ...prev,
-            inventory: { ...prev.inventory, [category]: stacks },
-          };
+          return { ...prev, inventory: result };
         }
         return prev;
       });
@@ -311,23 +293,19 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
   const hasResource = useCallback(
     (category: keyof Inventory, resourceId: string, quantity: number): boolean => {
-      const stacks = state.inventory[category];
-      const stack = stacks.find((s) => s.resourceId === resourceId);
-      return stack !== undefined && stack.quantity >= quantity;
+      return hasResourcePure(state.inventory, category as MaterialType, resourceId, quantity);
     },
     [state.inventory]
   );
 
   const getResourceCount = useCallback(
     (category: keyof Inventory, resourceId: string): number => {
-      const stacks = state.inventory[category];
-      const stack = stacks.find((s) => s.resourceId === resourceId);
-      return stack?.quantity || 0;
+      return getResourceCountPure(state.inventory, category as MaterialType, resourceId);
     },
     [state.inventory]
   );
 
-  // Tech helpers
+  // Tech helpers - delegate to TechService pure functions
   const unlockTech = useCallback((techId: string) => {
     setState((prev) => ({
       ...prev,
@@ -337,7 +315,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
   const hasTech = useCallback(
     (techId: string): boolean => {
-      return state.unlockedTechs.includes(techId);
+      return hasTechPure(techId, state.unlockedTechs);
     },
     [state.unlockedTechs]
   );
