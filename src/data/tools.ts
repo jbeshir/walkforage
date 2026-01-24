@@ -131,7 +131,37 @@ export const TOOLS: Tool[] = [
     requiredComponents: [{ componentId: 'crude_handle', quantity: 1 }],
     materials: {},
     baseStats: { gatheringBonus: 3 },
-    gatheringMaterial: 'wood',
+    gatheringMaterial: 'food',
+    qualityWeights: QUALITY_WEIGHTS.foraging,
+    baseCraftTime: 60,
+  },
+  {
+    id: 'gathering_basket',
+    name: 'Gathering Basket',
+    category: 'foraging',
+    era: 'lower_paleolithic',
+    description: 'Woven plant fibers form a container for carrying foraged foods.',
+    requiredTech: 'cordage_making',
+    requiredTools: [],
+    requiredComponents: [{ componentId: 'fiber_binding', quantity: 2 }],
+    materials: { wood: { quantity: 5 } },
+    baseStats: { gatheringBonus: 2 },
+    gatheringMaterial: 'food',
+    qualityWeights: QUALITY_WEIGHTS.foraging,
+    baseCraftTime: 120,
+  },
+  {
+    id: 'nut_anvil',
+    name: 'Nut Anvil',
+    category: 'foraging',
+    era: 'lower_paleolithic',
+    description: 'A flat stone with a depression for cracking nuts and seeds.',
+    requiredTech: 'grinding',
+    requiredTools: [],
+    requiredComponents: [],
+    materials: { stone: { quantity: 15 } },
+    baseStats: { gatheringBonus: 2 },
+    gatheringMaterial: 'food',
     qualityWeights: QUALITY_WEIGHTS.foraging,
     baseCraftTime: 60,
   },
@@ -193,6 +223,26 @@ export const TOOLS: Tool[] = [
     baseCraftTime: 600,
   },
 
+  // ========== MIDDLE PALEOLITHIC - STONE GATHERING TOOLS ==========
+  {
+    id: 'stone_pick',
+    name: 'Stone Pick',
+    category: 'knapping',
+    era: 'middle_paleolithic',
+    description: 'A pointed stone on a wooden handle. For loosening embedded rocks.',
+    requiredTech: 'hafting',
+    requiredTools: ['hammerstone'],
+    requiredComponents: [
+      { componentId: 'crude_handle', quantity: 1 },
+      { componentId: 'fiber_binding', quantity: 1 },
+    ],
+    materials: { stone: { quantity: 10 } },
+    baseStats: { gatheringBonus: 3 },
+    gatheringMaterial: 'stone',
+    qualityWeights: QUALITY_WEIGHTS.knapping,
+    baseCraftTime: 300,
+  },
+
   // ========== UPPER PALEOLITHIC - CRAFTING TOOLS ==========
   {
     id: 'pressure_flaker',
@@ -232,6 +282,40 @@ export const TOOLS: Tool[] = [
     baseCraftTime: 600,
   },
 
+  // ========== UPPER PALEOLITHIC - FORAGING TOOLS ==========
+  {
+    id: 'bark_container',
+    name: 'Bark Container',
+    category: 'foraging',
+    era: 'upper_paleolithic',
+    description: 'Shaped bark vessel stitched with cordage. Ideal for collecting berries.',
+    requiredTech: 'composite_tools',
+    requiredTools: ['stone_knife'],
+    requiredComponents: [{ componentId: 'fiber_binding', quantity: 1 }],
+    materials: { wood: { quantity: 15 } },
+    baseStats: { gatheringBonus: 4 },
+    gatheringMaterial: 'food',
+    qualityWeights: QUALITY_WEIGHTS.foraging,
+    baseCraftTime: 300,
+  },
+
+  // ========== UPPER PALEOLITHIC - STONE GATHERING TOOLS ==========
+  {
+    id: 'quarry_chisel',
+    name: 'Quarry Chisel',
+    category: 'knapping',
+    era: 'upper_paleolithic',
+    description: 'A wedge-shaped blade for splitting stone along natural fractures.',
+    requiredTech: 'blade_technology',
+    requiredTools: ['hammerstone', 'pressure_flaker'],
+    requiredComponents: [],
+    materials: { stone: { quantity: 15, requiresToolstone: true } },
+    baseStats: { gatheringBonus: 5 },
+    gatheringMaterial: 'stone',
+    qualityWeights: QUALITY_WEIGHTS.knapping,
+    baseCraftTime: 360,
+  },
+
   // ========== MESOLITHIC - POLISHED STONE TOOLS ==========
   {
     id: 'polished_axe',
@@ -250,6 +334,46 @@ export const TOOLS: Tool[] = [
     gatheringMaterial: 'wood',
     qualityWeights: QUALITY_WEIGHTS.woodworking,
     baseCraftTime: 1200,
+  },
+
+  // ========== MESOLITHIC - FORAGING TOOLS ==========
+  {
+    id: 'sickle',
+    name: 'Sickle',
+    category: 'foraging',
+    era: 'mesolithic',
+    description: 'A curved blade set in a handle. For harvesting wild grasses and grains.',
+    requiredTech: 'polished_stone',
+    requiredTools: ['hammerstone'],
+    requiredComponents: [
+      { componentId: 'shaped_handle', quantity: 1 },
+      { componentId: 'fiber_binding', quantity: 1 },
+    ],
+    materials: { stone: { quantity: 12, requiresToolstone: true } },
+    baseStats: { gatheringBonus: 6 },
+    gatheringMaterial: 'food',
+    qualityWeights: QUALITY_WEIGHTS.foraging,
+    baseCraftTime: 600,
+  },
+
+  // ========== MESOLITHIC - STONE GATHERING TOOLS ==========
+  {
+    id: 'polished_pick',
+    name: 'Polished Pick',
+    category: 'knapping',
+    era: 'mesolithic',
+    description: 'A ground and polished pick. Superior for extracting quality stone.',
+    requiredTech: 'polished_stone',
+    requiredTools: ['hammerstone', 'grinding_stone'],
+    requiredComponents: [
+      { componentId: 'shaped_handle', quantity: 1 },
+      { componentId: 'fiber_binding', quantity: 1 },
+    ],
+    materials: { stone: { quantity: 20 } },
+    baseStats: { gatheringBonus: 8 },
+    gatheringMaterial: 'stone',
+    qualityWeights: QUALITY_WEIGHTS.knapping,
+    baseCraftTime: 900,
   },
 ];
 

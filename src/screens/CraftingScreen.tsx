@@ -222,10 +222,10 @@ function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemPro
           )}
         </View>
         {craftCheck.missingRequirements.length > 0 && (
-          <View style={styles.missingContainer}>
-            <Text style={styles.missingLabel}>Missing:</Text>
+          <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
+            <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
             {craftCheck.missingRequirements.map((req, i) => (
-              <Text key={i} style={styles.missingText}>
+              <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
                 {req}
               </Text>
             ))}
@@ -300,10 +300,10 @@ function ComponentRecipeItem({
           )}
         </View>
         {craftCheck.missingRequirements.length > 0 && (
-          <View style={styles.missingContainer}>
-            <Text style={styles.missingLabel}>Missing:</Text>
+          <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
+            <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
             {craftCheck.missingRequirements.map((req, i) => (
-              <Text key={i} style={styles.missingText}>
+              <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
                 {req}
               </Text>
             ))}
@@ -935,19 +935,16 @@ const styles = StyleSheet.create({
   },
   missingContainer: {
     marginTop: 6,
-    backgroundColor: '#FFF3E0',
     padding: 8,
     borderRadius: 6,
   },
   missingLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#E65100',
     marginBottom: 2,
   },
   missingText: {
     fontSize: 10,
-    color: '#F57C00',
   },
   craftButton: {
     paddingHorizontal: 16,

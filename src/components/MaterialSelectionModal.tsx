@@ -119,6 +119,7 @@ interface FoodQuantitySelectorProps {
   foodId: string;
   availableQuantity: number;
   selectedQuantity: number;
+  remainingNeeded: number;
   onQuantityChange: (quantity: number) => void;
   colors: ThemeColors;
 }
@@ -127,6 +128,7 @@ function FoodQuantitySelector({
   foodId,
   availableQuantity,
   selectedQuantity,
+  remainingNeeded,
   onQuantityChange,
   colors,
 }: FoodQuantitySelectorProps) {
@@ -134,8 +136,11 @@ function FoodQuantitySelector({
   const food = config.getResourceById(foodId);
   if (!food) return null;
 
+  // Can only increment if we have more available AND still need more food
+  const canIncrement = selectedQuantity < availableQuantity && remainingNeeded > 0;
+
   const increment = () => {
-    if (selectedQuantity < availableQuantity) {
+    if (canIncrement) {
       onQuantityChange(selectedQuantity + 1);
     }
   };
@@ -146,7 +151,14 @@ function FoodQuantitySelector({
     }
   };
 
+  // Max adds as much as possible up to what's needed
+  const handleMax = () => {
+    const maxCanAdd = Math.min(availableQuantity, selectedQuantity + remainingNeeded);
+    onQuantityChange(maxCanAdd);
+  };
+
   const isActive = selectedQuantity > 0;
+  const canAddMore = canIncrement;
 
   return (
     <View
@@ -175,7 +187,7 @@ function FoodQuantitySelector({
           style={[
             styles.quantityButton,
             { backgroundColor: colors.border },
-            selectedQuantity === 0 && { opacity: 0.4 },
+            selectedQuantity === 0 && styles.quantityButtonDisabled,
           ]}
           onPress={decrement}
           disabled={selectedQuantity === 0}
@@ -189,12 +201,23 @@ function FoodQuantitySelector({
           style={[
             styles.quantityButton,
             { backgroundColor: colors.primary },
-            selectedQuantity >= availableQuantity && { opacity: 0.4 },
+            !canAddMore && styles.quantityButtonDisabled,
           ]}
           onPress={increment}
-          disabled={selectedQuantity >= availableQuantity}
+          disabled={!canAddMore}
         >
           <Text style={[styles.quantityButtonText, { color: '#fff' }]}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.maxButton,
+            { backgroundColor: colors.info },
+            !canAddMore && styles.quantityButtonDisabled,
+          ]}
+          onPress={handleMax}
+          disabled={!canAddMore}
+        >
+          <Text style={styles.maxButtonText}>Max</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -624,18 +647,30 @@ export default function MaterialSelectionModal({
                     No food available
                   </Text>
                 ) : (
-                  state.inventory.food.map((stack) => (
-                    <FoodQuantitySelector
-                      key={stack.resourceId}
-                      foodId={stack.resourceId}
-                      availableQuantity={stack.quantity}
-                      selectedQuantity={selectedFoods[stack.resourceId] || 0}
-                      onQuantityChange={(qty) =>
-                        setSelectedFoods((prev) => ({ ...prev, [stack.resourceId]: qty }))
-                      }
-                      colors={colors}
-                    />
-                  ))
+                  state.inventory.food.map((stack) => {
+                    // Calculate remaining needed, excluding this food's contribution
+                    const otherFoodTotal = Object.entries(selectedFoods)
+                      .filter(([id]) => id !== stack.resourceId)
+                      .reduce((sum, [, qty]) => sum + qty, 0);
+                    const remainingNeeded = Math.max(
+                      0,
+                      actualFoodCost - otherFoodTotal - (selectedFoods[stack.resourceId] || 0)
+                    );
+
+                    return (
+                      <FoodQuantitySelector
+                        key={stack.resourceId}
+                        foodId={stack.resourceId}
+                        availableQuantity={stack.quantity}
+                        selectedQuantity={selectedFoods[stack.resourceId] || 0}
+                        remainingNeeded={remainingNeeded}
+                        onQuantityChange={(qty) =>
+                          setSelectedFoods((prev) => ({ ...prev, [stack.resourceId]: qty }))
+                        }
+                        colors={colors}
+                      />
+                    );
+                  })
                 )}
               </View>
             )}
@@ -922,6 +957,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  quantityButtonDisabled: {
+    opacity: 0.4,
+  },
   quantityButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -931,6 +969,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 32,
     textAlign: 'center',
+  },
+  maxButton: {
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  maxButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
   footer: {
     flexDirection: 'row',

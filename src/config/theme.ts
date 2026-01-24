@@ -31,6 +31,8 @@ export interface ThemeColors {
   success: string;
   error: string;
   warning: string;
+  warningBackground: string;
+  warningText: string;
   info: string;
 
   // Special colors
@@ -77,6 +79,8 @@ export const lightTheme: Theme = {
     success: '#4CAF50',
     error: '#f44336',
     warning: '#FF9800',
+    warningBackground: '#FFF3E0',
+    warningText: '#E65100',
     info: '#2196F3',
 
     // Special colors
@@ -119,6 +123,8 @@ export const darkTheme: Theme = {
     success: '#4CAF50',
     error: '#f44336',
     warning: '#FF9800',
+    warningBackground: 'rgba(255, 152, 0, 0.15)',
+    warningText: '#FFB74D',
     info: '#2196F3',
 
     // Special colors

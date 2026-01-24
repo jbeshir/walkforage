@@ -33,7 +33,7 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 5 },
     ],
     unlocks: [],
-    enablesRecipes: ['grinding_stone'],
+    enablesRecipes: ['grinding_stone', 'nut_anvil'],
   },
   {
     id: 'cordage_making',
@@ -47,7 +47,7 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 5 },
     ],
     unlocks: ['hafting'],
-    enablesRecipes: ['fiber_binding'],
+    enablesRecipes: ['fiber_binding', 'gathering_basket'],
   },
 
   // ===== MIDDLE PALEOLITHIC (~300K - 50K years ago) =====
@@ -65,7 +65,14 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 10 },
     ],
     unlocks: ['blade_technology'],
-    enablesRecipes: ['crude_handle', 'shaped_handle', 'stone_knife', 'hafted_axe', 'digging_stick'],
+    enablesRecipes: [
+      'crude_handle',
+      'shaped_handle',
+      'stone_knife',
+      'hafted_axe',
+      'digging_stick',
+      'stone_pick',
+    ],
   },
 
   // ===== UPPER PALEOLITHIC (~50K - 12K years ago) =====
@@ -83,7 +90,7 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 20 },
     ],
     unlocks: ['composite_tools'],
-    enablesRecipes: ['pressure_flaker'],
+    enablesRecipes: ['pressure_flaker', 'quarry_chisel'],
   },
   {
     id: 'composite_tools',
@@ -98,7 +105,7 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 20 },
     ],
     unlocks: ['polished_stone'],
-    enablesRecipes: ['stone_adze'],
+    enablesRecipes: ['stone_adze', 'bark_container'],
   },
 
   // ===== MESOLITHIC (~12K - 6K years ago) =====
@@ -116,7 +123,7 @@ export const TECHNOLOGIES: Technology[] = [
       { resourceType: 'food', quantity: 40 },
     ],
     unlocks: [],
-    enablesRecipes: ['polished_axe'],
+    enablesRecipes: ['polished_axe', 'sickle', 'polished_pick'],
   },
 ];
 
