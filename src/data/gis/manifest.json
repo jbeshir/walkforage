@@ -1,18 +1,20 @@
 {
   "version": "2.0.0",
   "format": "sqlite",
-  "generatedAt": "2026-01-16T02:06:14.456Z",
-  "sources": { "geology": "Macrostrat API", "biomes": "Resolve Ecoregions 2017" },
+  "generatedAt": "2026-01-28T03:32:26.980Z",
+  "sources": {
+    "geology": "Macrostrat API",
+    "biomes": "Resolve Ecoregions 2017"
+  },
   "statistics": {
-    "geologyRecords": 87747,
-    "biomeRecords": 173972,
-    "totalTiles": 221792,
-    "databaseSizeBytes": 24936448,
-    "databaseSizeMB": 23.78
+    "geologyRecords": 174907,
+    "biomeRecords": 344713,
+    "totalTiles": 400061,
+    "precision3Tiles": 13342,
+    "databaseSizeBytes": 49602560,
+    "databaseSizeMB": 47.3
   },
   "files": {
-    "database": "assets/gis/tiles.db",
-    "geologyIndex": "src/data/gis/geology/index.json",
-    "biomeIndex": "src/data/gis/biomes/index.json"
+    "database": "assets/gis/tiles.db"
   }
 }

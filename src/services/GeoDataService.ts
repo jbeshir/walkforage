@@ -1,30 +1,27 @@
 // GeoDataService - Provides geological and biome data for locations
 // Uses geohash-indexed tiles for efficient spatial lookup
-// Hierarchical lookup: detailed tile -> coarse index -> latitude-based fallback
+// Hierarchical lookup: detailed tile -> coarse tile -> nearby tiles -> latitude estimation
 
-import { LocationGeoData, BiomeData, CoarseGeologyEntry } from '../types/gis';
+import { LocationGeoData, AltitudeData } from '../types/gis';
 import { encodeGeohash } from '../utils/geohash';
 import { TileLoader } from './TileLoader';
-import {
-  estimateRealmFromCoordinates,
-  estimateBiomeFromLatitude,
-  getDefaultGeology,
-  FALLBACK_CONFIDENCE,
-} from '../utils/geoFallbacks';
+import { resolveTileFallbacks, resolveLocationFallbacks } from '../utils/tileFallbacks';
+import { estimateRealmFromCoordinates } from '../utils/geoFallbacks';
+import { calculateAltitudeConfidence } from '../config/altitude';
 
 /**
  * Options for creating a GeoDataService
  */
 export interface GeoDataServiceOptions {
   tileLoader: TileLoader;
-  /**
-   * Optional function to load coarse indexes.
-   * If not provided, uses dynamic import (Expo-compatible).
-   */
-  loadCoarseIndexes?: () => Promise<{
-    geology: Record<string, CoarseGeologyEntry>;
-    biome: Record<string, BiomeData>;
-  }>;
+}
+
+/**
+ * Options for altitude data to include in location lookup
+ */
+export interface AltitudeOptions {
+  altitude: number | null;
+  altitudeAccuracy: number | null;
 }
 
 /**
@@ -34,158 +31,111 @@ export interface GeoDataServiceOptions {
  * - In React Native app: Use GeoDataProvider to create and provide the service
  * - In scripts/tests: Create directly with NodeTileLoader
  */
+/**
+ * Build AltitudeData from raw GPS values
+ */
+function buildAltitudeData(options?: AltitudeOptions): AltitudeData | undefined {
+  if (!options || options.altitude === null) {
+    return undefined;
+  }
+
+  return {
+    value: options.altitude,
+    accuracy: options.altitudeAccuracy,
+    confidence: calculateAltitudeConfidence(options.altitudeAccuracy),
+  };
+}
+
 export class GeoDataService {
   private initialized = false;
   private tileLoader: TileLoader;
-  private loadCoarseIndexes?: GeoDataServiceOptions['loadCoarseIndexes'];
-  private coarseGeologyIndex: Record<string, CoarseGeologyEntry> = {};
-  private coarseBiomeIndex: Record<string, BiomeData> = {};
 
   constructor(options: GeoDataServiceOptions) {
     this.tileLoader = options.tileLoader;
-    this.loadCoarseIndexes = options.loadCoarseIndexes;
   }
 
   /**
-   * Initialize the service (load coarse indexes and tile loader)
+   * Initialize the service (tile loader)
    * Call this on app startup
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-
-    // Initialize tile loader
     await this.tileLoader.initialize();
-
-    // Load coarse indexes
-    if (this.loadCoarseIndexes) {
-      const indexes = await this.loadCoarseIndexes();
-      this.coarseGeologyIndex = indexes.geology;
-      this.coarseBiomeIndex = indexes.biome;
-    } else {
-      // Default: use dynamic import (Expo-compatible)
-      try {
-        const geologyIndex = await import('../data/gis/geology/index.json');
-        if (geologyIndex?.data) {
-          this.coarseGeologyIndex = geologyIndex.data as Record<string, CoarseGeologyEntry>;
-          console.log(`Loaded geology index: ${Object.keys(this.coarseGeologyIndex).length} cells`);
-        }
-      } catch {
-        // Geology index not yet bundled, will use fallback
-      }
-
-      try {
-        const biomeIndex = await import('../data/gis/biomes/index.json');
-        if (biomeIndex?.data) {
-          this.coarseBiomeIndex = biomeIndex.data as Record<string, BiomeData>;
-          console.log(`Loaded biome index: ${Object.keys(this.coarseBiomeIndex).length} cells`);
-        }
-      } catch {
-        // Biome index not yet bundled, will use fallback
-      }
-    }
-
     this.initialized = true;
   }
 
   /**
    * Look up geological and biome data for a location
-   * Uses hierarchical lookup: detailed tile -> coarse index -> fallback
-   * Falls back to coarse index for individual fields when detailed tile has "unknown" values
+   * Uses hierarchical lookup with unified fallback chain:
+   * 1. Detailed tile (precision-4)
+   * 2. Coarse tile (precision-3)
+   * 3. Nearby tiles within max distance
+   * 4. Latitude-based estimation
+   *
+   * @param lat Latitude
+   * @param lng Longitude
+   * @param altitudeOptions Optional altitude data from GPS
    */
-  async getLocationData(lat: number, lng: number): Promise<LocationGeoData> {
+  async getLocationData(
+    lat: number,
+    lng: number,
+    altitudeOptions?: AltitudeOptions
+  ): Promise<LocationGeoData> {
     // Ensure service is initialized
     if (!this.initialized) {
       await this.initialize();
     }
 
-    // Generate geohashes at different precisions
+    // Generate geohash at detailed precision
     const detailedHash = encodeGeohash(lat, lng, 4); // ~39km precision
-    const coarseHash = encodeGeohash(lat, lng, 3); // ~156km precision
-
-    // Get coarse index data (used as fallback for unknown fields)
-    const coarseGeology = this.coarseGeologyIndex[coarseHash];
-    const coarseBiome = this.coarseBiomeIndex[coarseHash];
 
     // Try detailed tile first
     const detailedTile = await this.tileLoader.getTile(detailedHash);
-    if (detailedTile) {
-      // Check if detailed tile has unknown values that need fallback
-      const hasUnknownGeology = detailedTile.geology.primaryLithology === 'unknown';
-      const hasUnknownBiome = detailedTile.biome.type === 'unknown';
 
-      // Use detailed data, falling back to coarse index for unknown fields
+    if (detailedTile) {
+      // Use unified fallback logic for unknown values
+      const resolved = await resolveTileFallbacks(detailedTile, {
+        tileLoader: this.tileLoader,
+      });
+
       return {
-        geology:
-          hasUnknownGeology && coarseGeology
-            ? {
-                primaryLithology: coarseGeology.primaryLithology,
-                secondaryLithologies: [],
-                confidence: coarseGeology.confidence,
-              }
-            : hasUnknownGeology
-              ? getDefaultGeology()
-              : {
-                  primaryLithology: detailedTile.geology.primaryLithology,
-                  secondaryLithologies: detailedTile.geology.secondaryLithologies,
-                  confidence: detailedTile.geology.confidence,
-                },
-        biome:
-          hasUnknownBiome && coarseBiome
-            ? {
-                type: coarseBiome.type,
-                ecoregionId: coarseBiome.ecoregionId,
-                realm: coarseBiome.realm || estimateRealmFromCoordinates(lat, lng),
-                confidence: coarseBiome.confidence,
-              }
-            : hasUnknownBiome
-              ? {
-                  type: estimateBiomeFromLatitude(lat),
-                  realm: estimateRealmFromCoordinates(lat, lng),
-                  confidence: FALLBACK_CONFIDENCE,
-                }
-              : {
-                  type: detailedTile.biome.type,
-                  ecoregionId: detailedTile.biome.ecoregionId,
-                  realm: detailedTile.biome.realm || estimateRealmFromCoordinates(lat, lng),
-                  confidence: detailedTile.biome.confidence,
-                },
+        geology: {
+          primaryLithology: resolved.geology.primaryLithology,
+          secondaryLithologies: resolved.geology.secondaryLithologies,
+          confidence: resolved.geology.confidence,
+        },
+        biome: {
+          type: resolved.biome.type,
+          ecoregionId: resolved.biome.ecoregionId,
+          realm: resolved.biome.realm || estimateRealmFromCoordinates(lat, lng),
+          confidence: resolved.biome.confidence,
+        },
+        altitude: buildAltitudeData(altitudeOptions),
         dataSource: 'detailed',
         geohash: detailedHash,
       };
     }
 
-    // Fall back to coarse index when no detailed tile exists
-    if (coarseGeology || coarseBiome) {
-      return {
-        // Coarse index only has primaryLithology + confidence, not secondaryLithologies
-        geology: coarseGeology
-          ? {
-              primaryLithology: coarseGeology.primaryLithology,
-              secondaryLithologies: [], // Not stored in coarse index
-              confidence: coarseGeology.confidence,
-            }
-          : getDefaultGeology(),
-        biome: {
-          type: coarseBiome?.type || estimateBiomeFromLatitude(lat),
-          ecoregionId: coarseBiome?.ecoregionId,
-          realm: coarseBiome?.realm || estimateRealmFromCoordinates(lat, lng),
-          confidence: coarseBiome?.confidence || 0.5,
-        },
-        dataSource: 'coarse',
-        geohash: coarseHash,
-      };
-    }
+    // No detailed tile - use location fallback (coarse -> nearby -> estimation)
+    const resolved = await resolveLocationFallbacks(lat, lng, detailedHash, {
+      tileLoader: this.tileLoader,
+    });
 
-    // Ultimate fallback for unmapped areas
     return {
-      geology: getDefaultGeology(),
-      biome: {
-        type: estimateBiomeFromLatitude(lat),
-        realm: estimateRealmFromCoordinates(lat, lng),
-        confidence: FALLBACK_CONFIDENCE,
+      geology: {
+        primaryLithology: resolved.geology.primaryLithology,
+        secondaryLithologies: resolved.geology.secondaryLithologies,
+        confidence: resolved.geology.confidence,
       },
+      biome: {
+        type: resolved.biome.type,
+        ecoregionId: resolved.biome.ecoregionId,
+        realm: resolved.biome.realm || estimateRealmFromCoordinates(lat, lng),
+        confidence: resolved.biome.confidence,
+      },
+      altitude: buildAltitudeData(altitudeOptions),
       dataSource: 'fallback',
-      geohash: coarseHash,
+      geohash: detailedHash,
     };
   }
 
@@ -195,5 +145,12 @@ export class GeoDataService {
   async close(): Promise<void> {
     await this.tileLoader.close();
     this.initialized = false;
+  }
+
+  /**
+   * Get the underlying tile loader for direct tile queries
+   */
+  getTileLoader(): TileLoader {
+    return this.tileLoader;
   }
 }

@@ -275,6 +275,30 @@ function validateResources(): ValidationResult {
     }
   }
 
+  // Every lithology must have at least 10% toolstone spawn rate for reasonable progression
+  const MIN_TOOLSTONE_PERCENTAGE = 0.1;
+  const lithologiesWithLowToolstoneRate: { lithology: string; rate: number }[] = [];
+
+  for (const [lithology, mapping] of lithologyMappings) {
+    let toolstoneWeight = 0;
+    for (let i = 0; i < mapping.stoneIds.length; i++) {
+      if (toolstoneIds.has(mapping.stoneIds[i])) {
+        toolstoneWeight += mapping.weights[i];
+      }
+    }
+    if (toolstoneWeight > 0 && toolstoneWeight < MIN_TOOLSTONE_PERCENTAGE) {
+      lithologiesWithLowToolstoneRate.push({ lithology, rate: toolstoneWeight });
+    }
+  }
+
+  if (lithologiesWithLowToolstoneRate.length > 0) {
+    for (const { lithology, rate } of lithologiesWithLowToolstoneRate) {
+      result.errors.push(
+        `Lithology "${lithology}" has only ${(rate * 100).toFixed(0)}% toolstone rate (min: ${MIN_TOOLSTONE_PERCENTAGE * 100}%)`
+      );
+    }
+  }
+
   // ========== 8. Summary Statistics ==========
   result.info.push('--- Summary Statistics ---');
   result.info.push(`Total wood types: ${WOODS.length}`);

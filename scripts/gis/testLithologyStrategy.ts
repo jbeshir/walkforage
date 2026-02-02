@@ -20,9 +20,8 @@ import {
   parseStructuredLith,
   selectBestLithology,
   getSpecificityScore,
-  encodeGeohash,
-  decodeGeohash,
-} from './fetchMacrostrat';
+} from './fetchLithology';
+import { encodeGeohash, decodeGeohash } from './geohashUtils';
 import { normalizeLithology } from './buildSqliteBundle';
 import { getCitiesByPopulation } from './cities';
 

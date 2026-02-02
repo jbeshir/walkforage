@@ -205,16 +205,32 @@ export function geohashCellSize(precision: GeohashPrecision | number): {
 export function geohashesInBounds(bounds: GeohashBounds, precision: number): string[] {
   const geohashes = new Set<string>();
 
-  const cellSize = geohashCellSize(precision);
-  // Convert km to approximate degrees (very rough, varies by latitude)
-  const latStep = cellSize.heightKm / 111; // ~111km per degree latitude
-  const lngStep = cellSize.widthKm / 111; // Varies by latitude, approximation
+  // Calculate exact cell dimensions based on geohash bit structure
+  // Precision N has N*5 bits total, alternating longitude/latitude
+  // Longitude gets ceil(N*5/2) bits, latitude gets floor(N*5/2) bits
+  const totalBits = precision * 5;
+  const lngBits = Math.ceil(totalBits / 2);
+  const latBits = Math.floor(totalBits / 2);
+
+  // Cell dimensions in degrees
+  const cellLngDegrees = 360 / Math.pow(2, lngBits);
+  const cellLatDegrees = 180 / Math.pow(2, latBits);
+
+  // Step by 1/3 of cell size to guarantee hitting every cell
+  const latStep = cellLatDegrees / 3;
+  const lngStep = cellLngDegrees / 3;
 
   for (let lat = bounds.minLat; lat <= bounds.maxLat; lat += latStep) {
     for (let lng = bounds.minLng; lng <= bounds.maxLng; lng += lngStep) {
       geohashes.add(encodeGeohash(lat, lng, precision));
     }
   }
+
+  // Also add the corners and edges to ensure complete coverage
+  geohashes.add(encodeGeohash(bounds.minLat, bounds.minLng, precision));
+  geohashes.add(encodeGeohash(bounds.minLat, bounds.maxLng, precision));
+  geohashes.add(encodeGeohash(bounds.maxLat, bounds.minLng, precision));
+  geohashes.add(encodeGeohash(bounds.maxLat, bounds.maxLng, precision));
 
   return Array.from(geohashes);
 }

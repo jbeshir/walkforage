@@ -1,11 +1,13 @@
 // Materials Screen - View collected resources
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { ResourceStack, isToolstone } from '../types/resources';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 import { ThemeColors } from '../config/theme';
+import { getResourceIcon } from '../utils/icons';
 
 interface ResourceItemProps {
   stack: ResourceStack;
@@ -37,9 +39,16 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
   // Get property schema for dynamic display
   const schema = config.propertySchema;
 
+  // Get icon if available
+  const icon = getResourceIcon(type, stack.resourceId);
+
   return (
     <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
-      <View style={[styles.colorSwatch, { backgroundColor: resourceData.color }]} />
+      {icon ? (
+        <Image source={icon} style={styles.resourceIcon} cachePolicy="memory-disk" />
+      ) : (
+        <View style={[styles.colorSwatch, { backgroundColor: resourceData.color }]} />
+      )}
       <View style={styles.resourceInfo}>
         <View style={styles.nameRow}>
           <Text style={[styles.resourceName, { color: colors.textPrimary }]}>
@@ -237,6 +246,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   colorSwatch: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  resourceIcon: {
     width: 40,
     height: 40,
     borderRadius: 8,

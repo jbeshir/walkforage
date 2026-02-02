@@ -19,6 +19,13 @@ export interface TileLoader {
   getTile(geohash: string): Promise<GeoTile | null> | GeoTile | null;
 
   /**
+   * Get tiles within a bounding box at the specified precision
+   * @param geohashes Array of geohash strings to query
+   * @returns Array of GeoTile data for found tiles
+   */
+  getTiles(geohashes: string[]): Promise<GeoTile[]> | GeoTile[];
+
+  /**
    * Initialize the loader (load database, etc.)
    */
   initialize(): Promise<void> | void;

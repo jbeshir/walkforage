@@ -36,7 +36,6 @@ import { addResource, getTotalResourceCount } from '../services/InventoryService
 import { canUnlockTech, SelectedTechResources } from '../services/TechService';
 import { GeoDataService } from '../services/GeoDataService';
 import { NodeTileLoader } from '../services/NodeTileLoader';
-import { CoarseGeologyEntry, BiomeData } from '../types/gis';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
@@ -1009,38 +1008,7 @@ function validateBalance(results: SimulationResult[]): ValidationResult {
 
 function createNodeGeoDataService(): GeoDataService {
   const tileLoader = new NodeTileLoader();
-  return new GeoDataService({
-    tileLoader,
-    loadCoarseIndexes: async (): Promise<{
-      geology: Record<string, CoarseGeologyEntry>;
-      biome: Record<string, BiomeData>;
-    }> => {
-      let geology: Record<string, CoarseGeologyEntry> = {};
-      let biome: Record<string, BiomeData> = {};
-
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const geologyIndex = require('../data/gis/geology/index.json');
-        if (geologyIndex?.data) {
-          geology = geologyIndex.data;
-        }
-      } catch {
-        // Geology index not available
-      }
-
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const biomeIndex = require('../data/gis/biomes/index.json');
-        if (biomeIndex?.data) {
-          biome = biomeIndex.data;
-        }
-      } catch {
-        // Biome index not available
-      }
-
-      return { geology, biome };
-    },
-  });
+  return new GeoDataService({ tileLoader });
 }
 
 async function main() {

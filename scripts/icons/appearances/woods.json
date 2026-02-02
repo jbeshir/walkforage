@@ -1,0 +1,786 @@
+{
+  "european_oak": {
+    "primaryColors": ["deep green foliage", "gray-brown deeply furrowed bark"],
+    "trunkColor": "gray-brown deeply furrowed bark",
+    "foliageColor": "deep green leaves",
+    "texture": "broad spreading crown with lobed leaves",
+    "distinguishingFeatures": ["deeply lobed leaves", "massive spreading crown"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "alternate leaf arrangement",
+      "sturdy trunk",
+      "rounded crown shape"
+    ]
+  },
+  "european_beech": {
+    "primaryColors": ["bright green glossy leaves", "smooth silver-gray bark"],
+    "trunkColor": "smooth silver-gray bark",
+    "foliageColor": "bright green glossy leaves",
+    "texture": "dense rounded crown with smooth bark",
+    "distinguishingFeatures": ["smooth elephant-skin bark", "oval wavy-edged leaves"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple oval leaves",
+      "dense shade canopy",
+      "shallow root system"
+    ]
+  },
+  "scots_pine": {
+    "primaryColors": ["blue-green narrow leaves", "orange-red bark on upper trunk"],
+    "trunkColor": "orange-red bark on upper trunk, gray-brown below",
+    "foliageColor": "blue-green narrow leaves",
+    "texture": "open irregular crown with long paired narrow leaves",
+    "distinguishingFeatures": ["distinctive orange bark", "paired blue-green narrow leaves"],
+    "familyFeatures": ["evergreen conifer", "narrow leaves in bundles", "resinous bark and wood"]
+  },
+  "norway_spruce": {
+    "primaryColors": ["dark green narrow leaves", "reddish-brown bark"],
+    "trunkColor": "reddish-brown scaly bark",
+    "foliageColor": "dark green narrow leaves",
+    "texture": "pyramidal shape with drooping branches",
+    "distinguishingFeatures": ["drooping branchlets", "classic Christmas tree shape"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "short stiff single narrow leaves",
+      "symmetrical pyramidal form",
+      "whorled branches"
+    ]
+  },
+  "silver_birch": {
+    "primaryColors": ["bright green leaves", "white peeling bark"],
+    "trunkColor": "distinctive white peeling papery bark",
+    "foliageColor": "bright green leaves",
+    "texture": "light airy crown with papery bark",
+    "distinguishingFeatures": [
+      "striking white bark",
+      "triangular serrated leaves",
+      "drooping branch tips"
+    ],
+    "familyFeatures": ["deciduous broadleaf tree", "papery peeling bark", "slender graceful form"]
+  },
+  "european_larch": {
+    "primaryColors": ["light green soft narrow leaves", "gray-brown scaly bark"],
+    "trunkColor": "gray-brown scaly bark",
+    "foliageColor": "light green soft narrow leaves",
+    "texture": "open conical crown that turns gold in autumn",
+    "distinguishingFeatures": ["deciduous conifer", "soft narrow leaf clusters"],
+    "familyFeatures": [
+      "deciduous conifer",
+      "narrow leaves in rosette clusters",
+      "loses narrow leaves in winter",
+      "conical shape"
+    ]
+  },
+  "european_ash": {
+    "primaryColors": ["dark green compound leaves", "pale gray smooth bark"],
+    "trunkColor": "pale gray smooth bark",
+    "foliageColor": "dark green compound leaves",
+    "texture": "tall domed crown with opposite branching",
+    "distinguishingFeatures": ["compound leaves with many leaflets", "distinctive black buds"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "compound pinnate leaves",
+      "opposite branching pattern",
+      "tall straight trunk"
+    ]
+  },
+  "siberian_larch": {
+    "primaryColors": ["bright green narrow leaves", "thick gray furrowed bark"],
+    "trunkColor": "thick gray furrowed bark",
+    "foliageColor": "bright green narrow leaves",
+    "texture": "narrow conical crown adapted to cold",
+    "distinguishingFeatures": ["very hardy deciduous conifer", "dense narrow leaf clusters"],
+    "familyFeatures": [
+      "deciduous conifer",
+      "narrow leaves in rosette clusters",
+      "loses narrow leaves in winter",
+      "conical shape"
+    ]
+  },
+  "aleppo_pine": {
+    "primaryColors": ["light green narrow leaves", "gray-brown plated bark"],
+    "trunkColor": "gray-brown plated bark",
+    "foliageColor": "light green narrow leaves",
+    "texture": "irregular umbrella-shaped crown",
+    "distinguishingFeatures": ["twisted trunk", "sparse open crown"],
+    "familyFeatures": ["evergreen conifer", "narrow leaves in bundles", "resinous bark and wood"]
+  },
+  "cork_oak": {
+    "primaryColors": ["dark green holly-like leaves", "thick spongy cork bark"],
+    "trunkColor": "thick spongy tan-gray cork bark",
+    "foliageColor": "dark green holly-like evergreen leaves",
+    "texture": "broad spreading crown with distinctive bark",
+    "distinguishingFeatures": ["thick corky bark", "small evergreen leaves"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "alternate leaf arrangement",
+      "sturdy trunk",
+      "rounded crown shape"
+    ]
+  },
+  "olive": {
+    "primaryColors": ["silvery-green narrow leaves", "gnarled gray trunk"],
+    "trunkColor": "gnarled gray trunk",
+    "foliageColor": "silvery-green narrow leaves",
+    "texture": "twisted ancient-looking trunk and branches",
+    "distinguishingFeatures": ["silver-gray twisted trunk", "narrow gray-green leaves"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "opposite leaf arrangement",
+      "gnarled growth habit",
+      "drought tolerant"
+    ]
+  },
+  "siberian_cedar": {
+    "primaryColors": ["dark green narrow leaves in clusters", "gray-brown bark"],
+    "trunkColor": "gray-brown bark",
+    "foliageColor": "dark green narrow leaves in clusters",
+    "texture": "dense pyramidal crown with bunched narrow leaves",
+    "distinguishingFeatures": ["five narrow leaves per cluster", "dense pyramidal shape"],
+    "familyFeatures": ["evergreen conifer", "narrow leaves in bundles", "resinous bark and wood"]
+  },
+  "american_oak": {
+    "primaryColors": ["bright green lobed leaves", "light gray blocky bark"],
+    "trunkColor": "light gray blocky bark",
+    "foliageColor": "bright green lobed leaves",
+    "texture": "massive spreading crown",
+    "distinguishingFeatures": ["rounded leaf lobes", "scaly bark"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "alternate leaf arrangement",
+      "sturdy trunk",
+      "rounded crown shape"
+    ]
+  },
+  "sugar_maple": {
+    "primaryColors": ["bright green five-lobed leaves", "gray-brown plated bark"],
+    "trunkColor": "gray-brown plated bark",
+    "foliageColor": "bright green five-lobed leaves",
+    "texture": "dense rounded crown, brilliant fall color",
+    "distinguishingFeatures": ["classic maple leaf shape", "brilliant red fall color"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "opposite leaf arrangement",
+      "palmate lobed leaves"
+    ]
+  },
+  "american_hickory": {
+    "primaryColors": ["yellow-green compound leaves", "shaggy gray bark"],
+    "trunkColor": "shaggy gray bark that peels in strips",
+    "foliageColor": "yellow-green compound leaves",
+    "texture": "tall straight trunk with shaggy bark",
+    "distinguishingFeatures": ["peeling shaggy bark", "compound leaves"],
+    "familyFeatures": ["deciduous broadleaf tree", "alternate compound leaves", "hard dense wood"]
+  },
+  "eastern_white_pine": {
+    "primaryColors": ["soft blue-green narrow leaves", "dark gray furrowed bark"],
+    "trunkColor": "dark gray furrowed bark",
+    "foliageColor": "soft blue-green narrow leaves",
+    "texture": "tall straight trunk with horizontal branches",
+    "distinguishingFeatures": ["five soft narrow leaves per cluster", "horizontal branch layers"],
+    "familyFeatures": ["evergreen conifer", "narrow leaves in bundles", "resinous bark and wood"]
+  },
+  "douglas_fir": {
+    "primaryColors": ["dark green flat narrow leaves", "thick corky bark"],
+    "trunkColor": "thick brown corky deeply furrowed bark",
+    "foliageColor": "dark green flat narrow leaves",
+    "texture": "tall pyramidal crown with soft narrow leaves",
+    "distinguishingFeatures": ["soft flat narrow leaves", "thick deeply furrowed bark"],
+    "familyFeatures": ["evergreen conifer", "flat soft single narrow leaves", "pyramidal form"]
+  },
+  "western_red_cedar": {
+    "primaryColors": ["dark green scale-like foliage", "red-brown fibrous bark"],
+    "trunkColor": "red-brown fibrous stringy bark",
+    "foliageColor": "dark green scale-like foliage",
+    "texture": "massive trunk with drooping branches",
+    "distinguishingFeatures": ["fibrous stringy bark", "flat sprays of foliage"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "scale-like overlapping foliage",
+      "aromatic wood",
+      "fibrous bark"
+    ]
+  },
+  "black_walnut": {
+    "primaryColors": ["yellow-green compound leaves", "dark deeply furrowed bark"],
+    "trunkColor": "dark brown deeply furrowed bark",
+    "foliageColor": "yellow-green compound leaves",
+    "texture": "tall open crown with aromatic leaves",
+    "distinguishingFeatures": ["dark deeply ridged bark", "large compound leaves"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "alternate compound leaves",
+      "aromatic foliage",
+      "valuable dark wood"
+    ]
+  },
+  "american_beech": {
+    "primaryColors": ["light green oval leaves", "smooth silver-gray bark"],
+    "trunkColor": "smooth silver-gray bark",
+    "foliageColor": "light green oval leaves",
+    "texture": "broad spreading crown with smooth trunk",
+    "distinguishingFeatures": ["smooth gray bark", "papery brown leaves persist in winter"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple oval leaves",
+      "dense shade canopy",
+      "shallow root system"
+    ]
+  },
+  "coast_redwood": {
+    "primaryColors": ["dark green flat narrow leaves", "thick red-brown fibrous bark"],
+    "trunkColor": "thick red-brown fibrous spongy bark",
+    "foliageColor": "dark green flat narrow leaves",
+    "texture": "massive straight trunk soaring upward",
+    "distinguishingFeatures": ["enormous height", "thick spongy red bark"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "flat linear narrow leaves",
+      "fibrous bark",
+      "exceptionally tall growth"
+    ]
+  },
+  "balsam_fir": {
+    "primaryColors": ["dark green flat narrow leaves", "gray smooth bark with resin blisters"],
+    "trunkColor": "gray smooth bark with resin blisters",
+    "foliageColor": "dark green flat narrow leaves",
+    "texture": "narrow spire-shaped crown",
+    "distinguishingFeatures": ["resin blisters on bark", "fragrant flat narrow leaves"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "flat soft single narrow leaves",
+      "pyramidal spire form"
+    ]
+  },
+  "paper_birch": {
+    "primaryColors": ["bright green oval leaves", "brilliant white peeling bark"],
+    "trunkColor": "brilliant white peeling papery bark",
+    "foliageColor": "bright green oval leaves",
+    "texture": "open crown with striking white trunk",
+    "distinguishingFeatures": ["bright white papery bark", "doubly serrated leaves"],
+    "familyFeatures": ["deciduous broadleaf tree", "papery peeling bark", "slender graceful form"]
+  },
+  "mesquite": {
+    "primaryColors": ["light green feathery leaves", "dark brown shaggy bark"],
+    "trunkColor": "dark brown shaggy bark",
+    "foliageColor": "light green feathery leaves",
+    "texture": "spreading thorny branches close to ground",
+    "distinguishingFeatures": ["long thorns", "feathery compound leaves"],
+    "familyFeatures": ["deciduous broadleaf tree", "bipinnate compound leaves", "thorny branches"]
+  },
+  "mahogany": {
+    "primaryColors": ["dark green pinnate leaves", "gray-brown furrowed bark"],
+    "trunkColor": "gray-brown furrowed bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "tall straight trunk with spreading crown",
+    "distinguishingFeatures": ["large compound leaves", "tall buttressed trunk"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "compound pinnate leaves",
+      "buttressed trunk base",
+      "valuable reddish wood"
+    ]
+  },
+  "brazil_nut": {
+    "primaryColors": ["large dark green oval leaves", "gray deeply furrowed bark"],
+    "trunkColor": "gray deeply furrowed bark",
+    "foliageColor": "large dark green oval leaves",
+    "texture": "massive emergent canopy tree",
+    "distinguishingFeatures": ["towers above rainforest canopy", "very tall straight trunk"],
+    "familyFeatures": ["tropical broadleaf tree", "simple large leaves", "emergent canopy tree"]
+  },
+  "ceiba": {
+    "primaryColors": ["palmate compound leaves", "gray-green smooth bark with thorns"],
+    "trunkColor": "gray-green smooth bark with thorns when young",
+    "foliageColor": "green palmate compound leaves",
+    "texture": "massive buttressed trunk, spreading crown",
+    "distinguishingFeatures": ["huge buttress roots", "thorny young trunk"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "palmate compound leaves",
+      "buttressed trunk",
+      "kapok fiber in pods"
+    ]
+  },
+  "balsa": {
+    "primaryColors": ["large heart-shaped leaves", "smooth gray-white bark"],
+    "trunkColor": "smooth gray-white bark",
+    "foliageColor": "large bright green heart-shaped leaves",
+    "texture": "fast-growing with open crown",
+    "distinguishingFeatures": [
+      "very large leaves",
+      "fast-growing soft wood",
+      "tall straight trunk"
+    ],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "simple large leaves",
+      "extremely lightweight wood",
+      "rapid growth"
+    ]
+  },
+  "brazilian_rosewood": {
+    "primaryColors": ["dark green pinnate leaves", "gray rough bark"],
+    "trunkColor": "gray rough bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "medium-sized tree with dense crown",
+    "distinguishingFeatures": [
+      "compound leaves with many leaflets",
+      "purple flowers",
+      "rare and endangered"
+    ],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "compound pinnate leaves",
+      "legume family",
+      "fragrant dark wood"
+    ]
+  },
+  "rubber_tree": {
+    "primaryColors": ["glossy dark green trifoliate leaves", "gray smooth bark"],
+    "trunkColor": "gray smooth bark",
+    "foliageColor": "glossy dark green trifoliate leaves",
+    "texture": "tall straight trunk with spreading crown",
+    "distinguishingFeatures": ["three-leaflet leaves", "milky latex sap"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "compound leaves",
+      "latex-producing",
+      "smooth pale bark"
+    ]
+  },
+  "quebracho": {
+    "primaryColors": ["small dark green leaves", "dark brown deeply furrowed bark"],
+    "trunkColor": "dark brown deeply furrowed bark",
+    "foliageColor": "small dark green leaves",
+    "texture": "twisted trunk with dense thorny crown",
+    "distinguishingFeatures": ["extremely dense wood", "small leaves", "thorny branches"],
+    "familyFeatures": [
+      "subtropical broadleaf tree",
+      "simple small leaves",
+      "very hard dense wood",
+      "drought tolerant"
+    ]
+  },
+  "parana_pine": {
+    "primaryColors": ["dark green stiff leaves", "thick dark bark in plates"],
+    "trunkColor": "thick dark brown bark in plates",
+    "foliageColor": "dark green stiff pointed leaves",
+    "texture": "distinctive umbrella-shaped crown",
+    "distinguishingFeatures": ["flat-topped umbrella crown", "stiff pointed leaves"],
+    "familyFeatures": ["evergreen conifer", "stiff scale-like leaves", "ancient lineage"]
+  },
+  "jacaranda": {
+    "primaryColors": ["bright green fern-like leaves", "gray-brown bark"],
+    "trunkColor": "gray-brown bark",
+    "foliageColor": "bright green fern-like leaves",
+    "texture": "spreading crown, spectacular purple flowers",
+    "distinguishingFeatures": ["masses of purple-blue flowers", "finely divided leaves"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "bipinnate compound leaves",
+      "showy trumpet flowers",
+      "flat woody pods"
+    ]
+  },
+  "guadua_bamboo": {
+    "primaryColors": ["bright green canes", "green leaves"],
+    "trunkColor": "bright green woody canes",
+    "foliageColor": "green lance-shaped leaves",
+    "texture": "tall thick-walled hollow stems",
+    "distinguishingFeatures": ["thick woody stems", "prominent nodes", "very tall grass"],
+    "familyFeatures": [
+      "woody grass",
+      "hollow segmented canes",
+      "rapid growth",
+      "spreading rhizomes"
+    ]
+  },
+  "african_mahogany": {
+    "primaryColors": ["dark green pinnate leaves", "gray scaly bark"],
+    "trunkColor": "gray scaly bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "tall trunk with spreading crown",
+    "distinguishingFeatures": ["compound leaves", "tall straight bole"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "compound pinnate leaves",
+      "buttressed trunk base",
+      "valuable reddish wood"
+    ]
+  },
+  "african_ebony": {
+    "primaryColors": ["small dark green glossy leaves", "dark gray fissured bark"],
+    "trunkColor": "dark gray fissured bark",
+    "foliageColor": "small dark green glossy leaves",
+    "texture": "slow-growing with dense crown",
+    "distinguishingFeatures": ["very dark heartwood", "small glossy leaves", "slow growth"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "simple alternate leaves",
+      "extremely dense wood",
+      "black heartwood"
+    ]
+  },
+  "iroko": {
+    "primaryColors": ["large dark green oval leaves", "pale gray bark"],
+    "trunkColor": "pale gray bark",
+    "foliageColor": "large dark green oval leaves",
+    "texture": "massive trunk with spreading crown",
+    "distinguishingFeatures": ["milky sap", "large simple leaves", "buttressed trunk"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "simple large leaves",
+      "milky latex sap",
+      "buttressed base"
+    ]
+  },
+  "baobab": {
+    "primaryColors": ["green palmate leaves", "smooth gray bark"],
+    "trunkColor": "smooth gray bark",
+    "foliageColor": "green palmate leaves",
+    "texture": "massive swollen trunk storing water",
+    "distinguishingFeatures": [
+      "enormous bottle-shaped trunk",
+      "branches like roots",
+      "white pendulous flowers"
+    ],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "palmate compound leaves",
+      "succulent water-storing trunk",
+      "dry season deciduous"
+    ]
+  },
+  "african_acacia": {
+    "primaryColors": ["tiny gray-green leaves", "dark gray rough bark"],
+    "trunkColor": "dark gray rough bark",
+    "foliageColor": "tiny gray-green leaves",
+    "texture": "flat-topped umbrella crown",
+    "distinguishingFeatures": [
+      "distinctive flat-top shape",
+      "long white thorns",
+      "small yellow flower balls"
+    ],
+    "familyFeatures": ["deciduous broadleaf tree", "bipinnate compound leaves", "paired thorns"]
+  },
+  "african_olive": {
+    "primaryColors": ["gray-green narrow leaves", "gnarled gray trunk"],
+    "trunkColor": "gnarled gray trunk",
+    "foliageColor": "gray-green narrow leaves",
+    "texture": "twisted trunk with spreading crown",
+    "distinguishingFeatures": ["narrow gray leaves"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "opposite leaf arrangement",
+      "gnarled growth habit",
+      "drought tolerant"
+    ]
+  },
+  "obeche": {
+    "primaryColors": ["large light green heart-shaped leaves", "smooth gray bark"],
+    "trunkColor": "smooth pale gray bark",
+    "foliageColor": "large light green heart-shaped leaves",
+    "texture": "tall straight trunk, buttressed base",
+    "distinguishingFeatures": ["large rounded leaves", "tall pale trunk", "light colored wood"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "simple large leaves",
+      "buttressed base",
+      "lightweight pale wood"
+    ]
+  },
+  "wenge": {
+    "primaryColors": ["dark green pinnate leaves", "gray-brown bark"],
+    "trunkColor": "gray-brown bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "medium-sized tree with spreading crown",
+    "distinguishingFeatures": ["compound leaves", "dark striped wood", "purple flowers"],
+    "familyFeatures": [
+      "tropical broadleaf tree",
+      "compound pinnate leaves",
+      "legume family",
+      "distinctive dark wood"
+    ]
+  },
+  "african_juniper": {
+    "primaryColors": ["dark green scale-like foliage", "red-brown fibrous bark"],
+    "trunkColor": "red-brown fibrous stringy bark",
+    "foliageColor": "dark green scale-like foliage",
+    "texture": "tall conical to columnar shape",
+    "distinguishingFeatures": ["aromatic foliage", "stringy bark"],
+    "familyFeatures": ["evergreen conifer", "scale-like overlapping foliage", "aromatic wood"]
+  },
+  "marula": {
+    "primaryColors": ["compound green leaves", "gray mottled bark"],
+    "trunkColor": "gray mottled bark",
+    "foliageColor": "green compound leaves",
+    "texture": "spreading crown with rounded shape",
+    "distinguishingFeatures": ["compound leaves"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "compound pinnate leaves",
+      "rounded spreading crown",
+      "fleshy drupes"
+    ]
+  },
+  "teak": {
+    "primaryColors": ["very large green oval leaves", "gray fibrous bark"],
+    "trunkColor": "gray fibrous bark",
+    "foliageColor": "very large green oval leaves",
+    "texture": "tall straight trunk with large leaves",
+    "distinguishingFeatures": ["enormous leaves", "white flower clusters"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple opposite leaves",
+      "square young stems",
+      "valuable golden wood"
+    ]
+  },
+  "sal": {
+    "primaryColors": ["large glossy green leaves", "rough dark gray bark"],
+    "trunkColor": "rough dark gray bark",
+    "foliageColor": "large glossy green leaves",
+    "texture": "tall straight trunk with dense crown",
+    "distinguishingFeatures": ["resinous bark", "large leathery leaves", "sacred to Hindus"],
+    "familyFeatures": [
+      "semi-evergreen broadleaf tree",
+      "simple alternate leaves",
+      "resin-producing"
+    ]
+  },
+  "indian_rosewood": {
+    "primaryColors": ["dark green pinnate leaves", "gray rough bark"],
+    "trunkColor": "gray rough bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "spreading crown with compound leaves",
+    "distinguishingFeatures": ["fragrant purple flowers", "valuable dark wood"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "compound pinnate leaves",
+      "legume family",
+      "fragrant dark wood"
+    ]
+  },
+  "dipterocarp": {
+    "primaryColors": ["large glossy dark green leaves", "smooth gray bark"],
+    "trunkColor": "smooth gray bark",
+    "foliageColor": "large glossy dark green leaves",
+    "texture": "emergent tree towering above canopy",
+    "distinguishingFeatures": ["buttressed trunk", "towers above rainforest"],
+    "familyFeatures": ["tropical broadleaf tree", "simple alternate leaves", "resin-producing"]
+  },
+  "sandalwood": {
+    "primaryColors": ["small opposite green leaves", "dark brown fissured bark"],
+    "trunkColor": "dark brown fissured bark",
+    "foliageColor": "small green opposite leaves",
+    "texture": "small tree with drooping branches",
+    "distinguishingFeatures": ["intensely aromatic heartwood", "small oval leaves"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "simple opposite leaves",
+      "parasitic roots",
+      "fragrant heartwood"
+    ]
+  },
+  "asian_bamboo": {
+    "primaryColors": ["bright green stems", "green lance-shaped leaves"],
+    "trunkColor": "bright green jointed stems",
+    "foliageColor": "green lance-shaped leaves",
+    "texture": "tall jointed stems",
+    "distinguishingFeatures": ["jointed segments", "graceful arching habit"],
+    "familyFeatures": ["tall woody plant", "segmented stems"]
+  },
+  "neem": {
+    "primaryColors": ["dark green pinnate leaves", "gray-brown rough bark"],
+    "trunkColor": "gray-brown rough bark",
+    "foliageColor": "dark green pinnate leaves",
+    "texture": "spreading crown with bitter leaves",
+    "distinguishingFeatures": [
+      "medicinal properties",
+      "compound serrated leaves",
+      "small white flowers"
+    ],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "compound pinnate leaves",
+      "spreading crown",
+      "bitter medicinal compounds"
+    ]
+  },
+  "banyan": {
+    "primaryColors": ["large glossy dark green leaves", "gray smooth bark"],
+    "trunkColor": "gray smooth bark on aerial roots",
+    "foliageColor": "large glossy dark green leaves",
+    "texture": "massive spreading with aerial roots",
+    "distinguishingFeatures": ["aerial prop roots", "can spread over acres"],
+    "familyFeatures": ["evergreen broadleaf tree", "simple alternate leaves", "aerial roots"]
+  },
+  "coconut_palm": {
+    "primaryColors": ["bright green fronds", "gray ring-marked trunk"],
+    "trunkColor": "gray ring-marked trunk",
+    "foliageColor": "bright green feathery fronds",
+    "texture": "tall single trunk with crown of fronds",
+    "distinguishingFeatures": ["large feathery fronds", "curved leaning trunk"],
+    "familyFeatures": ["evergreen palm", "single unbranched trunk", "crown of large fronds"]
+  },
+  "burmese_teak": {
+    "primaryColors": ["very large dark green leaves", "gray fibrous bark"],
+    "trunkColor": "gray fibrous bark",
+    "foliageColor": "very large dark green oval leaves",
+    "texture": "tall straight trunk with massive leaves",
+    "distinguishingFeatures": ["premium old-growth teak", "enormous leaves", "superior durability"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple opposite leaves",
+      "square young stems",
+      "valuable golden wood"
+    ]
+  },
+  "eucalyptus": {
+    "primaryColors": ["blue-green sickle-shaped leaves", "multicolored peeling bark"],
+    "trunkColor": "multicolored peeling bark in patches of cream, tan, and gray",
+    "foliageColor": "blue-green sickle-shaped aromatic leaves",
+    "texture": "tall straight trunk with aromatic leaves",
+    "distinguishingFeatures": ["aromatic menthol scent", "peeling colorful bark"],
+    "familyFeatures": ["evergreen broadleaf tree", "aromatic oil-rich leaves", "peeling bark"]
+  },
+  "jarrah": {
+    "primaryColors": ["dark green lance-shaped leaves", "dark gray stringy bark"],
+    "trunkColor": "dark gray stringy fibrous bark",
+    "foliageColor": "dark green lance-shaped leaves",
+    "texture": "tall trunk with fibrous bark",
+    "distinguishingFeatures": ["very hard wood", "pink-red timber", "bell-shaped flowers"],
+    "familyFeatures": ["evergreen broadleaf tree", "aromatic oil-rich leaves", "fibrous bark"]
+  },
+  "blackwood": {
+    "primaryColors": ["dark green phyllodes", "dark gray furrowed bark"],
+    "trunkColor": "dark gray furrowed bark",
+    "foliageColor": "dark green sickle-shaped phyllodes",
+    "texture": "tall straight trunk with dense crown",
+    "distinguishingFeatures": ["cream puffball flowers"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "phyllodes instead of true leaves",
+      "legume family",
+      "puffball flowers"
+    ]
+  },
+  "huon_pine": {
+    "primaryColors": ["small dark green scale-like leaves", "gray-brown bark"],
+    "trunkColor": "gray-brown bark",
+    "foliageColor": "small dark green scale-like leaves",
+    "texture": "ancient slow-growing with drooping branches",
+    "distinguishingFeatures": ["extremely slow growing", "aromatic golden wood", "pendulous habit"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "scale-like overlapping foliage",
+      "aromatic wood",
+      "ancient lineage"
+    ]
+  },
+  "kauri": {
+    "primaryColors": ["dark green leathery leaves", "thick gray flaking bark"],
+    "trunkColor": "thick gray flaking bark",
+    "foliageColor": "dark green leathery lance-shaped leaves",
+    "texture": "massive straight cylindrical trunk",
+    "distinguishingFeatures": ["enormous girth", "barrel-shaped trunk", "crown above clear bole"],
+    "familyFeatures": [
+      "evergreen conifer",
+      "broad leathery leaves",
+      "resin-producing",
+      "ancient lineage"
+    ]
+  },
+  "nz_beech": {
+    "primaryColors": ["small dark green oval leaves", "silver-gray bark"],
+    "trunkColor": "silver-gray bark",
+    "foliageColor": "small dark green oval leaves",
+    "texture": "tall trunk with rounded crown",
+    "distinguishingFeatures": ["small toothed leaves", "red autumn color", "smooth bark"],
+    "familyFeatures": [
+      "evergreen to semi-deciduous broadleaf",
+      "simple small leaves",
+      "Southern Hemisphere beech"
+    ]
+  },
+  "manuka": {
+    "primaryColors": ["tiny gray-green leaves", "papery brown bark"],
+    "trunkColor": "papery brown flaky bark",
+    "foliageColor": "tiny gray-green aromatic leaves",
+    "texture": "shrubby to small tree with dense crown",
+    "distinguishingFeatures": [
+      "tiny aromatic leaves",
+      "white-pink flowers",
+      "medicinal honey source"
+    ],
+    "familyFeatures": [
+      "evergreen broadleaf shrub-tree",
+      "small aromatic leaves",
+      "five-petaled flowers",
+      "woody capsules"
+    ]
+  },
+  "rimu": {
+    "primaryColors": ["dark green weeping branchlets", "red-brown flaking bark"],
+    "trunkColor": "red-brown flaking bark",
+    "foliageColor": "dark green scale-like to linear foliage",
+    "texture": "tall with graceful drooping branches",
+    "distinguishingFeatures": ["weeping branchlets", "New Zealand native"],
+    "familyFeatures": ["evergreen conifer", "scale-like juvenile leaves", "pendulous habit"]
+  },
+  "willow": {
+    "primaryColors": ["light green narrow leaves", "gray deeply furrowed bark"],
+    "trunkColor": "gray deeply furrowed bark",
+    "foliageColor": "light green narrow lance-shaped leaves",
+    "texture": "graceful weeping branches",
+    "distinguishingFeatures": ["long narrow leaves", "weeping habit", "grows near water"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple alternate narrow leaves",
+      "flexible branches"
+    ]
+  },
+  "poplar": {
+    "primaryColors": ["bright green triangular leaves", "pale gray furrowed bark"],
+    "trunkColor": "pale gray furrowed bark",
+    "foliageColor": "bright green triangular leaves",
+    "texture": "tall columnar form with trembling leaves",
+    "distinguishingFeatures": ["leaves tremble in breeze", "fast growing", "columnar shape"],
+    "familyFeatures": [
+      "deciduous broadleaf tree",
+      "simple alternate leaves",
+      "flattened leaf stalks"
+    ]
+  },
+  "mangrove": {
+    "primaryColors": ["glossy dark green oval leaves", "gray-brown bark"],
+    "trunkColor": "gray-brown bark on prop roots",
+    "foliageColor": "glossy dark green oval leaves",
+    "texture": "tangled prop roots in water",
+    "distinguishingFeatures": ["arching stilt roots", "grows in salt water"],
+    "familyFeatures": [
+      "evergreen broadleaf tree",
+      "simple opposite leaves",
+      "aerial prop roots",
+      "salt-tolerant"
+    ]
+  },
+  "palm": {
+    "primaryColors": ["bright green fan or feather fronds", "gray-brown trunk"],
+    "trunkColor": "gray-brown fibrous trunk",
+    "foliageColor": "bright green fronds",
+    "texture": "single trunk with crown of large fronds",
+    "distinguishingFeatures": [
+      "large feathery or fan-shaped leaves",
+      "no branches",
+      "tropical silhouette"
+    ],
+    "familyFeatures": [
+      "evergreen palm",
+      "single unbranched trunk",
+      "crown of large fronds",
+      "fibrous trunk"
+    ]
+  }
+}

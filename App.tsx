@@ -10,6 +10,7 @@ import { useHealthRationaleIntent } from './src/hooks/useHealthRationaleIntent';
 import { HealthPermissionRationale } from './src/components/HealthPermissionRationale';
 import { GameStateProvider } from './src/hooks/useGameState';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
+import { GeoDataProvider } from './src/providers/GeoDataProvider';
 
 // Import screens
 import ForageScreen from './src/screens/ForageScreen';
@@ -115,7 +116,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <GameStateProvider>
-        <AppContent />
+        <GeoDataProvider>
+          <AppContent />
+        </GeoDataProvider>
       </GameStateProvider>
     </ThemeProvider>
   );

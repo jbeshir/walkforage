@@ -1,0 +1,285 @@
+{
+  "limestone": {
+    "primaryColors": ["pale gray", "cream", "buff tan"],
+    "texture": "fine-grained sedimentary rock",
+    "pattern": "subtle horizontal layering",
+    "distinguishingFeatures": [
+      "smooth matte surface",
+      "soft chalky appearance",
+      "uniform pale color"
+    ]
+  },
+  "chalk": {
+    "primaryColors": ["pure white", "off-white"],
+    "texture": "soft and powdery, fine-grained",
+    "pattern": "uniform white with occasional flint nodules",
+    "distinguishingFeatures": ["very soft texture", "leaves white residue", "pure white color"]
+  },
+  "dolomite": {
+    "primaryColors": ["cream", "light tan", "pinkish gray"],
+    "texture": "crystalline, sugary appearance",
+    "pattern": "slightly sparkling surface with small crystals",
+    "distinguishingFeatures": [
+      "pearly luster",
+      "rhombohedral crystals",
+      "slightly harder than limestone"
+    ]
+  },
+  "sandstone": {
+    "primaryColors": ["tan", "golden brown", "reddish orange"],
+    "texture": "granular with visible sand grains",
+    "pattern": "cross-bedding layers visible on surface",
+    "distinguishingFeatures": ["visible sand grains", "layered banding", "rough texture"]
+  },
+  "siltstone": {
+    "primaryColors": ["gray-brown", "reddish brown", "olive"],
+    "texture": "smooth but gritty, finer than sandstone",
+    "pattern": "thin parallel laminations",
+    "distinguishingFeatures": ["smooth to touch", "thin layers", "intermediate grain size"]
+  },
+  "shale": {
+    "primaryColors": ["dark gray", "black", "brown"],
+    "texture": "finely layered, fissile",
+    "pattern": "thin parallel sheets that split easily",
+    "distinguishingFeatures": ["flat thin layers", "splits into sheets", "paper-like laminations"]
+  },
+  "mudstone": {
+    "primaryColors": ["gray", "brown", "greenish gray"],
+    "texture": "smooth and uniform, clay-like",
+    "pattern": "massive, blocky fracture",
+    "distinguishingFeatures": ["does not split like shale", "smooth clay texture", "blocky shape"]
+  },
+  "conglomerate": {
+    "primaryColors": ["mixed grays", "tans", "browns"],
+    "texture": "coarse with rounded pebbles in matrix",
+    "pattern": "rounded cobbles and pebbles cemented together",
+    "distinguishingFeatures": [
+      "visible rounded pebbles",
+      "diverse rock fragments",
+      "natural concrete appearance"
+    ]
+  },
+  "clay": {
+    "primaryColors": ["red-brown", "gray", "tan"],
+    "texture": "smooth and plastic when wet, earthy when dry",
+    "pattern": "uniform fine texture",
+    "distinguishingFeatures": [
+      "smooth malleable texture",
+      "earthy smell when wet",
+      "cracks when dry"
+    ]
+  },
+  "flint": {
+    "primaryColors": ["dark gray", "black", "brown"],
+    "secondaryColors": ["white cortex outer layer"],
+    "texture": "smooth glassy with conchoidal fracture",
+    "pattern": "waxy luster with sharp edges when broken",
+    "distinguishingFeatures": ["glass-like fracture", "very sharp edges", "nodular shape"]
+  },
+  "chert": {
+    "primaryColors": ["brown", "tan", "gray"],
+    "secondaryColors": ["red", "green", "yellow varieties"],
+    "texture": "smooth waxy, cryptocrystalline",
+    "pattern": "banded or uniform with glass-like luster",
+    "distinguishingFeatures": ["waxy luster", "conchoidal fracture", "often banded"]
+  },
+  "travertine": {
+    "primaryColors": ["cream", "tan", "light brown"],
+    "secondaryColors": ["white veins", "darker bands"],
+    "texture": "porous with small holes, banded",
+    "pattern": "parallel wavy bands like tree rings",
+    "distinguishingFeatures": ["distinctive banding", "small pores", "deposited layers"]
+  },
+  "granite": {
+    "primaryColors": ["gray", "pink", "white"],
+    "secondaryColors": ["black specks from biotite"],
+    "texture": "coarse crystalline with visible minerals",
+    "pattern": "speckled with interlocking crystals",
+    "distinguishingFeatures": [
+      "visible quartz and feldspar crystals",
+      "sparkly mica flecks",
+      "salt and pepper appearance"
+    ]
+  },
+  "diorite": {
+    "primaryColors": ["dark gray", "black and white speckled"],
+    "texture": "coarse crystalline, salt and pepper",
+    "pattern": "even distribution of light and dark minerals",
+    "distinguishingFeatures": ["black and white speckled", "coarse crystals", "harder than granite"]
+  },
+  "gabbro": {
+    "primaryColors": ["dark gray", "nearly black", "greenish black"],
+    "texture": "coarse crystalline, predominantly dark",
+    "pattern": "large interlocking dark crystals",
+    "distinguishingFeatures": ["very dark color", "large pyroxene crystals", "heavy and dense"]
+  },
+  "diabase": {
+    "primaryColors": ["dark gray", "black", "greenish gray"],
+    "texture": "fine to medium crystalline",
+    "pattern": "uniform dark with small lighter specks",
+    "distinguishingFeatures": [
+      "fine-grained dark rock",
+      "often forms columnar joints",
+      "tough and dense"
+    ]
+  },
+  "pegmatite": {
+    "primaryColors": ["white", "pink", "cream"],
+    "secondaryColors": ["large mica sheets", "quartz crystals"],
+    "texture": "extremely coarse with giant crystals",
+    "pattern": "large visible mineral crystals",
+    "distinguishingFeatures": [
+      "very large crystals",
+      "sometimes gem-bearing",
+      "book-like mica sheets"
+    ]
+  },
+  "basalt": {
+    "primaryColors": ["dark gray", "black"],
+    "texture": "fine-grained to glassy, sometimes vesicular",
+    "pattern": "uniform dark with possible gas bubbles",
+    "distinguishingFeatures": [
+      "very fine grained",
+      "may have air holes",
+      "columnar jointing common"
+    ]
+  },
+  "andesite": {
+    "primaryColors": ["gray", "purple-gray", "brown-gray"],
+    "texture": "fine-grained with occasional visible crystals",
+    "pattern": "uniform matrix with phenocrysts",
+    "distinguishingFeatures": [
+      "intermediate color",
+      "small visible crystals in fine matrix",
+      "volcanic origin"
+    ]
+  },
+  "rhyolite": {
+    "primaryColors": ["light gray", "pink", "tan"],
+    "texture": "fine-grained with flow banding",
+    "pattern": "swirling flow patterns visible",
+    "distinguishingFeatures": ["light colored volcanic rock", "flow banding", "sometimes glassy"]
+  },
+  "tuff": {
+    "primaryColors": ["tan", "gray", "greenish gray"],
+    "texture": "porous with embedded rock fragments",
+    "pattern": "chaotic mix of ash and rock pieces",
+    "distinguishingFeatures": [
+      "lightweight and porous",
+      "visible ash particles",
+      "soft enough to carve"
+    ]
+  },
+  "obsidian": {
+    "primaryColors": ["jet black", "dark brown"],
+    "secondaryColors": ["rainbow sheen", "snowflake patterns"],
+    "texture": "glassy and smooth",
+    "pattern": "glass-like with conchoidal fracture",
+    "distinguishingFeatures": [
+      "natural volcanic glass",
+      "extremely sharp edges",
+      "reflective surface"
+    ]
+  },
+  "marble": {
+    "primaryColors": ["white", "gray", "pink"],
+    "secondaryColors": ["gray or colored veins"],
+    "texture": "crystalline with sugary appearance",
+    "pattern": "often veined with contrasting colors",
+    "distinguishingFeatures": [
+      "crystalline sparkle",
+      "distinctive veining",
+      "can be polished smooth"
+    ]
+  },
+  "slate": {
+    "primaryColors": ["dark gray", "blue-gray", "black"],
+    "secondaryColors": ["green", "purple", "red varieties"],
+    "texture": "fine-grained with perfect cleavage",
+    "pattern": "smooth flat surface with slight sheen",
+    "distinguishingFeatures": ["splits into thin flat sheets", "smooth surface", "used for roofing"]
+  },
+  "phyllite": {
+    "primaryColors": ["silver-gray", "greenish gray"],
+    "texture": "fine-grained with silky sheen",
+    "pattern": "wrinkled or crenulated surface",
+    "distinguishingFeatures": ["silky luster", "wavy surface", "between slate and schist"]
+  },
+  "schist": {
+    "primaryColors": ["silver", "gray", "greenish"],
+    "secondaryColors": ["garnet red crystals common"],
+    "texture": "medium-grained with visible mica",
+    "pattern": "foliated with parallel mica sheets",
+    "distinguishingFeatures": [
+      "sparkly mica surfaces",
+      "schistose foliation",
+      "may contain garnets"
+    ]
+  },
+  "gneiss": {
+    "primaryColors": ["gray", "pink", "white"],
+    "secondaryColors": ["dark bands alternating with light"],
+    "texture": "coarse-grained with banding",
+    "pattern": "alternating light and dark bands",
+    "distinguishingFeatures": ["distinctive banding", "coarse minerals", "granite-like but banded"]
+  },
+  "quartzite": {
+    "primaryColors": ["white", "gray", "pink"],
+    "secondaryColors": ["yellow", "orange when iron-stained"],
+    "texture": "hard glassy interlocking grains",
+    "pattern": "sugary to glassy appearance",
+    "distinguishingFeatures": [
+      "extremely hard",
+      "sparkly surface",
+      "breaks through grains not around"
+    ]
+  },
+  "amphibolite": {
+    "primaryColors": ["dark green", "black", "dark gray"],
+    "texture": "medium to coarse with fibrous minerals",
+    "pattern": "aligned needle-like amphibole crystals",
+    "distinguishingFeatures": [
+      "dark color with greenish tint",
+      "elongated crystals",
+      "may show foliation"
+    ]
+  },
+  "greenstone": {
+    "primaryColors": ["dark green", "gray-green"],
+    "texture": "fine to medium grained",
+    "pattern": "uniform green with occasional veins",
+    "distinguishingFeatures": ["distinctive green color", "tough and dense", "often used for axes"]
+  },
+  "soapstone": {
+    "primaryColors": ["gray", "greenish gray", "white"],
+    "texture": "soft and soapy to touch",
+    "pattern": "uniform with possible veining",
+    "distinguishingFeatures": ["feels like soap", "very soft", "can be scratched with fingernail"]
+  },
+  "serpentinite": {
+    "primaryColors": ["green", "dark green", "yellowish green"],
+    "secondaryColors": ["black veins", "white veins"],
+    "texture": "waxy and smooth",
+    "pattern": "mottled green with serpent-like patterns",
+    "distinguishingFeatures": ["snake-like patterns", "waxy luster", "often veined"]
+  },
+  "malachite": {
+    "primaryColors": ["bright green", "dark green"],
+    "texture": "banded with silky luster",
+    "pattern": "concentric bands of light and dark green",
+    "distinguishingFeatures": ["vivid green color", "distinctive banding", "copper ore indicator"]
+  },
+  "hematite": {
+    "primaryColors": ["steel gray", "black", "red-brown"],
+    "secondaryColors": ["red streak when scratched"],
+    "texture": "metallic to earthy",
+    "pattern": "botryoidal or massive",
+    "distinguishingFeatures": ["metallic luster", "red streak", "very heavy"]
+  },
+  "magnetite": {
+    "primaryColors": ["black", "iron black"],
+    "texture": "metallic with octahedral crystals",
+    "pattern": "massive or well-formed crystals",
+    "distinguishingFeatures": ["strongly magnetic", "black metallic luster", "very heavy"]
+  }
+}

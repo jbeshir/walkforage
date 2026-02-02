@@ -45,5 +45,8 @@ yarn-error.*
 scripts/gis/input/
 scripts/gis/output/
 
+# Icon generation pipeline (intermediate/status files)
+scripts/icons/output/
+
 # Note: assets/gis/tiles.db is the bundled SQLite database and should be committed
 # It is loaded at runtime via expo-sqlite

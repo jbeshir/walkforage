@@ -35,6 +35,15 @@ export type BiomeCode =
 // Each material type defines its own property schema in config/materials.ts
 export type ResourceProperties = Record<string, number>;
 
+/**
+ * Altitude preference for a resource type
+ * Defines optimal and viable altitude ranges in meters
+ */
+export interface AltitudePreference {
+  optimal: [number, number]; // [min, max] altitude in meters where spawn rate is highest
+  viable: [number, number]; // [min, max] altitude in meters where resource can spawn
+}
+
 export interface StoneType {
   id: string;
   name: string;
@@ -58,6 +67,7 @@ export interface WoodType {
   biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
   realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])
   nativeRealms?: string[]; // Biogeographic realms (e.g., ["Palearctic"])
+  altitudePreference?: AltitudePreference; // Optimal and viable altitude ranges
   color: string;
 }
 
@@ -72,6 +82,7 @@ export interface FoodType {
   biomes: BiomeCode[]; // Resolve Ecoregions 2017 biome codes (fallback)
   realmBiomes?: string[]; // Realm+biome codes (e.g., ["PA04", "PA05"])
   nativeRealms?: string[]; // Biogeographic realms (e.g., ["Palearctic"])
+  altitudePreference?: AltitudePreference; // Optimal and viable altitude ranges
   color: string;
 }
 

@@ -11,10 +11,12 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { TECHNOLOGIES } from '../data/techTree';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
+import { getResourceIcon } from '../utils/icons';
 
 type ResourceTab = 'steps' | MaterialType | 'tech';
 
@@ -124,37 +126,47 @@ export default function CheatScreen() {
           Add {config.pluralName}
         </Text>
         <View style={styles.resourceGrid}>
-          {resources.map((resource) => (
-            <View
-              key={resource.id}
-              style={[styles.resourceItem, { backgroundColor: colors.surfaceSecondary }]}
-            >
-              <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
-              <Text style={[styles.resourceName, { color: colors.textPrimary }]} numberOfLines={1}>
-                {resource.name}
-              </Text>
-              <View style={styles.quantityButtons}>
-                <TouchableOpacity
-                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                  onPress={() => handleAddMaterial(materialType, resource.id, 1)}
+          {resources.map((resource) => {
+            const icon = getResourceIcon(materialType, resource.id);
+            return (
+              <View
+                key={resource.id}
+                style={[styles.resourceItem, { backgroundColor: colors.surfaceSecondary }]}
+              >
+                {icon ? (
+                  <Image source={icon} style={styles.resourceIcon} cachePolicy="memory-disk" />
+                ) : (
+                  <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
+                )}
+                <Text
+                  style={[styles.resourceName, { color: colors.textPrimary }]}
+                  numberOfLines={1}
                 >
-                  <Text style={styles.quantityButtonText}>+1</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                  onPress={() => handleAddMaterial(materialType, resource.id, 10)}
-                >
-                  <Text style={styles.quantityButtonText}>+10</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                  onPress={() => handleAddMaterial(materialType, resource.id, 100)}
-                >
-                  <Text style={styles.quantityButtonText}>+100</Text>
-                </TouchableOpacity>
+                  {resource.name}
+                </Text>
+                <View style={styles.quantityButtons}>
+                  <TouchableOpacity
+                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+                    onPress={() => handleAddMaterial(materialType, resource.id, 1)}
+                  >
+                    <Text style={styles.quantityButtonText}>+1</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+                    onPress={() => handleAddMaterial(materialType, resource.id, 10)}
+                  >
+                    <Text style={styles.quantityButtonText}>+10</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+                    onPress={() => handleAddMaterial(materialType, resource.id, 100)}
+                  >
+                    <Text style={styles.quantityButtonText}>+100</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -312,6 +324,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   colorSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  resourceIcon: {
     width: 28,
     height: 28,
     borderRadius: 6,

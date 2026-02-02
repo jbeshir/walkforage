@@ -2,13 +2,17 @@
 // Shows map with current location and terrain info
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useLocation } from '../hooks/useLocation';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { useStepGathering } from '../hooks/useStepGathering';
+import { useMapOverlay } from '../hooks/useMapOverlay';
 import { useGeoData } from '../providers/GeoDataProvider';
 import { StepGatherPanel } from '../components/StepGatherPanel';
+import { GeohashOverlay } from '../components/map/GeohashOverlay';
+import { MapLayerControls, MapLayerType } from '../components/map/MapLayerControls';
+import { MapLegend } from '../components/map/MapLegend';
 import { LocationGeoData } from '../types/gis';
 import { MaterialType } from '../config/materials';
 import { getBiomeDisplayName } from '../config/biomes';
@@ -16,12 +20,47 @@ import { formatSnakeCase } from '../utils/strings';
 
 const { width, height } = Dimensions.get('window');
 
+// Custom map style to hide POIs and labels for cleaner overlay display
+const MAP_STYLE = [
+  {
+    featureType: 'poi',
+    elementType: 'all',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'transit',
+    elementType: 'all',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'administrative',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+];
+
 export default function ForageScreen() {
   const { addResource } = useGameState();
   const { theme } = useTheme();
   const { colors } = theme;
-  const { geoDataService } = useGeoData();
+  const { geoDataService, tileLoader } = useGeoData();
   const [geoData, setGeoData] = useState<LocationGeoData | null>(null);
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>('biome');
+
+  // Map overlay tile loading - always enabled since we always show an overlay
+  const {
+    tiles: overlayTiles,
+    isLoading: isOverlayLoading,
+    updateRegion,
+  } = useMapOverlay({
+    tileLoader,
+    enabled: true,
+  });
 
   // Step gathering integration
   const handleStepGather = useCallback(
@@ -62,7 +101,10 @@ export default function ForageScreen() {
   useEffect(() => {
     if (location && geoDataService) {
       geoDataService
-        .getLocationData(location.latitude, location.longitude)
+        .getLocationData(location.latitude, location.longitude, {
+          altitude: location.altitude,
+          altitudeAccuracy: location.altitudeAccuracy,
+        })
         .then(setGeoData)
         .catch((err: Error) => console.warn('Failed to get geo data:', err));
     }
@@ -76,6 +118,8 @@ export default function ForageScreen() {
         <MapView
           style={styles.map}
           provider={PROVIDER_GOOGLE}
+          customMapStyle={MAP_STYLE}
+          minZoomLevel={5}
           initialRegion={{
             latitude: location.latitude,
             longitude: location.longitude,
@@ -84,7 +128,19 @@ export default function ForageScreen() {
           }}
           showsUserLocation
           showsMyLocationButton
-        />
+          onMapReady={() => {
+            // Load initial tiles when map is ready
+            updateRegion({
+              latitude: location.latitude,
+              longitude: location.longitude,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            });
+          }}
+          onRegionChangeComplete={(region: Region) => updateRegion(region)}
+        >
+          {overlayTiles.length > 0 && <GeohashOverlay tiles={overlayTiles} type={activeLayer} />}
+        </MapView>
       ) : (
         <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -99,6 +155,18 @@ export default function ForageScreen() {
             </Text>
           )}
         </View>
+      )}
+
+      {/* Layer toggle controls */}
+      {location && (
+        <>
+          <MapLayerControls
+            activeLayer={activeLayer}
+            onLayerChange={setActiveLayer}
+            isLoading={isOverlayLoading}
+          />
+          <MapLegend tiles={overlayTiles} type={activeLayer} />
+        </>
       )}
 
       {/* Terrain info overlay */}

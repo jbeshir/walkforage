@@ -1,64 +1,43 @@
 /**
  * Tests for GeoDataService
+ *
+ * Uses a shared database connection across all tests to avoid connection
+ * contention issues when tests run in parallel.
  */
 import { GeoDataService } from '../src/services/GeoDataService';
 import { NodeTileLoader } from '../src/services/NodeTileLoader';
 import { TileLoader } from '../src/services/TileLoader';
-import { BiomeData, CoarseGeologyEntry } from '../src/types/gis';
 
-// Create a test instance using NodeTileLoader
-function createTestGeoDataService(): { service: GeoDataService; tileLoader: TileLoader } {
+// Shared instances - initialized once for all tests
+let sharedTileLoader: TileLoader;
+let sharedGeoDataService: GeoDataService;
+
+// Create test instances using shared NodeTileLoader
+function createSharedInstances(): { service: GeoDataService; tileLoader: TileLoader } {
   const tileLoader = new NodeTileLoader();
-  const service = new GeoDataService({
-    tileLoader,
-    loadCoarseIndexes: async () => {
-      let geology: Record<string, CoarseGeologyEntry> = {};
-      let biome: Record<string, BiomeData> = {};
-
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const geologyIndex = require('../src/data/gis/geology/index.json');
-        if (geologyIndex?.data) {
-          geology = geologyIndex.data;
-        }
-      } catch {
-        // Geology index not available
-      }
-
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const biomeIndex = require('../src/data/gis/biomes/index.json');
-        if (biomeIndex?.data) {
-          biome = biomeIndex.data;
-        }
-      } catch {
-        // Biome index not available
-      }
-
-      return { geology, biome };
-    },
-  });
+  const service = new GeoDataService({ tileLoader });
   return { service, tileLoader };
 }
 
 describe('GeoDataService', () => {
-  let geoDataService: GeoDataService;
-  let tileLoader: TileLoader;
-
-  beforeEach(() => {
-    const result = createTestGeoDataService();
-    geoDataService = result.service;
-    tileLoader = result.tileLoader;
+  // Initialize once before all tests
+  beforeAll(async () => {
+    const result = createSharedInstances();
+    sharedGeoDataService = result.service;
+    sharedTileLoader = result.tileLoader;
+    // Pre-initialize to ensure database is open
+    await sharedGeoDataService.getLocationData(0, 0);
   });
 
-  afterEach(async () => {
-    await geoDataService.close();
+  // Close once after all tests
+  afterAll(async () => {
+    await sharedGeoDataService.close();
   });
 
   describe('getLocationData', () => {
     it('should return data for valid coordinates', async () => {
       // New York City coordinates
-      const data = await geoDataService.getLocationData(40.7128, -74.006);
+      const data = await sharedGeoDataService.getLocationData(40.7128, -74.006);
 
       expect(data).toBeDefined();
       expect(data.geology).toBeDefined();
@@ -68,7 +47,7 @@ describe('GeoDataService', () => {
     });
 
     it('should return geology data with required fields', async () => {
-      const data = await geoDataService.getLocationData(40.7128, -74.006);
+      const data = await sharedGeoDataService.getLocationData(40.7128, -74.006);
 
       expect(data.geology.primaryLithology).toBeDefined();
       expect(typeof data.geology.primaryLithology).toBe('string');
@@ -79,7 +58,7 @@ describe('GeoDataService', () => {
     });
 
     it('should return biome data with required fields', async () => {
-      const data = await geoDataService.getLocationData(40.7128, -74.006);
+      const data = await sharedGeoDataService.getLocationData(40.7128, -74.006);
 
       expect(data.biome.type).toBeDefined();
       expect(typeof data.biome.type).toBe('string');
@@ -90,7 +69,7 @@ describe('GeoDataService', () => {
 
     it('should use fallback for unmapped ocean locations', async () => {
       // Middle of Pacific Ocean
-      const data = await geoDataService.getLocationData(0, -160);
+      const data = await sharedGeoDataService.getLocationData(0, -160);
 
       expect(data.dataSource).toBe('fallback');
       expect(data.geology.confidence).toBeLessThanOrEqual(0.5);
@@ -98,20 +77,20 @@ describe('GeoDataService', () => {
 
     it('should return appropriate biome for latitude zones', async () => {
       // Arctic - should be tundra
-      const arctic = await geoDataService.getLocationData(70, 0);
+      const arctic = await sharedGeoDataService.getLocationData(70, 0);
       expect(arctic.biome.type).toBe('tundra');
 
       // Tropical - should be tropical
-      const tropical = await geoDataService.getLocationData(5, 0);
+      const tropical = await sharedGeoDataService.getLocationData(5, 0);
       expect(arctic.biome.type).not.toBe(tropical.biome.type);
     });
 
     it('should track cache stats', async () => {
       // First call
-      await geoDataService.getLocationData(40.7128, -74.006);
+      await sharedGeoDataService.getLocationData(40.7128, -74.006);
 
       // Get cache stats from tile loader (NodeTileLoader returns 0 since it doesn't cache)
-      const stats = tileLoader.getCacheStats();
+      const stats = sharedTileLoader.getCacheStats();
       expect(stats.tilesCached).toBeGreaterThanOrEqual(0);
     });
   });
@@ -120,7 +99,7 @@ describe('GeoDataService', () => {
     it('should return ecoregion data for mapped locations', async () => {
       // Central Europe - should have PA04 ecoregion data
       // Use coordinates that are likely in the Palearctic realm
-      const data = await geoDataService.getLocationData(48.8566, 2.3522); // Paris
+      const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522); // Paris
 
       // Ecoregion fields may or may not be present depending on data coverage
       // But the fields should at least be allowed in the type
@@ -129,7 +108,7 @@ describe('GeoDataService', () => {
     });
 
     it('should include realm name when available', async () => {
-      const data = await geoDataService.getLocationData(48.8566, 2.3522);
+      const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
 
       // If realm is present, it should be a valid realm name
       if (data.biome.realm) {
@@ -148,7 +127,7 @@ describe('GeoDataService', () => {
     });
 
     it('should include ecoregionId when available', async () => {
-      const data = await geoDataService.getLocationData(48.8566, 2.3522);
+      const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
 
       // If ecoregionId is present, it should be a positive integer
       if (data.biome.ecoregionId !== undefined) {
@@ -159,8 +138,8 @@ describe('GeoDataService', () => {
 
     it('should return different realm codes for different continents', async () => {
       // Test locations on different continents
-      const europe = await geoDataService.getLocationData(48.8566, 2.3522); // Paris
-      const northAmerica = await geoDataService.getLocationData(40.7128, -74.006); // NYC
+      const europe = await sharedGeoDataService.getLocationData(48.8566, 2.3522); // Paris
+      const northAmerica = await sharedGeoDataService.getLocationData(40.7128, -74.006); // NYC
 
       // Both should have biome data
       expect(europe.biome.type).toBeDefined();
@@ -176,14 +155,14 @@ describe('GeoDataService', () => {
 
   describe('cache management', () => {
     it('should clear cache when requested', async () => {
-      await geoDataService.getLocationData(40.7128, -74.006);
+      await sharedGeoDataService.getLocationData(40.7128, -74.006);
 
-      let stats = tileLoader.getCacheStats();
+      let stats = sharedTileLoader.getCacheStats();
       expect(stats.tilesCached + stats.filesCached).toBeGreaterThanOrEqual(0);
 
-      tileLoader.clearCache();
+      sharedTileLoader.clearCache();
 
-      stats = tileLoader.getCacheStats();
+      stats = sharedTileLoader.getCacheStats();
       expect(stats.tilesCached).toBe(0);
       expect(stats.filesCached).toBe(0);
     });
@@ -194,8 +173,8 @@ describe('GeoDataService', () => {
       const lat = 40.7128;
       const lng = -74.006;
 
-      const data1 = await geoDataService.getLocationData(lat, lng);
-      const data2 = await geoDataService.getLocationData(lat, lng);
+      const data1 = await sharedGeoDataService.getLocationData(lat, lng);
+      const data2 = await sharedGeoDataService.getLocationData(lat, lng);
 
       expect(data1.geology.primaryLithology).toBe(data2.geology.primaryLithology);
       expect(data1.biome.type).toBe(data2.biome.type);
@@ -204,8 +183,8 @@ describe('GeoDataService', () => {
 
     it('should return same geohash for nearby coordinates', async () => {
       // Two points very close together (within same geohash cell)
-      const data1 = await geoDataService.getLocationData(40.7128, -74.006);
-      const data2 = await geoDataService.getLocationData(40.7129, -74.0061);
+      const data1 = await sharedGeoDataService.getLocationData(40.7128, -74.006);
+      const data2 = await sharedGeoDataService.getLocationData(40.7129, -74.0061);
 
       // Should have same precision-4 geohash prefix
       expect(data1.geohash).toBeDefined();
@@ -214,8 +193,8 @@ describe('GeoDataService', () => {
     });
 
     it('should maintain ecoregion consistency for same tile', async () => {
-      const data1 = await geoDataService.getLocationData(48.8566, 2.3522);
-      const data2 = await geoDataService.getLocationData(48.8566, 2.3522);
+      const data1 = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
+      const data2 = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
 
       expect(data1.biome.realm).toBe(data2.biome.realm);
       expect(data1.biome.ecoregionId).toBe(data2.biome.ecoregionId);
@@ -236,7 +215,7 @@ describe('GeoDataService', () => {
     it.each(testLocations)(
       'should return valid data for $name',
       async ({ lat, lng, expectedRealm }) => {
-        const data = await geoDataService.getLocationData(lat, lng);
+        const data = await sharedGeoDataService.getLocationData(lat, lng);
 
         expect(data).toBeDefined();
         expect(data.biome.type).toBeDefined();

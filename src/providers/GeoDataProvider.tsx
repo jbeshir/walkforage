@@ -8,15 +8,18 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { GeoDataService } from '../services/GeoDataService';
 import { ExpoTileLoader } from '../services/ExpoTileLoader';
+import { TileLoader } from '../services/TileLoader';
 
 interface GeoDataContextValue {
   geoDataService: GeoDataService | null;
+  tileLoader: TileLoader | null;
   isLoading: boolean;
   error: Error | null;
 }
 
 const GeoDataContext = createContext<GeoDataContextValue>({
   geoDataService: null,
+  tileLoader: null,
   isLoading: true,
   error: null,
 });
@@ -30,6 +33,7 @@ interface GeoDataProviderProps {
  */
 export function GeoDataProvider({ children }: GeoDataProviderProps) {
   const [geoDataService, setGeoDataService] = useState<GeoDataService | null>(null);
+  const [tileLoader, setTileLoader] = useState<TileLoader | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -39,12 +43,13 @@ export function GeoDataProvider({ children }: GeoDataProviderProps) {
 
     async function initialize() {
       try {
-        const tileLoader = new ExpoTileLoader();
-        service = new GeoDataService({ tileLoader });
+        const loader = new ExpoTileLoader();
+        service = new GeoDataService({ tileLoader: loader });
         await service.initialize();
 
         if (mounted) {
           setGeoDataService(service);
+          setTileLoader(loader);
           setIsLoading(false);
         }
       } catch (err) {
@@ -66,7 +71,7 @@ export function GeoDataProvider({ children }: GeoDataProviderProps) {
   }, []);
 
   return (
-    <GeoDataContext.Provider value={{ geoDataService, isLoading, error }}>
+    <GeoDataContext.Provider value={{ geoDataService, tileLoader, isLoading, error }}>
       {children}
     </GeoDataContext.Provider>
   );

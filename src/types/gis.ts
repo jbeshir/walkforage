@@ -33,14 +33,6 @@ export interface GeologyData {
 }
 
 /**
- * Coarse geology index entry (minimal data for global coverage)
- */
-export interface CoarseGeologyEntry {
-  primaryLithology: string;
-  confidence: number;
-}
-
-/**
  * Biome data for a geohash tile
  */
 export interface BiomeData {
@@ -69,6 +61,19 @@ export interface GeoIndex {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Altitude Types
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Altitude data from GPS with confidence scoring
+ */
+export interface AltitudeData {
+  value: number; // Altitude in meters above sea level
+  accuracy: number | null; // GPS-reported vertical accuracy in meters (null if unavailable)
+  confidence: number; // 0-1 confidence score based on accuracy
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Lookup Result Types
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -89,6 +94,7 @@ export interface LocationGeoData {
     realm?: string; // Biogeographic realm (e.g., "Palearctic")
     confidence: number;
   };
+  altitude?: AltitudeData; // GPS altitude with confidence
   dataSource: DataSource;
   geohash?: string; // The geohash used for lookup
 }

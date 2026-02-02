@@ -7,7 +7,7 @@
  * Usage: npx tsx scripts/gis/buildSqliteBundle.ts
  *
  * Input:
- *   - scripts/gis/output/macrostrat_raw.json
+ *   - scripts/gis/output/lithology_raw.json
  *   - scripts/gis/output/biomes_raw.json
  *
  * Output:
@@ -262,15 +262,16 @@ function normalizeLithology(lith: string): string {
 }
 
 /**
- * Load raw geology data
+ * Load raw geology/lithology data
  */
 function loadGeologyData(): GeologyRecord[] {
-  const dataPath = path.join(OUTPUT_DIR, 'macrostrat_raw.json');
+  const dataPath = path.join(OUTPUT_DIR, 'lithology_raw.json');
   if (!fs.existsSync(dataPath)) {
-    console.log('  No geology data found at', dataPath);
+    console.log('  No lithology data found at', dataPath);
     return [];
   }
 
+  console.log(`  Loading lithology data from ${path.basename(dataPath)}`);
   const content = fs.readFileSync(dataPath, 'utf-8');
   const data: RawDataFile<GeologyRecord> = JSON.parse(content);
   return data.records;
@@ -296,7 +297,7 @@ function loadBiomeData(): BiomeRecord[] {
  * This data takes precedence over global precision-4 data.
  */
 function loadCityGeologyData(): GeologyRecord[] {
-  const dataPath = path.join(OUTPUT_DIR, 'cities_geology.json');
+  const dataPath = path.join(OUTPUT_DIR, 'cities_lithology.json');
   if (!fs.existsSync(dataPath)) {
     console.log('  No city geology data found at', dataPath);
     return [];
@@ -341,52 +342,6 @@ function createSchema(db: Database.Database): void {
 }
 
 /**
- * Build coarse index for quick initialization
- */
-function buildCoarseIndex(
-  records: Array<{ geohash: string; value: string; confidence: number }>,
-  prefixLength: number
-): Record<string, { value: string; confidence: number }> {
-  const groups = new Map<string, Array<{ value: string; confidence: number }>>();
-
-  for (const record of records) {
-    const prefix = record.geohash.substring(0, prefixLength);
-    const existing = groups.get(prefix) || [];
-    existing.push({ value: record.value, confidence: record.confidence });
-    groups.set(prefix, existing);
-  }
-
-  const index: Record<string, { value: string; confidence: number }> = {};
-
-  for (const [prefix, groupRecords] of groups) {
-    const counts: Record<string, number> = {};
-    for (const r of groupRecords) {
-      counts[r.value] = (counts[r.value] || 0) + 1;
-    }
-
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    if (sorted.length > 0) {
-      const [topValue, topCount] = sorted[0];
-      index[prefix] = {
-        value: topValue,
-        confidence: Math.round((topCount / groupRecords.length) * 100) / 100,
-      };
-    }
-  }
-
-  return index;
-}
-
-/**
- * Write JSON file
- */
-function writeJsonFile(filePath: string, data: unknown): number {
-  const content = JSON.stringify(data);
-  fs.writeFileSync(filePath, content);
-  return content.length;
-}
-
-/**
  * Main function
  */
 async function main() {
@@ -394,7 +349,7 @@ async function main() {
   console.log('=========================\n');
 
   // Ensure output directories exist
-  for (const dir of [ASSETS_DIR, path.join(GIS_DIR, 'geology'), path.join(GIS_DIR, 'biomes')]) {
+  for (const dir of [ASSETS_DIR, GIS_DIR]) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -474,6 +429,92 @@ async function main() {
   const allGeohashes = new Set([...geologyMap.keys(), ...biomeMap.keys()]);
   console.log(`  Total unique geohashes: ${allGeohashes.size}`);
 
+  // Generate precision-3 tiles by aggregating precision-4 data
+  console.log('\nGenerating precision-3 tiles from precision-4 data...');
+  const precision3Groups = new Map<
+    string,
+    { geologies: Map<string, number>; biomes: Map<string, BiomeRecord[]> }
+  >();
+
+  for (const geohash of allGeohashes) {
+    if (geohash.length < 3) continue;
+    const prefix3 = geohash.substring(0, 3);
+
+    if (!precision3Groups.has(prefix3)) {
+      precision3Groups.set(prefix3, { geologies: new Map(), biomes: new Map() });
+    }
+
+    const group = precision3Groups.get(prefix3)!;
+
+    // Aggregate geology
+    const geology = geologyMap.get(geohash);
+    if (geology) {
+      const normalized = normalizeLithology(geology.primaryLithology);
+      group.geologies.set(normalized, (group.geologies.get(normalized) || 0) + 1);
+    }
+
+    // Aggregate biomes
+    const biome = biomeMap.get(geohash);
+    if (biome) {
+      const biomeList = group.biomes.get(biome.biomeCode) || [];
+      biomeList.push(biome);
+      group.biomes.set(biome.biomeCode, biomeList);
+    }
+  }
+
+  // Create precision-3 tile records
+  for (const [prefix3, group] of precision3Groups) {
+    // Find most common geology
+    let topGeology = 'unknown';
+    let topGeologyCount = 0;
+    let totalGeologyCount = 0;
+    for (const [lith, count] of group.geologies) {
+      totalGeologyCount += count;
+      if (count > topGeologyCount) {
+        topGeologyCount = count;
+        topGeology = lith;
+      }
+    }
+
+    // Find most common biome (preserving full biome record for realm info)
+    let topBiome: BiomeRecord | null = null;
+    let topBiomeCount = 0;
+    let totalBiomeCount = 0;
+    for (const [, records] of group.biomes) {
+      totalBiomeCount += records.length;
+      if (records.length > topBiomeCount) {
+        topBiomeCount = records.length;
+        topBiome = records[0]; // Use first record for realm info
+      }
+    }
+
+    // Add to allGeohashes set (will be inserted alongside precision-4/5)
+    allGeohashes.add(prefix3);
+
+    // Create synthetic records for the precision-3 tile
+    if (topGeology !== 'unknown') {
+      geologyMap.set(prefix3, {
+        geohash: prefix3,
+        lat: 0, // Not needed for tiles
+        lng: 0,
+        primaryLithology: topGeology, // Already normalized
+        secondaryLithologies: [],
+        confidence: totalGeologyCount > 0 ? topGeologyCount / totalGeologyCount : 0,
+      });
+    }
+
+    if (topBiome) {
+      biomeMap.set(prefix3, {
+        ...topBiome,
+        geohash: prefix3,
+        confidence: totalBiomeCount > 0 ? topBiomeCount / totalBiomeCount : 0,
+      });
+    }
+  }
+
+  console.log(`  Generated ${precision3Groups.size} precision-3 tiles`);
+  console.log(`  Total tiles to insert: ${allGeohashes.size}`);
+
   // Insert tiles in a transaction for better performance
   console.log('\nInserting tiles into database...');
   const insertMany = db.transaction((geohashes: string[]) => {
@@ -538,91 +579,39 @@ async function main() {
   console.log(`\nDatabase created: ${DB_PATH}`);
   console.log(`  Size: ${(dbStats.size / 1024 / 1024).toFixed(2)} MB`);
 
-  // Build and write coarse indexes (kept for fast app initialization)
-  console.log('\nBuilding coarse indexes...');
-
-  if (geologyRecords.length > 0) {
-    const geologyIndexData = geologyRecords.map((r) => ({
-      geohash: r.geohash,
-      value: normalizeLithology(r.primaryLithology),
-      confidence: r.confidence,
-    }));
-    const geologyIndex = buildCoarseIndex(geologyIndexData, 3);
-
-    const indexPath = path.join(GIS_DIR, 'geology', 'index.json');
-    const bytes = writeJsonFile(indexPath, {
-      _meta: {
-        type: 'coarse_geology_index',
-        precision: 3,
-        cellCount: Object.keys(geologyIndex).length,
-        generatedAt: new Date().toISOString(),
-      },
-      data: Object.fromEntries(
-        Object.entries(geologyIndex).map(([k, v]) => [
-          k,
-          { primaryLithology: v.value, confidence: v.confidence },
-        ])
-      ),
-    });
-    console.log(
-      `  Geology index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(geologyIndex).length} cells)`
-    );
-  }
-
-  if (biomeRecords.length > 0) {
-    const biomeIndexData = biomeRecords.map((r) => ({
-      geohash: r.geohash,
-      value: r.biomeCode,
-      confidence: r.confidence,
-    }));
-    const biomeIndex = buildCoarseIndex(biomeIndexData, 3);
-
-    const indexPath = path.join(GIS_DIR, 'biomes', 'index.json');
-    const bytes = writeJsonFile(indexPath, {
-      _meta: {
-        type: 'coarse_biome_index',
-        precision: 3,
-        cellCount: Object.keys(biomeIndex).length,
-        generatedAt: new Date().toISOString(),
-      },
-      data: Object.fromEntries(
-        Object.entries(biomeIndex).map(([k, v]) => [k, { type: v.value, confidence: v.confidence }])
-      ),
-    });
-    console.log(
-      `  Biome index: ${(bytes / 1024).toFixed(1)} KB (${Object.keys(biomeIndex).length} cells)`
-    );
-  }
-
   // Write manifest
   const manifestPath = path.join(GIS_DIR, 'manifest.json');
-  writeJsonFile(manifestPath, {
-    version: '2.0.0',
-    format: 'sqlite',
-    generatedAt: new Date().toISOString(),
-    sources: {
-      geology: geologyRecords.length > 0 ? 'Macrostrat API' : null,
-      biomes: biomeRecords.length > 0 ? 'Resolve Ecoregions 2017' : null,
+  const manifestContent = JSON.stringify(
+    {
+      version: '2.0.0',
+      format: 'sqlite',
+      generatedAt: new Date().toISOString(),
+      sources: {
+        geology: geologyRecords.length > 0 ? 'Macrostrat API' : null,
+        biomes: biomeRecords.length > 0 ? 'Resolve Ecoregions 2017' : null,
+      },
+      statistics: {
+        geologyRecords: geologyRecords.length,
+        biomeRecords: biomeRecords.length,
+        totalTiles: allGeohashes.size,
+        precision3Tiles: precision3Groups.size,
+        databaseSizeBytes: dbStats.size,
+        databaseSizeMB: Math.round((dbStats.size / 1024 / 1024) * 100) / 100,
+      },
+      files: {
+        database: 'assets/gis/tiles.db',
+      },
     },
-    statistics: {
-      geologyRecords: geologyRecords.length,
-      biomeRecords: biomeRecords.length,
-      totalTiles: allGeohashes.size,
-      databaseSizeBytes: dbStats.size,
-      databaseSizeMB: Math.round((dbStats.size / 1024 / 1024) * 100) / 100,
-    },
-    files: {
-      database: 'assets/gis/tiles.db',
-      geologyIndex: 'src/data/gis/geology/index.json',
-      biomeIndex: 'src/data/gis/biomes/index.json',
-    },
-  });
+    null,
+    2
+  );
+  fs.writeFileSync(manifestPath, manifestContent);
 
   console.log('\n=========================');
   console.log('Build Complete!');
   console.log('=========================');
   console.log(`Database: ${DB_PATH} (${(dbStats.size / 1024 / 1024).toFixed(2)} MB)`);
-  console.log(`Tiles: ${allGeohashes.size}`);
+  console.log(`Tiles: ${allGeohashes.size} (including ${precision3Groups.size} precision-3)`);
   console.log('\nThe database will be bundled with the app via expo-asset.');
 }
 

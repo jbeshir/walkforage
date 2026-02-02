@@ -10,7 +10,7 @@
   "siltstone": {
     "lithology": "siltstone",
     "stoneIds": ["siltstone", "sandstone", "shale", "chert"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "shale": {
     "lithology": "shale",
@@ -20,17 +20,17 @@
   "mudstone": {
     "lithology": "mudstone",
     "stoneIds": ["mudstone", "shale", "clay", "chert"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "claystone": {
     "lithology": "claystone",
     "stoneIds": ["clay", "mudstone", "shale", "chert"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "clay": {
     "lithology": "clay",
     "stoneIds": ["clay", "mudstone", "shale", "chert"],
-    "weights": [0.55, 0.25, 0.15, 0.05]
+    "weights": [0.5, 0.25, 0.15, 0.1]
   },
   "conglomerate": {
     "lithology": "conglomerate",
@@ -80,17 +80,17 @@
   "granodiorite": {
     "lithology": "granodiorite",
     "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "diorite": {
     "lithology": "diorite",
     "stoneIds": ["diorite", "granite", "gabbro", "quartzite"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "gabbro": {
     "lithology": "gabbro",
     "stoneIds": ["gabbro", "basalt", "diorite", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "basalt": {
     "lithology": "basalt",
@@ -100,7 +100,7 @@
   "andesite": {
     "lithology": "andesite",
     "stoneIds": ["andesite", "basalt", "rhyolite", "obsidian"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "rhyolite": {
     "lithology": "rhyolite",
@@ -115,7 +115,7 @@
   "tuff": {
     "lithology": "tuff",
     "stoneIds": ["tuff", "rhyolite", "obsidian"],
-    "weights": [0.6, 0.3, 0.1]
+    "weights": [0.45, 0.3, 0.25]
   },
   "volcanic_ash": {
     "lithology": "volcanic_ash",
@@ -140,27 +140,27 @@
   "marble": {
     "lithology": "marble",
     "stoneIds": ["marble", "limestone", "dolomite", "chert"],
-    "weights": [0.55, 0.25, 0.15, 0.05]
+    "weights": [0.5, 0.25, 0.15, 0.1]
   },
   "slate": {
     "lithology": "slate",
     "stoneIds": ["slate", "phyllite", "shale", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "phyllite": {
     "lithology": "phyllite",
     "stoneIds": ["phyllite", "slate", "schist", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "schist": {
     "lithology": "schist",
     "stoneIds": ["schist", "phyllite", "gneiss", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "gneiss": {
     "lithology": "gneiss",
     "stoneIds": ["gneiss", "granite", "schist", "quartzite"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "quartzite": {
     "lithology": "quartzite",
@@ -170,7 +170,7 @@
   "amphibolite": {
     "lithology": "amphibolite",
     "stoneIds": ["amphibolite", "gneiss", "schist", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "iron_formation": {
     "lithology": "iron_formation",
@@ -255,7 +255,7 @@
   "diabase": {
     "lithology": "diabase",
     "stoneIds": ["diabase", "gabbro", "basalt", "greenstone"],
-    "weights": [0.45, 0.3, 0.2, 0.05]
+    "weights": [0.4, 0.3, 0.2, 0.1]
   },
   "dolerite": {
     "lithology": "dolerite",
@@ -271,5 +271,45 @@
     "lithology": "peridotite",
     "stoneIds": ["serpentinite", "gabbro", "greenstone"],
     "weights": [0.45, 0.45, 0.1]
+  },
+  "novaculite": {
+    "lithology": "novaculite",
+    "stoneIds": ["chert", "quartzite", "flint"],
+    "weights": [0.5, 0.35, 0.15]
+  },
+  "pumice": {
+    "lithology": "pumice",
+    "stoneIds": ["tuff", "rhyolite", "obsidian"],
+    "weights": [0.5, 0.35, 0.15]
+  },
+  "syenite": {
+    "lithology": "syenite",
+    "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
+    "weights": [0.45, 0.3, 0.15, 0.1]
+  },
+  "tonalite": {
+    "lithology": "tonalite",
+    "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
+    "weights": [0.4, 0.3, 0.2, 0.1]
+  },
+  "monzonite": {
+    "lithology": "monzonite",
+    "stoneIds": ["granite", "diorite", "gneiss", "quartzite"],
+    "weights": [0.4, 0.3, 0.2, 0.1]
+  },
+  "arkose": {
+    "lithology": "arkose",
+    "stoneIds": ["sandstone", "granite", "conglomerate", "chert"],
+    "weights": [0.45, 0.3, 0.15, 0.1]
+  },
+  "granulite": {
+    "lithology": "granulite",
+    "stoneIds": ["gneiss", "granite", "quartzite"],
+    "weights": [0.45, 0.35, 0.2]
+  },
+  "trachyte": {
+    "lithology": "trachyte",
+    "stoneIds": ["rhyolite", "andesite", "tuff", "obsidian"],
+    "weights": [0.4, 0.3, 0.2, 0.1]
   }
 }

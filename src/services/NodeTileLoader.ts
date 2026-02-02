@@ -56,6 +56,25 @@ export class NodeTileLoader implements TileLoader {
     }
   }
 
+  getTiles(geohashes: string[]): GeoTile[] {
+    if (geohashes.length === 0) return [];
+
+    if (!this.db) {
+      this.initialize();
+    }
+
+    if (!this.db) return [];
+
+    try {
+      const placeholders = geohashes.map(() => '?').join(',');
+      const stmt = this.db.prepare(`SELECT * FROM tiles WHERE geohash IN (${placeholders})`);
+      const rows = stmt.all(...geohashes) as TileRow[];
+      return rows.map((row) => this.rowToTile(row));
+    } catch {
+      return [];
+    }
+  }
+
   initialize(): void {
     if (this.db) return;
 

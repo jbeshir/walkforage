@@ -21,6 +21,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['PA04'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#228B22',
   },
   {
@@ -34,6 +35,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'boreal', 'temperate_grassland'],
     realmBiomes: ['PA04', 'PA06', 'PA08'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 2500] },
     color: '#2E8B57',
   },
   {
@@ -47,6 +49,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_grassland'],
     realmBiomes: ['PA04', 'PA08'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 2000] },
     color: '#90EE90',
   },
   {
@@ -60,6 +63,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_grassland'],
     realmBiomes: ['PA04', 'PA08'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#4B0082',
   },
   {
@@ -73,6 +77,7 @@ export const FOODS: FoodType[] = [
     biomes: ['boreal', 'montane', 'temperate_conifer'],
     realmBiomes: ['PA05', 'PA06', 'PA10'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [500, 2000], viable: [0, 2500] },
     color: '#4169E1',
   },
   {
@@ -86,6 +91,7 @@ export const FOODS: FoodType[] = [
     biomes: ['boreal', 'tundra', 'temperate_conifer'],
     realmBiomes: ['PA05', 'PA06', 'PA11'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [200, 1800], viable: [0, 2500] },
     color: '#DC143C',
   },
   {
@@ -99,6 +105,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'mediterranean'],
     realmBiomes: ['PA04', 'PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#483D8B',
   },
   {
@@ -112,6 +119,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['PA04'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#8B4513',
   },
   {
@@ -125,6 +133,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_conifer'],
     realmBiomes: ['PA04', 'PA05'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 2200] },
     color: '#FF6347',
   },
   {
@@ -138,6 +147,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_grassland', 'mediterranean'],
     realmBiomes: ['PA04', 'PA08', 'PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2000] },
     color: '#FF4500',
   },
 
@@ -156,6 +166,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'boreal', 'temperate_conifer'],
     realmBiomes: ['NE04', 'NE05', 'NE06'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2000] },
     color: '#4169E1',
   },
   {
@@ -169,6 +180,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_conifer', 'montane'],
     realmBiomes: ['NE04', 'NE05', 'NE10'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [300, 2000], viable: [0, 3000] },
     color: '#8B008B',
   },
   {
@@ -182,6 +194,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_grassland'],
     realmBiomes: ['NE04', 'NE08'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#FF6347',
   },
   {
@@ -195,6 +208,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_grassland'],
     realmBiomes: ['NE04', 'NE08'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 900], viable: [0, 1500] },
     color: '#4B0082',
   },
   {
@@ -208,6 +222,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 900] },
     color: '#9ACD32',
   },
   {
@@ -221,6 +236,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#800080',
   },
   {
@@ -234,6 +250,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#FF8C00',
   },
   {
@@ -247,6 +264,7 @@ export const FOODS: FoodType[] = [
     biomes: ['boreal', 'flooded_grassland'],
     realmBiomes: ['NE06', 'NE09'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#B22222',
   },
   {
@@ -260,6 +278,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#8B4513',
   },
   {
@@ -273,6 +292,7 @@ export const FOODS: FoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'mediterranean'],
     realmBiomes: ['NE04', 'NE12'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#A0522D',
   },
 
@@ -291,6 +311,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'flooded_grassland'],
     realmBiomes: ['NO01', 'NO09'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#4B0082',
   },
   {
@@ -304,6 +325,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#DEB887',
   },
   {
@@ -317,6 +339,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'flooded_grassland'],
     realmBiomes: ['NO01', 'NO09'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 300], viable: [0, 600] },
     color: '#FF6B6B',
   },
   {
@@ -330,6 +353,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#FFD700',
   },
   {
@@ -343,6 +367,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'flooded_grassland'],
     realmBiomes: ['NO01', 'NO09'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#CD5C5C',
   },
   {
@@ -356,6 +381,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#D2691E',
   },
   {
@@ -369,6 +395,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['NO01', 'NO02'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#FFD700',
   },
   {
@@ -382,6 +409,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['NO01', 'NO02'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2000] },
     color: '#9400D3',
   },
   {
@@ -395,6 +423,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['NO01', 'NO02', 'NO07'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#90EE90',
   },
   {
@@ -408,6 +437,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'montane'],
     realmBiomes: ['NO01', 'NO10'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [1000, 2500], viable: [500, 3000] },
     color: '#98FB98',
   },
 
@@ -426,6 +456,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf', 'desert'],
     realmBiomes: ['AF02', 'AF07', 'AF13'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#DEB887',
   },
   {
@@ -439,6 +470,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF02', 'AF07'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#FFD700',
   },
   {
@@ -452,6 +484,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['AF01'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#FFA500',
   },
   {
@@ -465,6 +498,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['AF02', 'AF07'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#8B4513',
   },
   {
@@ -478,6 +512,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF02', 'AF07'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [100, 700], viable: [0, 1200] },
     color: '#D2B48C',
   },
   {
@@ -491,6 +526,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['AF01', 'AF02', 'AF07'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#9370DB',
   },
   {
@@ -504,6 +540,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'mediterranean'],
     realmBiomes: ['AF07', 'AF12'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#DC143C',
   },
   {
@@ -517,6 +554,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF02', 'AF07'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 2500] },
     color: '#228B22',
   },
   {
@@ -530,6 +568,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_grassland', 'desert'],
     realmBiomes: ['AF02', 'AF07', 'AF13'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1800] },
     color: '#32CD32',
   },
 
@@ -548,6 +587,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1300] },
     color: '#9ACD32',
   },
   {
@@ -561,6 +601,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#FF6347',
   },
   {
@@ -574,6 +615,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#800080',
   },
   {
@@ -587,6 +629,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1300] },
     color: '#FFD700',
   },
   {
@@ -600,6 +643,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#FF1493',
   },
   {
@@ -613,6 +657,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#DC143C',
   },
   {
@@ -626,6 +671,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#D2B48C',
   },
   {
@@ -639,6 +685,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'mangrove'],
     realmBiomes: ['IN01', 'IN14'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 300], viable: [0, 600] },
     color: '#8B4513',
   },
   {
@@ -652,6 +699,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1600] },
     color: '#FFD700',
   },
 
@@ -670,6 +718,7 @@ export const FOODS: FoodType[] = [
     biomes: ['desert', 'mediterranean'],
     realmBiomes: ['AU12', 'AU13'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#FF6347',
   },
   {
@@ -683,6 +732,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'temperate_broadleaf_mixed'],
     realmBiomes: ['AU01', 'AU04'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [100, 800], viable: [0, 1200] },
     color: '#8B008B',
   },
   {
@@ -696,6 +746,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_grassland', 'tropical_moist_broadleaf'],
     realmBiomes: ['AU01', 'AU07'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#9ACD32',
   },
   {
@@ -709,6 +760,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'temperate_broadleaf_mixed'],
     realmBiomes: ['AU01', 'AU04'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#90EE90',
   },
   {
@@ -722,6 +774,7 @@ export const FOODS: FoodType[] = [
     biomes: ['desert', 'tropical_grassland'],
     realmBiomes: ['AU07', 'AU13'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#CD853F',
   },
   {
@@ -735,6 +788,7 @@ export const FOODS: FoodType[] = [
     biomes: ['mediterranean', 'temperate_broadleaf_mixed'],
     realmBiomes: ['AU04', 'AU12'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#8B4513',
   },
   {
@@ -748,6 +802,7 @@ export const FOODS: FoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'temperate_broadleaf_mixed'],
     realmBiomes: ['AU01', 'AU04'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 700], viable: [0, 1100] },
     color: '#F5DEB3',
   },
 ];

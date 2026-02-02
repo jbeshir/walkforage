@@ -1,0 +1,305 @@
+{
+  "wild_garlic": {
+    "primaryColors": ["bright white star-shaped flowers", "dark green broad leaves"],
+    "texture": "broad lance-shaped leaves with prominent veins",
+    "distinguishingFeatures": ["white flower clusters", "garlic scent", "woodland carpet of leaves"]
+  },
+  "stinging_nettle": {
+    "primaryColors": ["deep green", "tiny greenish flowers"],
+    "texture": "serrated heart-shaped leaves covered in tiny hairs",
+    "distinguishingFeatures": ["toothed leaves", "opposite leaf pairs", "stinging hairs visible"]
+  },
+  "chickweed": {
+    "primaryColors": ["light green leaves", "tiny white star flowers"],
+    "texture": "small oval succulent leaves on trailing stems",
+    "distinguishingFeatures": ["tiny white flowers", "mat-forming habit", "small paired leaves"]
+  },
+  "elderberry": {
+    "primaryColors": ["deep purple-black berries", "red stems"],
+    "texture": "clusters of tiny round berries in flat umbels",
+    "distinguishingFeatures": ["flat-topped berry clusters", "dark purple color", "red stalks"]
+  },
+  "bilberry": {
+    "primaryColors": ["deep blue-purple", "dusty bloom"],
+    "texture": "small round berries with star-shaped crown",
+    "distinguishingFeatures": ["smaller than blueberry", "grows singly"]
+  },
+  "lingonberry": {
+    "primaryColors": ["bright red glossy berries"],
+    "texture": "small round firm berries in clusters",
+    "distinguishingFeatures": ["bright red color", "clustered berries", "evergreen leaves"]
+  },
+  "blackthorn_sloe": {
+    "primaryColors": ["dark blue-black with dusty bloom"],
+    "texture": "small round plum-like fruit",
+    "distinguishingFeatures": ["heavy blue bloom", "small wild plum", "on thorny branches"]
+  },
+  "hazelnut": {
+    "primaryColors": ["brown shell"],
+    "texture": "round nuts in leafy green husks",
+    "distinguishingFeatures": [
+      "nuts in frilly green husks",
+      "round to oval shape",
+      "clusters on branches"
+    ]
+  },
+  "wild_strawberry_pa": {
+    "primaryColors": ["bright red", "yellow seeds"],
+    "texture": "tiny conical berries with visible seeds",
+    "distinguishingFeatures": [
+      "much smaller than cultivated",
+      "intensely fragrant",
+      "seeds on surface"
+    ]
+  },
+  "rosehip": {
+    "primaryColors": ["bright red-orange"],
+    "texture": "oval to round smooth fruit",
+    "distinguishingFeatures": ["remnant dried sepals on top", "glossy red skin"]
+  },
+  "blueberry": {
+    "primaryColors": ["deep blue with dusty bloom"],
+    "texture": "round berries with crown end",
+    "distinguishingFeatures": [
+      "star-shaped crown",
+      "dusty blue coating",
+      "green to red before ripe"
+    ]
+  },
+  "serviceberry": {
+    "primaryColors": ["dark purple to blue-black"],
+    "texture": "small round pome fruit",
+    "distinguishingFeatures": [
+      "crown remnant on end",
+      "resembles tiny apple",
+      "clusters on branches"
+    ]
+  },
+  "wild_strawberry_ne": {
+    "primaryColors": ["deep red", "prominent yellow seeds"],
+    "texture": "small conical berry covered in seeds",
+    "distinguishingFeatures": [
+      "smaller than store-bought",
+      "seeds on outside",
+      "white flowers before"
+    ]
+  },
+  "elderberry_ne": {
+    "primaryColors": ["deep purple-black berries"],
+    "texture": "tiny berries in flat-topped clusters",
+    "distinguishingFeatures": [
+      "umbrella-shaped clusters",
+      "very small berries",
+      "purple staining juice"
+    ]
+  },
+  "pawpaw": {
+    "primaryColors": ["yellow-green skin"],
+    "texture": "oblong tropical-looking fruit",
+    "distinguishingFeatures": ["large brown seeds", "tropical flavor"]
+  },
+  "wild_grape": {
+    "primaryColors": ["dark purple to black", "dusty bloom"],
+    "texture": "small round grapes in loose clusters",
+    "distinguishingFeatures": ["smaller than cultivated", "loose clusters", "thick skin"]
+  },
+  "persimmon": {
+    "primaryColors": ["orange to reddish-orange"],
+    "texture": "round fruit with prominent calyx",
+    "distinguishingFeatures": ["four-part calyx cap", "smooth waxy skin", "soft when ripe"]
+  },
+  "cranberry": {
+    "primaryColors": ["bright red"],
+    "texture": "small oval berries",
+    "distinguishingFeatures": ["float in water", "tart taste", "grow on low vines in bogs"]
+  },
+  "hickory_nut": {
+    "primaryColors": ["tan shell"],
+    "texture": "oval nuts in thick green husks",
+    "distinguishingFeatures": ["thick hard shell", "four-sectioned husk"]
+  },
+  "acorn": {
+    "primaryColors": ["brown nut", "scaly tan cup"],
+    "texture": "oval nut in textured cup",
+    "distinguishingFeatures": ["distinctive cup shape", "smooth brown nut", "from oak trees"]
+  },
+  "acai": {
+    "primaryColors": ["deep purple-black"],
+    "texture": "small round berries in large clusters",
+    "distinguishingFeatures": ["grape-sized berries"]
+  },
+  "cupuacu": {
+    "primaryColors": ["brown fuzzy exterior"],
+    "texture": "oblong fuzzy fruit like large cocoa pod",
+    "distinguishingFeatures": ["velvety brown skin", "large seeds"]
+  },
+  "camu_camu": {
+    "primaryColors": ["red to dark purple when ripe"],
+    "texture": "small round cherry-like fruit",
+    "distinguishingFeatures": ["cherry-sized", "extremely sour", "grows on flooded riverbanks"]
+  },
+  "cocona": {
+    "primaryColors": ["bright yellow to orange"],
+    "texture": "round to oval tomato-like fruit",
+    "distinguishingFeatures": ["resembles yellow tomato", "fuzzy when young"]
+  },
+  "aguaje": {
+    "primaryColors": ["dark red-brown scaly exterior"],
+    "texture": "oval fruit covered in overlapping scales",
+    "distinguishingFeatures": ["reptilian scaly skin", "grows on palm"]
+  },
+  "brazil_nut_food": {
+    "primaryColors": ["dark brown shell"],
+    "texture": "large triangular tree nuts",
+    "distinguishingFeatures": ["triangular shape", "very large seeds"]
+  },
+  "cashew_fruit": {
+    "primaryColors": ["bright yellow to red", "gray curved nut"],
+    "texture": "pear-shaped fruit with curved nut attached below",
+    "distinguishingFeatures": ["pear-shaped false fruit", "nut hangs below", "yellow to red colors"]
+  },
+  "passion_fruit": {
+    "primaryColors": ["dark purple or yellow exterior"],
+    "texture": "round fruit with thick rind",
+    "distinguishingFeatures": ["wrinkled when ripe", "aromatic"]
+  },
+  "guava": {
+    "primaryColors": ["green to yellow skin"],
+    "texture": "round bumpy fruit",
+    "distinguishingFeatures": [
+      "strong sweet aroma",
+      "many small hard seeds",
+      "green skin turns yellow"
+    ]
+  },
+  "cherimoya": {
+    "primaryColors": ["green scaly exterior"],
+    "texture": "heart-shaped with overlapping scales",
+    "distinguishingFeatures": ["large black seeds", "scale-like bumps on skin"]
+  },
+  "baobab_fruit": {
+    "primaryColors": ["tan brown exterior"],
+    "texture": "large oval fruit with hard shell",
+    "distinguishingFeatures": ["oblong shape", "smooth brown surface"]
+  },
+  "marula_fruit": {
+    "primaryColors": ["pale yellow skin"],
+    "texture": "round plum-sized fruit",
+    "distinguishingFeatures": ["thin yellow skin"]
+  },
+  "bush_mango": {
+    "primaryColors": ["green to yellow skin"],
+    "texture": "mango-like fruit",
+    "distinguishingFeatures": ["similar to true mango", "from African forest"]
+  },
+  "tamarind": {
+    "primaryColors": ["brown brittle pod"],
+    "texture": "long curved brown pod",
+    "distinguishingFeatures": ["curved bean-like pod"]
+  },
+  "shea_nut": {
+    "primaryColors": ["brown outer shell"],
+    "texture": "round nut in green fruit",
+    "distinguishingFeatures": ["green fruit encases nut", "round smooth shell"]
+  },
+  "wild_fig_af": {
+    "primaryColors": ["purple-brown to green"],
+    "texture": "round to pear-shaped fruit",
+    "distinguishingFeatures": ["soft when ripe", "grows directly on branches"]
+  },
+  "natal_plum": {
+    "primaryColors": ["bright red to magenta"],
+    "texture": "oval fruit with pointed tip",
+    "distinguishingFeatures": ["glossy red skin", "forked spines on plant"]
+  },
+  "amaranth_greens": {
+    "primaryColors": ["green to red-purple leaves"],
+    "texture": "broad oval leaves on upright stems",
+    "distinguishingFeatures": ["colorful leaves", "feathery flower spikes", "edible seeds too"]
+  },
+  "moringa": {
+    "primaryColors": ["bright green feathery leaves"],
+    "texture": "small round leaflets on compound leaves",
+    "distinguishingFeatures": ["tiny round leaflets", "highly nutritious"]
+  },
+  "durian": {
+    "primaryColors": ["green to brown spiky exterior"],
+    "texture": "large spiky oval fruit",
+    "distinguishingFeatures": ["large sharp spines", "strong pungent smell"]
+  },
+  "rambutan": {
+    "primaryColors": ["red with green hair-like spines"],
+    "texture": "round fruit covered in soft spines",
+    "distinguishingFeatures": ["hairy appearance"]
+  },
+  "mangosteen": {
+    "primaryColors": ["dark purple exterior"],
+    "texture": "round fruit with thick rind",
+    "distinguishingFeatures": ["thick purple rind", "green calyx on top"]
+  },
+  "jackfruit": {
+    "primaryColors": ["green bumpy exterior"],
+    "texture": "very large oblong fruit with bumpy skin",
+    "distinguishingFeatures": ["largest tree fruit", "sweet yellow bulbs", "sticky latex"]
+  },
+  "dragon_fruit": {
+    "primaryColors": ["bright pink skin"],
+    "texture": "oval fruit with scale-like bracts",
+    "distinguishingFeatures": ["flame-like pink scales", "green-tipped bracts", "from cactus"]
+  },
+  "lychee": {
+    "primaryColors": ["red bumpy skin"],
+    "texture": "round fruit with rough leathery skin",
+    "distinguishingFeatures": ["rough red shell"]
+  },
+  "longan": {
+    "primaryColors": ["tan-brown smooth skin"],
+    "texture": "round fruit with thin shell",
+    "distinguishingFeatures": ["smooth brown shell", "similar to lychee"]
+  },
+  "coconut": {
+    "primaryColors": ["brown fibrous husk"],
+    "texture": "large oval drupe with fibrous husk",
+    "distinguishingFeatures": ["three eyes on shell", "fibrous outer husk"]
+  },
+  "wild_banana": {
+    "primaryColors": ["green to yellow peel"],
+    "texture": "curved finger-like fruit in bunches",
+    "distinguishingFeatures": ["smaller than cultivated", "many hard seeds", "grows in bunches"]
+  },
+  "quandong": {
+    "primaryColors": ["bright red shiny skin"],
+    "texture": "round fruit with large pitted stone",
+    "distinguishingFeatures": ["glossy red skin", "tart flavor"]
+  },
+  "davidson_plum": {
+    "primaryColors": ["dark purple to blue-black"],
+    "texture": "oval plum-like fruit",
+    "distinguishingFeatures": ["very sour"]
+  },
+  "kakadu_plum": {
+    "primaryColors": ["pale green to yellow"],
+    "texture": "small oval fruit",
+    "distinguishingFeatures": ["highest vitamin C", "almond-shaped stone"]
+  },
+  "finger_lime": {
+    "primaryColors": ["green, pink, or red exterior"],
+    "texture": "elongated finger-shaped citrus",
+    "distinguishingFeatures": ["elongated shape", "pop in mouth"]
+  },
+  "bush_tomato": {
+    "primaryColors": ["yellow-brown when dried"],
+    "texture": "small round fruit that dries on bush",
+    "distinguishingFeatures": ["sun-dried on plant", "raisin-like when dry", "caramel flavor"]
+  },
+  "muntries": {
+    "primaryColors": ["green to purple-red"],
+    "texture": "small round berry",
+    "distinguishingFeatures": ["apple-cinnamon flavor", "grows on ground cover", "native cranberry"]
+  },
+  "macadamia": {
+    "primaryColors": ["green husk", "brown shell", "cream nut"],
+    "texture": "round nut in very hard shell",
+    "distinguishingFeatures": ["extremely hard shell", "rich buttery nut", "needs cracker to open"]
+  }
+}

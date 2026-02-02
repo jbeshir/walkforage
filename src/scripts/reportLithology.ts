@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GeoDataService } from '../services/GeoDataService';
 import { NodeTileLoader } from '../services/NodeTileLoader';
-import { LocationGeoData, CoarseGeologyEntry, BiomeData } from '../types/gis';
+import { LocationGeoData } from '../types/gis';
 import { encodeGeohash } from '../utils/geohash';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -225,32 +225,6 @@ function loadRawMacrostratData(): Map<string, string> {
   }
 
   return map;
-}
-
-/**
- * Load coarse indexes for the GeoDataService
- */
-async function loadCoarseIndexes(): Promise<{
-  geology: Record<string, CoarseGeologyEntry>;
-  biome: Record<string, BiomeData>;
-}> {
-  const geologyPath = path.join(__dirname, '../data/gis/geology/index.json');
-  const biomePath = path.join(__dirname, '../data/gis/biomes/index.json');
-
-  let geology: Record<string, CoarseGeologyEntry> = {};
-  let biome: Record<string, BiomeData> = {};
-
-  if (fs.existsSync(geologyPath)) {
-    const content = JSON.parse(fs.readFileSync(geologyPath, 'utf-8'));
-    geology = content.data || {};
-  }
-
-  if (fs.existsSync(biomePath)) {
-    const content = JSON.parse(fs.readFileSync(biomePath, 'utf-8'));
-    biome = content.data || {};
-  }
-
-  return { geology, biome };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -534,10 +508,7 @@ async function main(): Promise<void> {
 
   // Create GeoDataService with NodeTileLoader
   const tileLoader = new NodeTileLoader();
-  const geoDataService = new GeoDataService({
-    tileLoader,
-    loadCoarseIndexes,
-  });
+  const geoDataService = new GeoDataService({ tileLoader });
 
   await geoDataService.initialize();
   console.log('GeoDataService initialized');

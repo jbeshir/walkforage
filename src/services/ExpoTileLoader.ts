@@ -64,6 +64,61 @@ export class ExpoTileLoader implements TileLoader {
     }
   }
 
+  async getTiles(geohashes: string[]): Promise<GeoTile[]> {
+    if (geohashes.length === 0) return [];
+
+    const tiles: GeoTile[] = [];
+    const uncached: string[] = [];
+
+    // Check cache first
+    for (const geohash of geohashes) {
+      if (this.tileCache.has(geohash)) {
+        const cached = this.tileCache.get(geohash);
+        if (cached) tiles.push(cached);
+      } else {
+        uncached.push(geohash);
+      }
+    }
+
+    if (uncached.length === 0) return tiles;
+
+    try {
+      const database = await this.initDatabase();
+
+      // Query in batches of 100 to avoid SQL query size limits
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < uncached.length; i += BATCH_SIZE) {
+        const batch = uncached.slice(i, i + BATCH_SIZE);
+        const placeholders = batch.map(() => '?').join(',');
+        const rows = await database.getAllAsync<TileRow>(
+          `SELECT * FROM tiles WHERE geohash IN (${placeholders})`,
+          batch
+        );
+
+        // Build a set of found geohashes
+        const foundSet = new Set<string>();
+        for (const row of rows) {
+          const tile = this.rowToTile(row);
+          this.tileCache.set(row.geohash, tile);
+          tiles.push(tile);
+          foundSet.add(row.geohash);
+        }
+
+        // Cache misses for geohashes not found
+        for (const geohash of batch) {
+          if (!foundSet.has(geohash)) {
+            this.tileCache.set(geohash, null);
+          }
+        }
+      }
+
+      return tiles;
+    } catch (error) {
+      console.warn('Failed to get tiles batch:', error);
+      return tiles;
+    }
+  }
+
   async initialize(): Promise<void> {
     await this.initDatabase();
   }

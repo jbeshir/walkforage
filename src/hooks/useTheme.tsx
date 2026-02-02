@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import { Theme, ThemeMode, getTheme, lightTheme } from '../config/theme';
+import { Theme, ThemeMode, getTheme } from '../config/theme';
 
 interface ThemeContextValue {
   theme: Theme;
@@ -38,12 +38,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    // Return default theme if used outside provider (for backward compatibility)
-    return {
-      theme: lightTheme,
-      themeMode: 'light',
-      isDark: false,
-    };
+    throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
 }

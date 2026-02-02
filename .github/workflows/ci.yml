@@ -45,6 +45,9 @@ jobs:
       - name: Validate display constraints
         run: npm run validate:display
 
+      - name: Validate resources
+        run: npm run validate:resources
+
       - name: Validate game balance
         run: npm run validate:balance
 

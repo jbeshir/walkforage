@@ -1,13 +1,14 @@
 // ResourceSpawnService - Selects resources based on geological and biome data
 // Pure resource selection logic - no React Native dependencies
 
-import { LocationGeoData } from '../types/gis';
-import { StoneType, WoodType, FoodType } from '../types/resources';
+import { LocationGeoData, AltitudeData } from '../types/gis';
+import { StoneType, WoodType, FoodType, AltitudePreference } from '../types/resources';
 import { STONES, STONES_BY_ID, getToolstones } from '../data/stones';
 import { WOODS, WOODS_BY_ID, getWoodsByBiome } from '../data/woods';
 import { FOODS, FOODS_BY_ID, getFoodsByBiome } from '../data/foods';
 import { getLithologyMapping } from '../data/gis';
 import { getRealmBiomeMapping, getRealmBiomeFoodMapping } from '../data/gis/mappings';
+import { calculateAltitudeBias, MIN_ALTITUDE_MULTIPLIER } from '../config/altitude';
 
 class ResourceSpawnService {
   /**
@@ -48,10 +49,31 @@ class ResourceSpawnService {
   }
 
   /**
+   * Apply altitude bias to a list of resources and their weights
+   * Returns modified weights with altitude preference applied
+   */
+  private applyAltitudeBias<T extends { altitudePreference?: AltitudePreference }>(
+    resources: T[],
+    weights: number[],
+    altitude: AltitudeData | undefined
+  ): number[] {
+    if (!altitude || weights.length !== resources.length) {
+      return weights;
+    }
+
+    return weights.map((weight, i) => {
+      const bias = calculateAltitudeBias(resources[i].altitudePreference, altitude);
+      // Ensure minimum weight is maintained (10% of original)
+      return Math.max(weight * bias, weight * MIN_ALTITUDE_MULTIPLIER);
+    });
+  }
+
+  /**
    * Select a wood type based on biome data
    */
   private selectWoodFromGeo(geoData: LocationGeoData): WoodType | null {
     const { type: biomeType, realm, confidence } = geoData.biome;
+    const altitude = geoData.altitude;
 
     // If confidence is too low, fall back to random
     if (confidence < 0.2) {
@@ -62,7 +84,15 @@ class ResourceSpawnService {
     if (realm) {
       const realmMapping = getRealmBiomeMapping(realm, biomeType);
       if (realmMapping && realmMapping.woodIds.length > 0) {
-        const woodId = this.weightedRandomSelect(realmMapping.woodIds, realmMapping.weights);
+        // Get wood resources for altitude bias calculation
+        const mappedWoods = realmMapping.woodIds
+          .map((id) => WOODS_BY_ID[id])
+          .filter((w): w is WoodType => w !== undefined);
+
+        // Apply altitude bias to weights
+        const biasedWeights = this.applyAltitudeBias(mappedWoods, realmMapping.weights, altitude);
+
+        const woodId = this.weightedRandomSelect(realmMapping.woodIds, biasedWeights);
         const wood = WOODS_BY_ID[woodId];
         if (wood) return wood;
       }
@@ -73,14 +103,14 @@ class ResourceSpawnService {
         (w) => w.nativeRealms && w.nativeRealms.includes(realm)
       );
       if (realmFiltered.length > 0) {
-        return this.selectByRarity(realmFiltered);
+        return this.selectByRarityWithAltitude(realmFiltered, altitude);
       }
     }
 
     // Fallback: biome-only (no realm info)
     const biomeWoods = getWoodsByBiome(biomeType);
     if (biomeWoods.length > 0) {
-      return this.selectByRarity(biomeWoods);
+      return this.selectByRarityWithAltitude(biomeWoods, altitude);
     }
 
     return this.selectRandomWood();
@@ -105,6 +135,7 @@ class ResourceSpawnService {
    */
   private selectFoodFromGeo(geoData: LocationGeoData): FoodType | null {
     const { type: biomeType, realm, confidence } = geoData.biome;
+    const altitude = geoData.altitude;
 
     // If confidence is too low, fall back to random
     if (confidence < 0.2) {
@@ -115,7 +146,15 @@ class ResourceSpawnService {
     if (realm) {
       const realmMapping = getRealmBiomeFoodMapping(realm, biomeType);
       if (realmMapping && realmMapping.foodIds.length > 0) {
-        const foodId = this.weightedRandomSelect(realmMapping.foodIds, realmMapping.weights);
+        // Get food resources for altitude bias calculation
+        const mappedFoods = realmMapping.foodIds
+          .map((id) => FOODS_BY_ID[id])
+          .filter((f): f is FoodType => f !== undefined);
+
+        // Apply altitude bias to weights
+        const biasedWeights = this.applyAltitudeBias(mappedFoods, realmMapping.weights, altitude);
+
+        const foodId = this.weightedRandomSelect(realmMapping.foodIds, biasedWeights);
         const food = FOODS_BY_ID[foodId];
         if (food) return food;
       }
@@ -126,14 +165,14 @@ class ResourceSpawnService {
         (f) => f.nativeRealms && f.nativeRealms.includes(realm)
       );
       if (realmFiltered.length > 0) {
-        return this.selectByRarity(realmFiltered);
+        return this.selectByRarityWithAltitude(realmFiltered, altitude);
       }
     }
 
     // Fallback: biome-only (no realm info)
     const biomeFoods = getFoodsByBiome(biomeType);
     if (biomeFoods.length > 0) {
-      return this.selectByRarity(biomeFoods);
+      return this.selectByRarityWithAltitude(biomeFoods, altitude);
     }
 
     return this.selectRandomFood();
@@ -157,6 +196,39 @@ class ResourceSpawnService {
 
     // Use rarity as weight (higher rarity = more likely to spawn)
     const weights = resources.map((r) => r.rarity);
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+
+    if (totalWeight === 0) {
+      return resources[Math.floor(Math.random() * resources.length)];
+    }
+
+    let random = Math.random() * totalWeight;
+    for (let i = 0; i < resources.length; i++) {
+      random -= weights[i];
+      if (random <= 0) {
+        return resources[i];
+      }
+    }
+
+    return resources[resources.length - 1];
+  }
+
+  /**
+   * Select resource weighted by rarity with altitude bias applied
+   * Higher rarity value = more common (higher spawn probability)
+   */
+  private selectByRarityWithAltitude<
+    T extends { rarity: number; altitudePreference?: AltitudePreference },
+  >(resources: T[], altitude: AltitudeData | undefined): T {
+    if (resources.length === 0) {
+      throw new Error('Cannot select from empty array');
+    }
+
+    // Use rarity as base weight
+    const baseWeights = resources.map((r) => r.rarity);
+
+    // Apply altitude bias
+    const weights = this.applyAltitudeBias(resources, baseWeights, altitude);
     const totalWeight = weights.reduce((a, b) => a + b, 0);
 
     if (totalWeight === 0) {

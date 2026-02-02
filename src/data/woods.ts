@@ -22,6 +22,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'mediterranean'],
     realmBiomes: ['PA04', 'PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#8B7355',
   },
   {
@@ -35,6 +36,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['PA04'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [200, 1200], viable: [0, 1800] },
     color: '#D4A26A',
   },
   {
@@ -48,6 +50,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'temperate_conifer', 'montane'],
     realmBiomes: ['PA05', 'PA06', 'PA10'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [200, 2000], viable: [0, 2500] },
     color: '#DEB887',
   },
   {
@@ -61,6 +64,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'temperate_conifer', 'montane'],
     realmBiomes: ['PA05', 'PA06', 'PA10'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [500, 1800], viable: [0, 2200] },
     color: '#D2B48C',
   },
   {
@@ -74,6 +78,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'temperate_broadleaf_mixed', 'temperate_grassland', 'tundra'],
     realmBiomes: ['PA04', 'PA06', 'PA08', 'PA11'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 2200] },
     color: '#F5DEB3',
   },
   {
@@ -87,6 +92,7 @@ export const WOODS: WoodType[] = [
     biomes: ['montane', 'temperate_conifer'],
     realmBiomes: ['PA05', 'PA10'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [1000, 2400], viable: [500, 2800] },
     color: '#C9A56B',
   },
   {
@@ -100,6 +106,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['PA04'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#C9B79C',
   },
   {
@@ -113,6 +120,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'montane'],
     realmBiomes: ['PA06', 'PA10'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [200, 2000], viable: [0, 2500] },
     color: '#B8956B',
   },
   {
@@ -126,6 +134,7 @@ export const WOODS: WoodType[] = [
     biomes: ['mediterranean'],
     realmBiomes: ['PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#C4A070',
   },
   {
@@ -139,6 +148,7 @@ export const WOODS: WoodType[] = [
     biomes: ['mediterranean'],
     realmBiomes: ['PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#A67B5B',
   },
   {
@@ -152,6 +162,7 @@ export const WOODS: WoodType[] = [
     biomes: ['mediterranean', 'desert'],
     realmBiomes: ['PA12'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#808000',
   },
   {
@@ -165,6 +176,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal'],
     realmBiomes: ['PA06'],
     nativeRealms: ['Palearctic'],
+    altitudePreference: { optimal: [300, 1800], viable: [0, 2200] },
     color: '#B8860B',
   },
 
@@ -183,6 +195,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#8B7355',
   },
   {
@@ -196,6 +209,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [100, 1000], viable: [0, 1600] },
     color: '#C4A35A',
   },
   {
@@ -209,6 +223,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#A0522D',
   },
   {
@@ -222,6 +237,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_conifer', 'temperate_broadleaf_mixed'],
     realmBiomes: ['NE04', 'NE05'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 1800] },
     color: '#DEB887',
   },
   {
@@ -235,6 +251,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_conifer', 'montane'],
     realmBiomes: ['NE05', 'NE10'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [300, 1800], viable: [0, 2500] },
     color: '#C4A484',
   },
   {
@@ -248,6 +265,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_conifer'],
     realmBiomes: ['NE05'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2000] },
     color: '#B8860B',
   },
   {
@@ -261,6 +279,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#3E2723',
   },
   {
@@ -274,6 +293,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['NE04'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 900], viable: [0, 1500] },
     color: '#D4A26A',
   },
   {
@@ -287,6 +307,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_conifer'],
     realmBiomes: ['NE05'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#8B4513',
   },
   {
@@ -300,6 +321,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'temperate_conifer'],
     realmBiomes: ['NE05', 'NE06'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [200, 1500], viable: [0, 2000] },
     color: '#C4956A',
   },
   {
@@ -313,6 +335,7 @@ export const WOODS: WoodType[] = [
     biomes: ['boreal', 'temperate_broadleaf_mixed', 'tundra'],
     realmBiomes: ['NE04', 'NE06', 'NE11'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 1800] },
     color: '#F5F5DC',
   },
   {
@@ -326,6 +349,7 @@ export const WOODS: WoodType[] = [
     biomes: ['desert', 'tropical_grassland'],
     realmBiomes: ['NE13', 'NE07'],
     nativeRealms: ['Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 1800] },
     color: '#5D4037',
   },
 
@@ -344,6 +368,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['NO01', 'NO02'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1400] },
     color: '#C04000',
   },
   {
@@ -357,6 +382,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#8B6914',
   },
   {
@@ -370,6 +396,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['NO01', 'NO02'],
     nativeRealms: ['Neotropic', 'Afrotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#D4C4A8',
   },
   {
@@ -383,6 +410,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#F5E6D3',
   },
   {
@@ -396,6 +424,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 900], viable: [0, 1500] },
     color: '#4A2C2A',
   },
   {
@@ -409,6 +438,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#C9A86C',
   },
   {
@@ -422,6 +452,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['NO02', 'NO07'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [0, 400], viable: [0, 800] },
     color: '#5D3A1A',
   },
   {
@@ -435,6 +466,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_conifer'],
     realmBiomes: ['NO03'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [500, 1500], viable: [200, 1800] },
     color: '#C4956A',
   },
   {
@@ -448,6 +480,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['NO02', 'NO07'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [500, 1500], viable: [0, 2000] },
     color: '#8B7355',
   },
   {
@@ -461,6 +494,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_conifer'],
     realmBiomes: ['NO01'],
     nativeRealms: ['Neotropic'],
+    altitudePreference: { optimal: [500, 1800], viable: [0, 2500] },
     color: '#7DB46C',
   },
 
@@ -479,6 +513,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF01', 'AF02'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#B5651D',
   },
   {
@@ -492,6 +527,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['AF01'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#1B1B1B',
   },
   {
@@ -505,6 +541,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF01', 'AF02'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#9A7B4F',
   },
   {
@@ -518,6 +555,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF07', 'AF02'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#D4B896',
   },
   {
@@ -531,6 +569,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_grassland', 'desert'],
     realmBiomes: ['AF07', 'AF13'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2000] },
     color: '#8B4726',
   },
   {
@@ -544,6 +583,7 @@ export const WOODS: WoodType[] = [
     biomes: ['montane', 'mediterranean'],
     realmBiomes: ['AF10', 'AF12'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [1000, 2500], viable: [500, 3000] },
     color: '#6B8E23',
   },
   {
@@ -557,6 +597,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['AF01'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#E8DCC0',
   },
   {
@@ -570,6 +611,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['AF01'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 500], viable: [0, 1000] },
     color: '#3D2B1F',
   },
   {
@@ -583,6 +625,7 @@ export const WOODS: WoodType[] = [
     biomes: ['montane'],
     realmBiomes: ['AF10'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [1500, 3000], viable: [1000, 3500] },
     color: '#8B6914',
   },
   {
@@ -596,6 +639,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_grassland', 'tropical_dry_broadleaf'],
     realmBiomes: ['AF07', 'AF02'],
     nativeRealms: ['Afrotropic'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#C9A86C',
   },
 
@@ -614,6 +658,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1300] },
     color: '#9A7B4F',
   },
   {
@@ -627,6 +672,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_moist_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [100, 1000], viable: [0, 1500] },
     color: '#7B5B3A',
   },
   {
@@ -640,6 +686,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf'],
     realmBiomes: ['IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 1000], viable: [0, 1500] },
     color: '#5D3A2D',
   },
   {
@@ -653,6 +700,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1300] },
     color: '#A67C52',
   },
   {
@@ -666,6 +714,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf'],
     realmBiomes: ['IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [500, 1200], viable: [0, 1800] },
     color: '#D4A76A',
   },
   {
@@ -679,6 +728,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf', 'tropical_conifer'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 2500] },
     color: '#7DB46C',
   },
   {
@@ -692,6 +742,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_dry_broadleaf', 'tropical_grassland'],
     realmBiomes: ['IN02', 'IN07'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 700], viable: [0, 1200] },
     color: '#8B7355',
   },
   {
@@ -705,6 +756,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'tropical_dry_broadleaf'],
     realmBiomes: ['IN01', 'IN02'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1200] },
     color: '#9C8B7A',
   },
   {
@@ -718,6 +770,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf', 'mangrove'],
     realmBiomes: ['IN01', 'IN14'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 300], viable: [0, 600] },
     color: '#8B4513',
   },
   {
@@ -731,6 +784,7 @@ export const WOODS: WoodType[] = [
     biomes: ['tropical_moist_broadleaf'],
     realmBiomes: ['IN01'],
     nativeRealms: ['Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1300] },
     color: '#8B7355',
   },
 
@@ -749,6 +803,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'mediterranean'],
     realmBiomes: ['AU04', 'AU12'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [100, 1000], viable: [0, 1500] },
     color: '#B5A68C',
   },
   {
@@ -762,6 +817,7 @@ export const WOODS: WoodType[] = [
     biomes: ['mediterranean'],
     realmBiomes: ['AU12'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#8B4513',
   },
   {
@@ -775,6 +831,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['AU04'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#3D2B1F',
   },
   {
@@ -788,6 +845,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_conifer'],
     realmBiomes: ['AU05'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#D4B896',
   },
   {
@@ -801,6 +859,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed'],
     realmBiomes: ['AU04'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#C9A86C',
   },
   {
@@ -814,6 +873,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'montane', 'tundra'],
     realmBiomes: ['AU04', 'AU10', 'AU11'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [300, 1200], viable: [0, 1500] },
     color: '#C4956A',
   },
   {
@@ -827,6 +887,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'mediterranean'],
     realmBiomes: ['AU04', 'AU12'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1200] },
     color: '#8B6914',
   },
   {
@@ -840,6 +901,7 @@ export const WOODS: WoodType[] = [
     biomes: ['temperate_broadleaf_mixed', 'temperate_conifer'],
     realmBiomes: ['AU04', 'AU05'],
     nativeRealms: ['Australasia'],
+    altitudePreference: { optimal: [0, 600], viable: [0, 1000] },
     color: '#A67B5B',
   },
 
@@ -863,6 +925,7 @@ export const WOODS: WoodType[] = [
     ],
     realmBiomes: ['PA11', 'NE11'],
     nativeRealms: ['Palearctic', 'Nearctic', 'Neotropic'],
+    altitudePreference: { optimal: [0, 1500], viable: [0, 3000] },
     color: '#9CAF88',
   },
   {
@@ -875,6 +938,7 @@ export const WOODS: WoodType[] = [
     rarity: 0.5,
     biomes: ['temperate_broadleaf_mixed', 'boreal', 'temperate_grassland', 'flooded_grassland'],
     nativeRealms: ['Palearctic', 'Nearctic'],
+    altitudePreference: { optimal: [0, 1200], viable: [0, 2500] },
     color: '#E8DCC0',
   },
   {
@@ -887,6 +951,7 @@ export const WOODS: WoodType[] = [
     rarity: 0.3,
     biomes: ['mangrove', 'flooded_grassland'],
     nativeRealms: ['Neotropic', 'Afrotropic', 'Indomalayan', 'Australasia'],
+    altitudePreference: { optimal: [0, 20], viable: [0, 50] },
     color: '#5D4E37',
   },
   {
@@ -905,6 +970,7 @@ export const WOODS: WoodType[] = [
       'mangrove',
     ],
     nativeRealms: ['Neotropic', 'Afrotropic', 'Indomalayan'],
+    altitudePreference: { optimal: [0, 800], viable: [0, 1500] },
     color: '#8B7355',
   },
 ];

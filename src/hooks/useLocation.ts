@@ -8,6 +8,8 @@ export interface LocationState {
   latitude: number;
   longitude: number;
   accuracy: number | null;
+  altitude: number | null;
+  altitudeAccuracy: number | null;
   timestamp: number;
 }
 
@@ -63,6 +65,8 @@ export function useLocation(): LocationHookResult {
           latitude: currentLocation.coords.latitude,
           longitude: currentLocation.coords.longitude,
           accuracy: currentLocation.coords.accuracy,
+          altitude: currentLocation.coords.altitude,
+          altitudeAccuracy: currentLocation.coords.altitudeAccuracy,
           timestamp: currentLocation.timestamp,
         };
         setLocation(initialState);
@@ -83,6 +87,8 @@ export function useLocation(): LocationHookResult {
             latitude: newLocation.coords.latitude,
             longitude: newLocation.coords.longitude,
             accuracy: newLocation.coords.accuracy,
+            altitude: newLocation.coords.altitude,
+            altitudeAccuracy: newLocation.coords.altitudeAccuracy,
             timestamp: newLocation.timestamp,
           };
           setLocation(newState);
