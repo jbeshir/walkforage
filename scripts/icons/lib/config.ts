@@ -18,6 +18,7 @@ export const STATUS_FILE = path.resolve(OUTPUT_DIR, 'status.json');
 export const STONES_APPEARANCES = path.resolve(APPEARANCES_DIR, 'stones.json');
 export const WOODS_APPEARANCES = path.resolve(APPEARANCES_DIR, 'woods.json');
 export const FOODS_APPEARANCES = path.resolve(APPEARANCES_DIR, 'foods.json');
+export const APPS_APPEARANCES = path.resolve(APPEARANCES_DIR, 'app.json');
 
 // DALL-E API configuration
 export const DALLE_CONFIG = {

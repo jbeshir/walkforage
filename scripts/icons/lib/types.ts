@@ -1,6 +1,6 @@
 // Icon Generation Pipeline Types
 
-export type ResourceType = 'stone' | 'wood' | 'food';
+export type ResourceType = 'stone' | 'wood' | 'food' | 'app';
 export type GeneratorName = 'dalle' | 'replicate' | 'gpt-image';
 
 export interface AppearanceData {
