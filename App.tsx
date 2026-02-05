@@ -8,9 +8,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, StyleSheet, Modal } from 'react-native';
 import { useHealthRationaleIntent } from './src/hooks/useHealthRationaleIntent';
 import { HealthPermissionRationale } from './src/components/HealthPermissionRationale';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { GameStateProvider } from './src/hooks/useGameState';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 import { GeoDataProvider } from './src/providers/GeoDataProvider';
+import { initSentry } from './src/utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 // Import screens
 import ForageScreen from './src/screens/ForageScreen';
@@ -114,13 +119,15 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <GameStateProvider>
-        <GeoDataProvider>
-          <AppContent />
-        </GeoDataProvider>
-      </GameStateProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <GameStateProvider>
+          <GeoDataProvider>
+            <AppContent />
+          </GeoDataProvider>
+        </GameStateProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

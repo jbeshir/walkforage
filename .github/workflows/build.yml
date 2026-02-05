@@ -1,0 +1,123 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'release/*'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run validation
+        run: npm run validate
+
+  build:
+    name: Build (${{ github.event.inputs.platform || 'android' }})
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine build profile
+        id: profile
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+          else
+            # For release branches, use preview profile
+            echo "profile=preview" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine platform
+        id: platform
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "platform=${{ github.event.inputs.platform }}" >> $GITHUB_OUTPUT
+          else
+            # Default to android for release branches
+            echo "platform=android" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Android
+        if: steps.platform.outputs.platform == 'android' || steps.platform.outputs.platform == 'all'
+        run: eas build --platform android --profile ${{ steps.profile.outputs.profile }} --non-interactive
+
+      - name: Build iOS
+        if: steps.platform.outputs.platform == 'ios' || steps.platform.outputs.platform == 'all'
+        run: eas build --platform ios --profile ${{ steps.profile.outputs.profile }} --non-interactive
+
+      - name: Comment build link on PR
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+
+            // Get the latest build URL from EAS
+            const output = execSync('eas build:list --limit=1 --json --non-interactive').toString();
+            const builds = JSON.parse(output);
+
+            if (builds.length > 0) {
+              const build = builds[0];
+              const buildUrl = `https://expo.dev/accounts/${build.account?.name}/projects/${build.project?.name}/builds/${build.id}`;
+
+              console.log(`Build completed: ${buildUrl}`);
+
+              // Create a commit comment with the build link
+              await github.rest.repos.createCommitComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: context.sha,
+                body: `## Build Complete\n\nProfile: \`${{ steps.profile.outputs.profile }}\`\nPlatform: \`${{ steps.platform.outputs.platform }}\`\n\n[View Build on Expo](${buildUrl})`
+              });
+            }

@@ -1,6 +1,7 @@
 // Determine build variant from EAS Build environment
 const IS_DEV = process.env.APP_VARIANT === 'development';
 const IS_PREVIEW = process.env.APP_VARIANT === 'preview';
+const IS_PRODUCTION = process.env.APP_VARIANT === 'production' || (!IS_DEV && !IS_PREVIEW);
 
 const getAppSuffix = () => {
   if (IS_DEV) return '.dev';
@@ -56,6 +57,14 @@ export default {
         },
       ],
       './plugins/withHealthConnectRationale',
+      // Sentry for error tracking (requires SENTRY_DSN env var for production)
+      [
+        '@sentry/react-native/expo',
+        {
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+        },
+      ],
     ],
     scheme: getScheme(),
     splash: {
@@ -91,6 +100,7 @@ export default {
     extra: {
       eas: {
         projectId: 'ab28bcd9-39af-44d0-a90b-f10a36bd4ce6',
+        appVariant: process.env.APP_VARIANT || 'production',
       },
     },
   },
