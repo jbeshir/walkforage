@@ -6,6 +6,7 @@ import {
   STONES_APPEARANCES,
   WOODS_APPEARANCES,
   FOODS_APPEARANCES,
+  APPS_APPEARANCES,
 } from './lib/config';
 import {
   ResourceResearch,
@@ -127,6 +128,19 @@ export function runResearch(): ResearchOutput {
         appearance: createDefaultAppearance(food.name, food.color),
       });
     }
+  }
+
+  // Process app icons
+  const appsAppearances = loadAppearanceData(APPS_APPEARANCES);
+  console.log(`Processing app icons...`);
+  for (const [id, appearance] of Object.entries(appsAppearances)) {
+    resources.push({
+      id,
+      type: 'app',
+      name: id.charAt(0).toUpperCase() + id.slice(1),
+      category: 'app',
+      appearance,
+    });
   }
 
   const output: ResearchOutput = {

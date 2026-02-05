@@ -2,7 +2,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
-import { PROMPTS_FILE, STATUS_FILE, OUTPUT_DIR, ASSETS_DIR, DALLE_CONFIG } from './lib/config';
+import {
+  PROMPTS_FILE,
+  STATUS_FILE,
+  OUTPUT_DIR,
+  ASSETS_DIR,
+  DALLE_CONFIG,
+  PROJECT_ROOT,
+} from './lib/config';
 import { PromptsOutput, StatusOutput, ResourceType, GeneratorName } from './lib/types';
 import { ImageGenerator, createGenerator, getDefaultGeneratorName } from './lib/generators';
 
@@ -118,6 +125,17 @@ async function downloadImage(url: string, destPath: string): Promise<void> {
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function copyAppIconToExpoLocations(sourcePath: string): void {
+  const expoAssets = path.join(PROJECT_ROOT, 'assets');
+  const destinations = ['icon.png', 'adaptive-icon.png', 'splash-icon.png'];
+
+  for (const dest of destinations) {
+    const destPath = path.join(expoAssets, dest);
+    fs.copyFileSync(sourcePath, destPath);
+    console.log(`  Copied to ${destPath}`);
+  }
 }
 
 export async function runGenerate(): Promise<void> {
@@ -244,6 +262,11 @@ export async function runGenerate(): Promise<void> {
         generated++;
         success = true;
         console.log(`  Success!`);
+
+        // Copy app icons to Expo asset locations
+        if (p.type === 'app') {
+          copyAppIconToExpoLocations(iconPath);
+        }
 
         // Rate limiting: wait between requests (use DALL-E config for now)
         if (i < toGenerate.length - 1) {

@@ -12,7 +12,7 @@
 // Note: expo-health-connect already handles the AndroidManifest.xml configuration:
 // - Intent filter for ACTION_SHOW_PERMISSIONS_RATIONALE on MainActivity (Android 13-)
 // - Activity alias ViewPermissionUsageActivity for VIEW_PERMISSION_USAGE (Android 14+)
-// The deep link scheme is configured via "scheme": "walkforage" in app.json.
+// The deep link scheme is configured via "scheme" in app.config.js.
 // This plugin only handles the JavaScript-level intent detection.
 
 const { withMainActivity } = require('@expo/config-plugins');
@@ -21,6 +21,9 @@ const { withMainActivity } = require('@expo/config-plugins');
 const withMainActivityRationale = (config) => {
   return withMainActivity(config, async (config) => {
     let contents = config.modResults.contents;
+
+    // Get scheme from config, fallback to 'walkforage' for safety
+    const scheme = config.scheme || 'walkforage';
 
     // Check if already modified
     if (contents.includes('SHOW_PERMISSIONS_RATIONALE')) {
@@ -41,7 +44,7 @@ const withMainActivityRationale = (config) => {
             action == "android.intent.action.VIEW_PERMISSION_USAGE") {
             // Set the intent data to our deep link so React Native can detect it
             // via Linking.getInitialURL()
-            intent.data = Uri.parse("walkforage://health-rationale")
+            intent.data = Uri.parse("${scheme}://health-rationale")
         }`;
 
     // Check if onCreate already exists
