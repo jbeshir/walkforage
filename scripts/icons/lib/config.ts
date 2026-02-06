@@ -7,6 +7,7 @@ export const SCRIPTS_DIR = path.resolve(PROJECT_ROOT, 'scripts', 'icons');
 export const OUTPUT_DIR = path.resolve(SCRIPTS_DIR, 'output');
 export const APPEARANCES_DIR = path.resolve(SCRIPTS_DIR, 'appearances');
 export const ASSETS_DIR = path.resolve(PROJECT_ROOT, 'assets', 'icons');
+export const SOURCE_ASSETS_DIR = path.resolve(PROJECT_ROOT, 'assets', 'icons-source');
 export const SRC_DIR = path.resolve(PROJECT_ROOT, 'src');
 
 // Output files

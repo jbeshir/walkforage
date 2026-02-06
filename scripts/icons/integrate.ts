@@ -1,7 +1,7 @@
 // Integration Phase - Generate icon loader and update resource data
 import * as fs from 'fs';
 import * as path from 'path';
-import { ASSETS_DIR, SRC_DIR } from './lib/config';
+import { SOURCE_ASSETS_DIR, SRC_DIR } from './lib/config';
 import { ResourceType } from './lib/types';
 
 // Import resource data
@@ -22,7 +22,7 @@ function scanIcons(): IconInfo[] {
 
   const types: ResourceType[] = ['stone', 'wood', 'food'];
   for (const type of types) {
-    const dir = path.join(ASSETS_DIR, `${type}s`);
+    const dir = path.join(SOURCE_ASSETS_DIR, `${type}s`);
     if (!fs.existsSync(dir)) {
       console.log(`  No icons directory for ${type}s`);
       continue;
