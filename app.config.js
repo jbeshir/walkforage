@@ -46,6 +46,8 @@ export default {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
             minSdkVersion: 26,
+            enableMinifyInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
           },
         },
       ],
@@ -63,6 +65,9 @@ export default {
         {
           organization: process.env.SENTRY_ORG,
           project: process.env.SENTRY_PROJECT,
+          experimental_android: {
+            enableAndroidGradlePlugin: true,
+          },
         },
       ],
     ],
