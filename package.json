@@ -31,6 +31,7 @@
     "icons:prompts": "tsx scripts/icons/prompts.ts",
     "icons:generate": "tsx scripts/icons/generate.ts",
     "icons:evaluate": "tsx scripts/icons/evaluate.ts",
+    "icons:resize": "tsx scripts/icons/resize.ts",
     "icons:integrate": "tsx scripts/icons/integrate.ts",
     "icons:status": "tsx scripts/icons/index.ts status",
     "icons:all": "tsx scripts/icons/index.ts all",

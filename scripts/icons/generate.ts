@@ -6,7 +6,7 @@ import {
   PROMPTS_FILE,
   STATUS_FILE,
   OUTPUT_DIR,
-  ASSETS_DIR,
+  SOURCE_ASSETS_DIR,
   DALLE_CONFIG,
   PROJECT_ROOT,
 } from './lib/config';
@@ -70,7 +70,7 @@ function saveStatus(status: StatusOutput): void {
 }
 
 function getIconPath(type: ResourceType, id: string): string {
-  return path.join(ASSETS_DIR, `${type}s`, `${id}.png`);
+  return path.join(SOURCE_ASSETS_DIR, `${type}s`, `${id}.png`);
 }
 
 function iconExists(type: ResourceType, id: string): boolean {

@@ -4,6 +4,7 @@
 import { runResearch } from './research';
 import { runPrompts } from './prompts';
 import { runGenerate } from './generate';
+import { runResize } from './resize';
 import { runEvaluate } from './evaluate';
 import { runIntegrate } from './integrate';
 import { runValidation } from './validate';
@@ -22,6 +23,10 @@ const COMMANDS = {
   generate: {
     description: 'Generate icons using AI image generators',
     run: () => runGenerate(),
+  },
+  resize: {
+    description: 'Resize source icons (1024px) to bundled size (120px)',
+    run: () => runResize(),
   },
   evaluate: {
     description: 'Evaluate icons with vision model',
@@ -78,10 +83,11 @@ function showHelp(): void {
   console.log('\nExample workflow:');
   console.log('  1. npm run icons:research   # Merge appearance data');
   console.log('  2. npm run icons:prompts    # Generate prompts');
-  console.log('  3. npm run icons:generate   # Generate icons');
-  console.log('  4. npm run icons:evaluate   # Check quality with vision');
-  console.log('  5. npm run icons:integrate  # Update loader');
-  console.log('  6. npm run validate:icons   # Validate coverage');
+  console.log('  3. npm run icons:generate   # Generate icons (1024px to icons-source/)');
+  console.log('  4. npm run icons:resize     # Resize to 120px in icons/');
+  console.log('  5. npm run icons:evaluate   # Check quality with vision');
+  console.log('  6. npm run icons:integrate  # Update loader');
+  console.log('  7. npm run validate:icons   # Validate coverage');
 }
 
 interface StatusResource {
@@ -170,37 +176,41 @@ async function runAll(): Promise<void> {
   console.log('Running full icon generation pipeline...\n');
   console.log('========================================');
 
-  console.log('\n[1/6] Research phase');
+  console.log('\n[1/7] Research phase');
   console.log('--------------------');
   runResearch();
 
-  console.log('\n[2/6] Prompts phase');
+  console.log('\n[2/7] Prompts phase');
   console.log('-------------------');
   runPrompts();
 
-  console.log('\n[3/6] Generation phase');
+  console.log('\n[3/7] Generation phase');
   console.log('----------------------');
   await runGenerate();
 
-  console.log('\n[4/6] Evaluation phase');
+  console.log('\n[4/7] Resize phase');
+  console.log('------------------');
+  await runResize();
+
+  console.log('\n[5/7] Evaluation phase');
   console.log('----------------------');
   const evalResult = await runEvaluate();
 
   // Check if any evaluations failed
   const failedCount = evalResult.results.filter((r) => !r.passed).length;
   if (failedCount > 0) {
-    console.log(`\n[4b/6] ${failedCount} icons failed evaluation`);
+    console.log(`\n[5b/7] ${failedCount} icons failed evaluation`);
     console.log(
       '  Run "npm run icons:evaluate -- --retry" to mark failed icons for re-generation,'
     );
     console.log('  then re-run the pipeline to regenerate them.');
   }
 
-  console.log('\n[5/6] Integration phase');
+  console.log('\n[6/7] Integration phase');
   console.log('-----------------------');
   runIntegrate();
 
-  console.log('\n[6/6] Validation phase');
+  console.log('\n[7/7] Validation phase');
   console.log('----------------------');
   runValidation();
 
