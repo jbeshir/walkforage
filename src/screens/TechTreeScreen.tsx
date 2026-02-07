@@ -1,6 +1,7 @@
 // Tech Tree Screen - View and unlock technologies
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
@@ -159,73 +160,75 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity onPress={handleHeaderTap} activeOpacity={1}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Technology Tree</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
-          {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
-        </Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity onPress={handleHeaderTap} activeOpacity={1}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Technology Tree</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
+            {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
+          </Text>
+        </View>
 
-      {LITHIC_ERAS.map((era) => {
-        const eraTechs = getTechsByEra(era);
-        if (eraTechs.length === 0) return null;
+        {LITHIC_ERAS.map((era) => {
+          const eraTechs = getTechsByEra(era);
+          if (eraTechs.length === 0) return null;
 
-        return (
-          <View key={era} style={[styles.eraSection, { backgroundColor: colors.surface }]}>
-            <View style={[styles.eraHeader, { backgroundColor: ERA_COLORS[era] }]}>
-              <Text style={styles.eraTitle}>{ERA_NAMES[era]}</Text>
-              <Text style={styles.eraCount}>
-                {eraTechs.filter((t) => hasTech(t.id)).length} / {eraTechs.length}
-              </Text>
+          return (
+            <View key={era} style={[styles.eraSection, { backgroundColor: colors.surface }]}>
+              <View style={[styles.eraHeader, { backgroundColor: ERA_COLORS[era] }]}>
+                <Text style={styles.eraTitle}>{ERA_NAMES[era]}</Text>
+                <Text style={styles.eraCount}>
+                  {eraTechs.filter((t) => hasTech(t.id)).length} / {eraTechs.length}
+                </Text>
+              </View>
+              <View style={[styles.techGrid, { backgroundColor: colors.surfaceSecondary }]}>
+                {eraTechs.map((tech) => (
+                  <TechNode
+                    key={tech.id}
+                    tech={tech}
+                    isUnlocked={hasTech(tech.id)}
+                    isAvailable={availableTechs.some((t) => t.id === tech.id)}
+                    onPress={() => handleTechPress(tech)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
             </View>
-            <View style={[styles.techGrid, { backgroundColor: colors.surfaceSecondary }]}>
-              {eraTechs.map((tech) => (
-                <TechNode
-                  key={tech.id}
-                  tech={tech}
-                  isUnlocked={hasTech(tech.id)}
-                  isAvailable={availableTechs.some((t) => t.id === tech.id)}
-                  onPress={() => handleTechPress(tech)}
-                  colors={colors}
-                />
-              ))}
-            </View>
-          </View>
-        );
-      })}
+          );
+        })}
 
-      <View style={styles.bottomPadding} />
+        <View style={styles.bottomPadding} />
 
-      {/* Material Selection Modal */}
-      {selectedTech && (
-        <TechResourceModal
-          visible={modalVisible}
-          onClose={() => {
-            setModalVisible(false);
-            setSelectedTech(null);
-          }}
-          onConfirm={handleModalConfirm}
-          techName={selectedTech.name}
-          resourceCosts={selectedTech.resourceCost}
-          availableMaterials={state.inventory}
-        />
-      )}
+        {/* Material Selection Modal */}
+        {selectedTech && (
+          <TechResourceModal
+            visible={modalVisible}
+            onClose={() => {
+              setModalVisible(false);
+              setSelectedTech(null);
+            }}
+            onConfirm={handleModalConfirm}
+            techName={selectedTech.name}
+            resourceCosts={selectedTech.resourceCost}
+            availableMaterials={state.inventory}
+          />
+        )}
 
-      {/* Unlocked Tech Details Modal */}
-      {viewingTech && (
-        <TechUnlockedModal
-          visible={unlockedModalVisible}
-          onClose={() => {
-            setUnlockedModalVisible(false);
-            setViewingTech(null);
-          }}
-          tech={viewingTech}
-        />
-      )}
-    </ScrollView>
+        {/* Unlocked Tech Details Modal */}
+        {viewingTech && (
+          <TechUnlockedModal
+            visible={unlockedModalVisible}
+            onClose={() => {
+              setUnlockedModalVisible(false);
+              setViewingTech(null);
+            }}
+            tech={viewingTech}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 
 export type MapLayerType = 'biome' | 'lithology';
@@ -27,12 +28,13 @@ const LAYER_OPTIONS: LayerOption[] = [
 export function MapLayerControls({ activeLayer, onLayerChange, isLoading }: MapLayerControlsProps) {
   const { theme } = useTheme();
   const { colors } = theme;
+  const insets = useSafeAreaInsets();
 
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow, top: insets.top + 10 },
       ]}
     >
       {LAYER_OPTIONS.map((option) => {
@@ -67,7 +69,6 @@ export function MapLayerControls({ activeLayer, onLayerChange, isLoading }: MapL
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
     left: 15,
     flexDirection: 'column',
     borderRadius: 10,

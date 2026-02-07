@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { CraftCheckResult } from '../services/CraftingService';
@@ -610,78 +611,83 @@ export default function CraftingScreen() {
   const modalProps = getModalProps();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Tab bar */}
-      <View
-        style={[
-          styles.tabBar,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'owned' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('owned')}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Tab bar */}
+        <View
+          style={[
+            styles.tabBar,
+            { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          ]}
         >
-          <Text
-            style={[
-              styles.tabText,
-              { color: colors.textSecondary },
-              activeTab === 'owned' && { color: colors.primary, fontWeight: '600' },
-            ]}
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'owned' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('owned')}
           >
-            Owned
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'tools' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('tools')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: colors.textSecondary },
-              activeTab === 'tools' && { color: colors.primary, fontWeight: '600' },
-            ]}
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.textSecondary },
+                activeTab === 'owned' && { color: colors.primary, fontWeight: '600' },
+              ]}
+            >
+              Owned
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'tools' && { borderBottomColor: colors.primary }]}
+            onPress={() => setActiveTab('tools')}
           >
-            Tools
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'components' && { borderBottomColor: colors.primary }]}
-          onPress={() => setActiveTab('components')}
-        >
-          <Text
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.textSecondary },
+                activeTab === 'tools' && { color: colors.primary, fontWeight: '600' },
+              ]}
+            >
+              Tools
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              { color: colors.textSecondary },
-              activeTab === 'components' && { color: colors.primary, fontWeight: '600' },
+              styles.tab,
+              activeTab === 'components' && { borderBottomColor: colors.primary },
             ]}
+            onPress={() => setActiveTab('components')}
           >
-            Components
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.textSecondary },
+                activeTab === 'components' && { color: colors.primary, fontWeight: '600' },
+              ]}
+            >
+              Components
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.scrollView}>
+          {activeTab === 'owned' && renderOwnedTools()}
+          {activeTab === 'tools' && renderToolRecipes()}
+          {activeTab === 'components' && renderComponentRecipes()}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+
+        {/* Material Selection Modal */}
+        {modalProps && (
+          <MaterialSelectionModal
+            visible={modalVisible}
+            onClose={() => {
+              setModalVisible(false);
+              setSelectedRecipe(null);
+            }}
+            onConfirm={handleMaterialConfirm}
+            {...modalProps}
+          />
+        )}
       </View>
-
-      <ScrollView style={styles.scrollView}>
-        {activeTab === 'owned' && renderOwnedTools()}
-        {activeTab === 'tools' && renderToolRecipes()}
-        {activeTab === 'components' && renderComponentRecipes()}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-
-      {/* Material Selection Modal */}
-      {modalProps && (
-        <MaterialSelectionModal
-          visible={modalVisible}
-          onClose={() => {
-            setModalVisible(false);
-            setSelectedRecipe(null);
-          }}
-          onConfirm={handleMaterialConfirm}
-          {...modalProps}
-        />
-      )}
-    </View>
+    </SafeAreaView>
   );
 }
 

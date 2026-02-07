@@ -75,16 +75,7 @@ function AppContent() {
             paddingTop: 8,
             paddingBottom: 4,
           },
-          headerStyle: {
-            backgroundColor: colors.surface,
-            elevation: 2,
-            shadowColor: colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 2,
-          },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: styles.headerTitle,
+          headerShown: false,
         })}
       >
         <Tab.Screen name="Forage" component={ForageScreen} options={{ title: 'Forage' }} />
@@ -100,15 +91,6 @@ function AppContent() {
             options={{
               title: 'Cheat',
               tabBarActiveTintColor: colors.cheat,
-              headerStyle: {
-                backgroundColor: colors.surface,
-                elevation: 2,
-                shadowColor: colors.shadow,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-              },
-              headerTintColor: colors.cheat,
             }}
           />
         )}
@@ -137,9 +119,5 @@ const styles = StyleSheet.create({
   },
   tabIconFocused: {
     transform: [{ scale: 1.1 }],
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
   },
 });
