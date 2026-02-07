@@ -3,6 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GeoTile } from '../../types/gis';
 import { BiomeCode } from '../../types/resources';
 import { useTheme } from '../../hooks/useTheme';
@@ -27,6 +28,7 @@ const MAX_VISIBLE_ITEMS = 8;
 export function MapLegend({ tiles, type }: MapLegendProps) {
   const { theme } = useTheme();
   const { colors } = theme;
+  const insets = useSafeAreaInsets();
 
   const legendItems = useMemo(() => {
     if (tiles.length === 0) return [];
@@ -62,7 +64,11 @@ export function MapLegend({ tiles, type }: MapLegendProps) {
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        {
+          backgroundColor: colors.overlayPanel,
+          shadowColor: colors.shadow,
+          top: insets.top + 95,
+        },
       ]}
     >
       <Text style={[styles.title, { color: colors.textSecondary }]}>
@@ -94,7 +100,6 @@ export function MapLegend({ tiles, type }: MapLegendProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 135,
     left: 15,
     minWidth: 160,
     maxWidth: 200,

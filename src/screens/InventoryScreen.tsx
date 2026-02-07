@@ -1,6 +1,7 @@
 // Materials Screen - View collected resources
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
@@ -113,66 +114,75 @@ export default function InventoryScreen() {
   });
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Summary stats - dynamic for all material types */}
-      <View
-        style={[
-          styles.summaryCard,
-          { backgroundColor: colors.surface, shadowColor: colors.shadow },
-        ]}
-      >
-        <Text style={[styles.summaryTitle, { color: colors.textPrimary }]}>Inventory Summary</Text>
-        <View style={styles.summaryRow}>
-          {materialTotals.map(({ type, config, total }) => (
-            <View key={type} style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, { color: colors.primary }]}>{total}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-                {config.pluralName}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Dynamic sections for each material type */}
-      {materialTotals.map(({ type, config, stacks, total }) => {
-        const isCollapsed = collapsedSections.has(type);
-        return (
-          <View
-            key={type}
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, shadowColor: colors.shadow },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(type)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-                {config.icon} {config.pluralName} ({total})
-              </Text>
-              <Text style={[styles.chevron, { color: colors.textTertiary }]}>
-                {isCollapsed ? '▶' : '▼'}
-              </Text>
-            </TouchableOpacity>
-            {!isCollapsed &&
-              (stacks.length === 0 ? (
-                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
-                  No {config.pluralName.toLowerCase()} collected yet
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Summary stats - dynamic for all material types */}
+        <View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: colors.surface, shadowColor: colors.shadow },
+          ]}
+        >
+          <Text style={[styles.summaryTitle, { color: colors.textPrimary }]}>
+            Inventory Summary
+          </Text>
+          <View style={styles.summaryRow}>
+            {materialTotals.map(({ type, config, total }) => (
+              <View key={type} style={styles.summaryItem}>
+                <Text style={[styles.summaryValue, { color: colors.primary }]}>{total}</Text>
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+                  {config.pluralName}
                 </Text>
-              ) : (
-                stacks.map((stack) => (
-                  <ResourceItem key={stack.resourceId} stack={stack} type={type} colors={colors} />
-                ))
-              ))}
+              </View>
+            ))}
           </View>
-        );
-      })}
+        </View>
 
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        {/* Dynamic sections for each material type */}
+        {materialTotals.map(({ type, config, stacks, total }) => {
+          const isCollapsed = collapsedSections.has(type);
+          return (
+            <View
+              key={type}
+              style={[
+                styles.section,
+                { backgroundColor: colors.surface, shadowColor: colors.shadow },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.sectionHeader}
+                onPress={() => toggleSection(type)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                  {config.icon} {config.pluralName} ({total})
+                </Text>
+                <Text style={[styles.chevron, { color: colors.textTertiary }]}>
+                  {isCollapsed ? '▶' : '▼'}
+                </Text>
+              </TouchableOpacity>
+              {!isCollapsed &&
+                (stacks.length === 0 ? (
+                  <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+                    No {config.pluralName.toLowerCase()} collected yet
+                  </Text>
+                ) : (
+                  stacks.map((stack) => (
+                    <ResourceItem
+                      key={stack.resourceId}
+                      stack={stack}
+                      type={type}
+                      colors={colors}
+                    />
+                  ))
+                ))}
+            </View>
+          );
+        })}
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -1,7 +1,8 @@
 // Forage Screen - Main walking/gathering interface
 // Shows map with current location and terrain info
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useLocation } from '../hooks/useLocation';
 import { useGameState } from '../hooks/useGameState';
@@ -17,8 +18,6 @@ import { LocationGeoData } from '../types/gis';
 import { MaterialType } from '../config/materials';
 import { getBiomeDisplayName } from '../config/biomes';
 import { formatSnakeCase } from '../utils/strings';
-
-const { width, height } = Dimensions.get('window');
 
 // Custom map style to hide POIs and labels for cleaner overlay display
 const MAP_STYLE = [
@@ -48,6 +47,7 @@ export default function ForageScreen() {
   const { addResource } = useGameState();
   const { theme } = useTheme();
   const { colors } = theme;
+  const insets = useSafeAreaInsets();
   const { geoDataService, tileLoader } = useGeoData();
   const [geoData, setGeoData] = useState<LocationGeoData | null>(null);
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('biome');
@@ -174,7 +174,7 @@ export default function ForageScreen() {
         <View
           style={[
             styles.terrainOverlay,
-            { backgroundColor: overlayPanel, shadowColor: colors.shadow },
+            { backgroundColor: overlayPanel, shadowColor: colors.shadow, top: insets.top + 10 },
           ]}
         >
           <Text style={[styles.terrainLabel, { color: colors.textSecondary }]}>Terrain</Text>
@@ -211,8 +211,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    width: width,
-    height: height,
+    ...StyleSheet.absoluteFillObject,
   },
   loadingContainer: {
     flex: 1,
@@ -229,7 +228,6 @@ const styles = StyleSheet.create({
   },
   terrainOverlay: {
     position: 'absolute',
-    top: 50,
     right: 20,
     padding: 12,
     borderRadius: 10,

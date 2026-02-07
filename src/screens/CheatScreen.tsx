@@ -11,6 +11,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { TECHNOLOGIES } from '../data/techTree';
 import { useGameState } from '../hooks/useGameState';
@@ -198,33 +199,35 @@ export default function CheatScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.cheat }]}>Cheat Menu</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
-          Development tools - persists until app restart
-        </Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.cheat }]}>Cheat Menu</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
+            Development tools - persists until app restart
+          </Text>
+        </View>
 
-      <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-        {renderTabButton('steps', 'Steps')}
-        {getAllMaterialTypes().map((type) => {
-          const config = getMaterialConfig(type);
-          return renderTabButton(type, config.pluralName);
-        })}
-        {renderTabButton('tech', 'Tech')}
-      </View>
+        <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
+          {renderTabButton('steps', 'Steps')}
+          {getAllMaterialTypes().map((type) => {
+            const config = getMaterialConfig(type);
+            return renderTabButton(type, config.pluralName);
+          })}
+          {renderTabButton('tech', 'Tech')}
+        </View>
 
-      <View style={styles.content}>
-        {activeTab === 'steps' && renderStepsTab()}
-        {getAllMaterialTypes().map((type) =>
-          activeTab === type ? (
-            <React.Fragment key={type}>{renderMaterialTab(type)}</React.Fragment>
-          ) : null
-        )}
-        {activeTab === 'tech' && renderTechTab()}
+        <View style={styles.content}>
+          {activeTab === 'steps' && renderStepsTab()}
+          {getAllMaterialTypes().map((type) =>
+            activeTab === type ? (
+              <React.Fragment key={type}>{renderMaterialTab(type)}</React.Fragment>
+            ) : null
+          )}
+          {activeTab === 'tech' && renderTechTab()}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
