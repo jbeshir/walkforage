@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(du:*)",
+      "Bash(xargs ls:*)",
+      "WebSearch",
+      "Bash(npm run validate:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx prettier --check \"*.md\")"
+    ]
+  }
+}

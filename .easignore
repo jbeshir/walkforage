@@ -1,4 +1,7 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# .easignore replaces .gitignore for EAS builds, so it must include
+# all .gitignore rules plus additional build-specific exclusions.
+
+# ===== Rules from .gitignore =====
 
 # dependencies
 node_modules/
@@ -55,5 +58,20 @@ assets/gis/tiles.db-wal
 # JetBrains IDE
 .idea/
 
-# Note: assets/gis/tiles.db is the bundled SQLite database and should be committed
-# It is loaded at runtime via expo-sqlite
+# ===== Additional EAS build exclusions =====
+
+# Source icons (1024x1024) — only bundled icons in assets/icons/ are needed
+assets/icons-source/
+
+# Build/generation scripts — not used during EAS build
+scripts/
+
+# Tests
+__tests__/
+
+# CI workflows
+.github/
+
+# Claude instructions
+.claude/
+CLAUDE.md
