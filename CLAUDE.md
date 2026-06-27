@@ -18,15 +18,19 @@ npm run validate
 
 This executes the following in order:
 
-| Step            | Command                    | Description                     |
-| --------------- | -------------------------- | ------------------------------- |
-| 1. TypeScript   | `npm run typecheck`        | Type checking with tsc --noEmit |
-| 2. ESLint       | `npm run lint`             | Linting TypeScript/React code   |
-| 3. Prettier     | `npm run format:check`     | Check code formatting           |
-| 4. Jest         | `npm run test`             | Run all unit tests              |
-| 5. Recipes      | `npm run validate:recipes` | Validate crafting recipes       |
-| 6. Expo Doctor  | `npm run doctor`           | Check Expo project health       |
-| 7. Dependencies | `npm run deps:check`       | Check Expo SDK compatibility    |
+| Step                | Command                      | Description                       |
+| ------------------- | ---------------------------- | --------------------------------- |
+| 1. TypeScript       | `npm run typecheck`          | Type checking with tsc --noEmit   |
+| 2. ESLint           | `npm run lint`               | Linting TypeScript/React code     |
+| 3. Prettier         | `npm run format:check`       | Check code formatting             |
+| 4. Jest             | `npm run test`               | Run all unit tests                |
+| 5. Recipes          | `npm run validate:recipes`   | Validate crafting recipes         |
+| 6. Display          | `npm run validate:display`   | Validate display constraints      |
+| 7. Resources        | `npm run validate:resources` | Validate resource data            |
+| 8. Balance          | `npm run validate:balance`   | Validate game balance             |
+| 9. Icons            | `npm run validate:icons`     | Validate icon assets              |
+| 10. Expo Doctor     | `npm run doctor`             | Check Expo project health         |
+| 11. Dependencies    | `npm run deps:check`         | Check Expo SDK compatibility      |
 
 All these checks are also configured in `.github/workflows/ci.yml` and run on every push and PR.
 

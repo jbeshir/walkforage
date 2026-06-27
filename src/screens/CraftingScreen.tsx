@@ -30,6 +30,7 @@ import { ERA_COLORS, ERA_LABELS } from '../types/tech';
 import { getMaterialConfig, getAllMaterialTypes, getMaterialIcon } from '../config/materials';
 import MaterialSelectionModal, { MaterialSelection } from '../components/MaterialSelectionModal';
 import { getQualityColor, getQualityDisplayName } from '../utils/qualityCalculation';
+import { humanizeId } from '../utils/strings';
 
 type TabType = 'owned' | 'tools' | 'components';
 
@@ -206,14 +207,14 @@ const ToolRecipeItem = React.memo(function ToolRecipeItem({
         <View style={styles.requirementsContainer}>
           {tool.requiredTools.length > 0 && (
             <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Tools: {tool.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
+              Tools: {tool.requiredTools.map(humanizeId).join(', ')}
             </Text>
           )}
           {tool.requiredComponents.length > 0 && (
             <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
               Components:{' '}
               {tool.requiredComponents
-                .map((c) => `${c.quantity}x ${c.componentId.replace(/_/g, ' ')}`)
+                .map((c) => `${c.quantity}x ${humanizeId(c.componentId)}`)
                 .join(', ')}
             </Text>
           )}
@@ -293,7 +294,7 @@ const ComponentRecipeItem = React.memo(function ComponentRecipeItem({
         <View style={styles.requirementsContainer}>
           {component.requiredTools.length > 0 && (
             <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Tools: {component.requiredTools.map((id) => id.replace(/_/g, ' ')).join(', ')}
+              Tools: {component.requiredTools.map(humanizeId).join(', ')}
             </Text>
           )}
           {(component.materials.stone || component.materials.wood) && (

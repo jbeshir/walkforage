@@ -54,25 +54,6 @@ export function getUsedMaterialId(
   return materials[type]?.resourceId;
 }
 
-/** Get the quantity for a material type from UsedMaterials */
-export function getUsedMaterialQuantity(
-  materials: UsedMaterials,
-  type: MaterialType
-): number | undefined {
-  return materials[type]?.quantity;
-}
-
-/** Create UsedMaterials from individual selections */
-export function createUsedMaterials(
-  selections: { type: MaterialType; resourceId: string; quantity: number }[]
-): UsedMaterials {
-  const materials: UsedMaterials = {};
-  for (const { type, resourceId, quantity } of selections) {
-    materials[type] = { resourceId, quantity };
-  }
-  return materials;
-}
-
 // Quality tier for display purposes
 export type QualityTier = 'poor' | 'adequate' | 'good' | 'excellent' | 'masterwork';
 

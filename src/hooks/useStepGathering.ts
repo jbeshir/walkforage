@@ -114,6 +114,8 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     return () => {
       mounted = false;
     };
+    // Mount-only init: doSyncSteps reads live state via getStepGatheringState() and live
+    // permission via healthService, so an empty dep array can't capture stale step data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -129,6 +131,8 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     }, autoSyncInterval);
 
     return () => clearInterval(interval);
+    // doSyncSteps reads live state via getStepGatheringState()/healthService each tick,
+    // so omitting it from deps can't read stale step data; re-run only on the listed deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSyncInterval, permissionStatus]);
 

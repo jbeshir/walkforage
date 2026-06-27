@@ -522,8 +522,10 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     };
   }, []);
 
-  // Memoize context value to prevent unnecessary re-renders of consumers
-  // Callbacks are stable (useCallback with empty/stable deps), so only state/isLoading matter
+  // Memoize context value to prevent unnecessary re-renders of consumers.
+  // Every field below is either a state slice or a useCallback; the callbacks
+  // whose identity tracks a state slice are listed explicitly so consumers
+  // always receive fresh callbacks when the relevant state changes.
   const value: GameStateHook = useMemo(
     () => ({
       state,
@@ -549,8 +551,30 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       loadGame,
       resetGame,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, isLoading, saveError]
+    [
+      state,
+      isLoading,
+      saveError,
+      addResource,
+      removeResource,
+      hasResource,
+      getResourceCount,
+      unlockTech,
+      hasTech,
+      hasTool,
+      getOwnedTools,
+      getBestTool,
+      getOwnedComponents,
+      canCraft,
+      craft,
+      addExplorationPoints,
+      syncSteps,
+      spendSteps,
+      getStepGatheringState,
+      saveGame,
+      loadGame,
+      resetGame,
+    ]
   );
 
   return React.createElement(GameStateContext.Provider, { value }, children);

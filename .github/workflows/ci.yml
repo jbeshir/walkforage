@@ -51,6 +51,9 @@ jobs:
       - name: Validate game balance
         run: npm run validate:balance
 
+      - name: Validate icons
+        run: npm run validate:icons
+
       - name: Run Expo doctor
         run: npm run doctor
 

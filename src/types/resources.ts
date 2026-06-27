@@ -109,7 +109,6 @@ export function createEmptyInventory(): Inventory {
   return inventory;
 }
 
-// Geological zone data from real-world datasets
 /**
  * Type guard to check if a resource is a toolstone (can be knapped for tools).
  * Only stones can have the isToolstone property.
@@ -117,16 +116,4 @@ export function createEmptyInventory(): Inventory {
  */
 export function isToolstone(resource: object): resource is StoneType & { isToolstone: true } {
   return 'isToolstone' in resource && (resource as StoneType).isToolstone === true;
-}
-
-export interface GeologicalZone {
-  id: string;
-  centerLat: number;
-  centerLng: number;
-  radiusMeters: number;
-  primaryStone: string; // Most common stone type
-  secondaryStones: string[]; // Other available stones
-  oreDeposits: string[]; // Available ores
-  biome: string; // Vegetation biome
-  woodTypes: string[]; // Available wood types
 }

@@ -141,11 +141,15 @@ export class HealthService {
         }
 
         // Request the permission - this opens the Health Connect UI
-        console.log('Requesting Health Connect permission...');
+        if (__DEV__) {
+          console.log('Requesting Health Connect permission...');
+        }
         const permissions = await HealthConnect.requestPermission([
           { accessType: 'read', recordType: 'Steps' },
         ]);
-        console.log('Permission response:', JSON.stringify(permissions));
+        if (__DEV__) {
+          console.log('Permission response:', JSON.stringify(permissions));
+        }
 
         // Check if steps permission was granted
         const hasStepsPermission = permissions.some(

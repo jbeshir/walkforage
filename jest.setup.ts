@@ -3,6 +3,9 @@
 
 import '@testing-library/jest-dom';
 
+// React Native injects __DEV__ as a global at runtime; define it for the test env.
+(globalThis as unknown as { __DEV__: boolean }).__DEV__ = true;
+
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -50,19 +53,6 @@ jest.mock('expo-location', () => ({
     GRANTED: 'granted',
     DENIED: 'denied',
     UNDETERMINED: 'undetermined',
-  },
-}));
-
-// Mock expo-sensors
-jest.mock('expo-sensors', () => ({
-  Accelerometer: {
-    addListener: jest.fn(() => ({ remove: jest.fn() })),
-    setUpdateInterval: jest.fn(),
-    isAvailableAsync: jest.fn(() => Promise.resolve(true)),
-  },
-  Pedometer: {
-    watchStepCount: jest.fn(() => ({ remove: jest.fn() })),
-    isAvailableAsync: jest.fn(() => Promise.resolve(true)),
   },
 }));
 
