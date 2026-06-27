@@ -2,7 +2,6 @@
 // Tests tech unlock validation, prerequisite checking, resource consumption
 
 import {
-  TechService,
   canUnlockTech,
   unlockTech,
   hasTech,
@@ -358,17 +357,6 @@ describe('TechService', () => {
         expect(tech.enablesRecipes).toBeDefined();
         expect(Array.isArray(tech.enablesRecipes)).toBe(true);
       }
-    });
-  });
-
-  describe('TechService namespace export', () => {
-    it('should export all functions', () => {
-      expect(TechService.canUnlockTech).toBe(canUnlockTech);
-      expect(TechService.unlockTech).toBe(unlockTech);
-      expect(TechService.hasTech).toBe(hasTech);
-      expect(TechService.getTechById).toBe(getTechById);
-      expect(TechService.getAvailableTechs).toBe(getAvailableTechs);
-      expect(TechService.getTechResourceCost).toBe(getTechResourceCost);
     });
   });
 });

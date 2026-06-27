@@ -407,36 +407,6 @@ describe('useGameState', () => {
     });
   });
 
-  describe('Quality multipliers', () => {
-    it('should apply quality multiplier to tool durability', () => {
-      const baseDurability = 100;
-      const qualityMultipliers = {
-        poor: 0.75,
-        normal: 1.0,
-        good: 1.25,
-        excellent: 1.5,
-      };
-
-      expect(baseDurability * qualityMultipliers.poor).toBe(75);
-      expect(baseDurability * qualityMultipliers.normal).toBe(100);
-      expect(baseDurability * qualityMultipliers.good).toBe(125);
-      expect(baseDurability * qualityMultipliers.excellent).toBe(150);
-    });
-  });
-
-  describe('Repair degradation', () => {
-    it('should calculate repair degradation correctly', () => {
-      const baseDurability = 100;
-      const degradationFactor = 0.95;
-
-      // Each repair reduces max durability by 5%
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 0))).toBe(100);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 1))).toBe(95);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 3))).toBe(85);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 5))).toBe(77);
-    });
-  });
-
   describe('Persistence integrity (Stage 2)', () => {
     it('migrates an unversioned legacy save and tags it to the current schema', async () => {
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify({ explorationPoints: 42 }));

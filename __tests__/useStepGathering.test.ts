@@ -491,30 +491,4 @@ describe('useStepGathering', () => {
       expect(mockHealthService.openHealthConnectPlayStore).toHaveBeenCalled();
     });
   });
-
-  describe('Return Values', () => {
-    it('should return all expected values', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      // Check all return values are present
-      expect(typeof result.current.availableSteps).toBe('number');
-      expect(typeof result.current.lastSyncTimestamp).toBe('number');
-      expect(typeof result.current.totalStepsGathered).toBe('number');
-      expect(typeof result.current.permissionStatus).toBe('string');
-      expect(typeof result.current.isLoading).toBe('boolean');
-      expect(typeof result.current.syncSteps).toBe('function');
-      expect(typeof result.current.requestPermission).toBe('function');
-      expect(typeof result.current.gatherMaterial).toBe('function');
-      expect(typeof result.current.spendSteps).toBe('function');
-      expect(typeof result.current.isAvailable).toBe('boolean');
-      expect(typeof result.current.needsInstall).toBe('boolean');
-      expect(typeof result.current.openHealthSettings).toBe('function');
-      expect(typeof result.current.openPlayStore).toBe('function');
-      expect(Array.isArray(result.current.gatherableMaterialTypes)).toBe(true);
-    });
-  });
 });

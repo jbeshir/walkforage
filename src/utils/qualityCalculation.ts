@@ -114,7 +114,8 @@ export function calculateCraftableQuality(craftable: Craftable, materials: UsedM
   }
 
   if (materialCount === 0) return 0.1;
-  return Math.min(1, Math.max(0, totalScore / materialCount));
+  const q = totalScore / materialCount;
+  return Number.isFinite(q) ? Math.min(1, Math.max(0, q)) : 0.1;
 }
 
 /**

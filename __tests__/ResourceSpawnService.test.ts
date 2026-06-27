@@ -156,17 +156,41 @@ describe('ResourceSpawnService', () => {
     });
 
     it('should prefer woods matching the biome and realm', () => {
+      const palearcticTemperateWoodIds = [
+        'european_oak',
+        'european_beech',
+        'silver_birch',
+        'european_ash',
+        'willow',
+        'poplar',
+      ];
+      const palearcticTemperateWoods = new Set(palearcticTemperateWoodIds);
+      const heavilyWeightedWoods = new Set([
+        'european_oak',
+        'european_beech',
+        'silver_birch',
+        'european_ash',
+      ]);
       const woodIds: string[] = [];
-      for (let i = 0; i < 50; i++) {
+      const draws = 1000;
+
+      for (let i = 0; i < draws; i++) {
         const wood = resourceSpawnService.getRandomWoodForLocation(mockGeoData);
         if (wood) woodIds.push(wood.id);
       }
 
-      // Should get Palearctic species for temperate broadleaf
-      // Common Palearctic temperate species include oak, beech, ash
-      const palearcticWoods = WOODS_BY_ID;
-      const validWoods = woodIds.filter((id) => palearcticWoods[id] !== undefined);
-      expect(validWoods.length).toBe(woodIds.length);
+      const palearcticTemperateCount = woodIds.filter((id) =>
+        palearcticTemperateWoods.has(id)
+      ).length;
+      const heavilyWeightedCount = woodIds.filter((id) => heavilyWeightedWoods.has(id)).length;
+
+      // PA04 is mapped to these species with 80% of weight on oak/beech/birch/ash.
+      expect(woodIds).toHaveLength(draws);
+      expect(palearcticTemperateCount / draws).toBeGreaterThan(0.95);
+      expect(heavilyWeightedCount / draws).toBeGreaterThan(0.65);
+      for (const expectedWood of palearcticTemperateWoodIds) {
+        expect(woodIds).toContain(expectedWood);
+      }
     });
 
     it('should fall back to random when confidence is low', () => {
@@ -206,11 +230,10 @@ describe('ResourceSpawnService', () => {
         if (wood) woodIds.push(wood.id);
       }
 
-      // Should get some Australasian species like eucalyptus
+      // AU12 is mapped to jarrah, eucalyptus, and manuka.
       expect(woodIds.length).toBeGreaterThan(0);
-      // All should be valid
       for (const id of woodIds) {
-        expect(WOODS_BY_ID[id]).toBeDefined();
+        expect(['jarrah', 'eucalyptus', 'manuka']).toContain(id);
       }
     });
   });
