@@ -9,6 +9,7 @@ import { ResourceStack, isToolstone } from '../types/resources';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 import { ThemeColors } from '../config/theme';
 import { getResourceIcon } from '../utils/icons';
+import { getScientificName } from '../utils/resourceDetails';
 
 interface ResourceItemProps {
   stack: ResourceStack;
@@ -16,7 +17,11 @@ interface ResourceItemProps {
   colors: ThemeColors;
 }
 
-const ResourceItem = React.memo(function ResourceItem({ stack, type, colors }: ResourceItemProps) {
+export const ResourceItem = React.memo(function ResourceItem({
+  stack,
+  type,
+  colors,
+}: ResourceItemProps) {
   const config = getMaterialConfig(type);
   const resourceData = config.getResourceById(stack.resourceId);
 
@@ -42,6 +47,7 @@ const ResourceItem = React.memo(function ResourceItem({ stack, type, colors }: R
 
   // Get icon if available
   const icon = getResourceIcon(type, stack.resourceId);
+  const scientificName = getScientificName(type, stack.resourceId);
 
   return (
     <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
@@ -57,6 +63,11 @@ const ResourceItem = React.memo(function ResourceItem({ stack, type, colors }: R
           </Text>
           {showToolstoneBadge && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
         </View>
+        {scientificName ? (
+          <Text style={[styles.scientificName, { color: colors.textSecondary }]}>
+            {scientificName}
+          </Text>
+        ) : null}
         <Text
           style={[styles.resourceDescription, { color: colors.textSecondary }]}
           numberOfLines={2}
@@ -118,7 +129,7 @@ export default function InventoryScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Summary stats - dynamic for all material types */}
         <View
@@ -192,6 +203,9 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   summaryCard: {
@@ -281,6 +295,11 @@ const styles = StyleSheet.create({
   resourceName: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  scientificName: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 1,
   },
   toolstoneBadge: {
     fontSize: 10,
