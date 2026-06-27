@@ -9,6 +9,7 @@ import { Text, StyleSheet, Modal } from 'react-native';
 import { useHealthRationaleIntent } from './src/hooks/useHealthRationaleIntent';
 import { HealthPermissionRationale } from './src/components/HealthPermissionRationale';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { PersistenceErrorBanner } from './src/components/PersistenceErrorBanner';
 import { GameStateProvider } from './src/hooks/useGameState';
 import { ThemeProvider, useTheme } from './src/hooks/useTheme';
 import { GeoDataProvider } from './src/providers/GeoDataProvider';
@@ -95,6 +96,7 @@ function AppContent() {
           />
         )}
       </Tab.Navigator>
+      <PersistenceErrorBanner />
     </NavigationContainer>
   );
 }
