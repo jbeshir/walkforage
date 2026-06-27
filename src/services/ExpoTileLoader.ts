@@ -34,6 +34,7 @@ interface TileRow {
 export class ExpoTileLoader implements TileLoader {
   private db: SQLite.SQLiteDatabase | null = null;
   private dbInitialized = false;
+  private initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
   private tileCache = new Map<string, GeoTile | null>();
 
   async getTile(geohash: string): Promise<GeoTile | null> {
@@ -129,6 +130,7 @@ export class ExpoTileLoader implements TileLoader {
       this.db = null;
       this.dbInitialized = false;
     }
+    this.initPromise = null;
   }
 
   clearCache(): void {
@@ -150,6 +152,17 @@ export class ExpoTileLoader implements TileLoader {
       return this.db;
     }
 
+    this.initPromise ??= this.openDatabase();
+    try {
+      return await this.initPromise;
+    } catch (error) {
+      // Allow a later call to retry after a failed open.
+      this.initPromise = null;
+      throw error;
+    }
+  }
+
+  private async openDatabase(): Promise<SQLite.SQLiteDatabase> {
     const dbName = 'tiles.db';
 
     // Get the default database directory from expo-sqlite
@@ -177,10 +190,11 @@ export class ExpoTileLoader implements TileLoader {
 
     // Open the database from the SQLite directory
     const dbDirectory = new Directory(Paths.document, 'SQLite');
-    this.db = await SQLite.openDatabaseAsync(dbName, {}, dbDirectory.uri);
+    const db = await SQLite.openDatabaseAsync(dbName, {}, dbDirectory.uri);
+    this.db = db;
     this.dbInitialized = true;
 
-    return this.db;
+    return db;
   }
 
   /**
