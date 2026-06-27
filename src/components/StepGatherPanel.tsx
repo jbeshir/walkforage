@@ -1,7 +1,7 @@
 // StepGatherPanel - UI component for step-based resource gathering
 // Shows available steps and gather buttons dynamically for all gatherable material types
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -64,20 +64,21 @@ export function StepGatherPanel({
   const gatherableCount = calculateGatherableAmount(availableSteps);
   const canGather = gatherableCount > 0 && geoData !== null;
 
-  // Get gatherable material types from config
-  const gatherableTypes = getGatherableMaterialTypes();
-
   // Calculate gathering abilities and yield ranges for each material type
   // Filter to only materials that can be gathered (ability >= 1)
-  const materialGatheringInfo = gatherableTypes
-    .map((materialType) => {
-      const config = getMaterialConfig(materialType);
-      const ability = calculateGatheringAbility(materialType, state.ownedTools);
-      const maxYield = Math.floor(2 * ability - 1);
-      const yieldRange = maxYield <= 1 ? '1' : `1-${maxYield}`;
-      return { materialType, config, ability, yieldRange };
-    })
-    .filter(({ ability }) => ability >= 1);
+  const materialGatheringInfo = useMemo(
+    () =>
+      getGatherableMaterialTypes()
+        .map((materialType) => {
+          const config = getMaterialConfig(materialType);
+          const ability = calculateGatheringAbility(materialType, state.ownedTools);
+          const maxYield = Math.floor(2 * ability - 1);
+          const yieldRange = maxYield <= 1 ? '1' : `1-${maxYield}`;
+          return { materialType, config, ability, yieldRange };
+        })
+        .filter(({ ability }) => ability >= 1),
+    [state.ownedTools]
+  );
 
   const [showRationale, setShowRationale] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);

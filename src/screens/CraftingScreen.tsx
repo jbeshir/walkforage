@@ -1,7 +1,7 @@
 // Crafting Screen - Tool and component crafting interface
 // Updated for lithic era material selection system
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../hooks/useGameState';
@@ -38,7 +38,7 @@ interface OwnedToolItemProps {
   colors: ThemeColors;
 }
 
-function OwnedToolItem({ owned, colors }: OwnedToolItemProps) {
+const OwnedToolItem = React.memo(function OwnedToolItem({ owned, colors }: OwnedToolItemProps) {
   const tool = getToolById(owned.toolId);
   if (!tool) return null;
 
@@ -94,7 +94,7 @@ function OwnedToolItem({ owned, colors }: OwnedToolItemProps) {
       </View>
     </View>
   );
-}
+});
 
 /** Badge showing tool type (Crafting/Gathering) */
 function ToolTypeBadge({ toolId }: { toolId: string }) {
@@ -123,7 +123,10 @@ interface OwnedComponentItemProps {
   colors: ThemeColors;
 }
 
-function OwnedComponentItem({ component, colors }: OwnedComponentItemProps) {
+const OwnedComponentItem = React.memo(function OwnedComponentItem({
+  component,
+  colors,
+}: OwnedComponentItemProps) {
   const componentDef = getComponentById(component.componentId);
   if (!componentDef) return null;
 
@@ -172,16 +175,21 @@ function OwnedComponentItem({ component, colors }: OwnedComponentItemProps) {
       </Text>
     </View>
   );
-}
+});
 
 interface ToolRecipeItemProps {
   tool: Tool;
   craftCheck: CraftCheckResult;
-  onCraft: () => void;
+  onCraft: (tool: Tool) => void;
   colors: ThemeColors;
 }
 
-function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemProps) {
+const ToolRecipeItem = React.memo(function ToolRecipeItem({
+  tool,
+  craftCheck,
+  onCraft,
+  colors,
+}: ToolRecipeItemProps) {
   return (
     <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
       <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
@@ -239,7 +247,7 @@ function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemPro
           { backgroundColor: colors.primary },
           !craftCheck.canCraft && { backgroundColor: colors.border },
         ]}
-        onPress={onCraft}
+        onPress={() => onCraft(tool)}
         disabled={!craftCheck.canCraft}
       >
         <Text
@@ -250,17 +258,17 @@ function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemPro
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 interface ComponentRecipeItemProps {
   component: CraftedComponent;
   craftCheck: CraftCheckResult;
   ownedCount: number;
-  onCraft: () => void;
+  onCraft: (component: CraftedComponent) => void;
   colors: ThemeColors;
 }
 
-function ComponentRecipeItem({
+const ComponentRecipeItem = React.memo(function ComponentRecipeItem({
   component,
   craftCheck,
   ownedCount,
@@ -317,7 +325,7 @@ function ComponentRecipeItem({
           { backgroundColor: colors.primary },
           !craftCheck.canCraft && { backgroundColor: colors.border },
         ]}
-        onPress={onCraft}
+        onPress={() => onCraft(component)}
         disabled={!craftCheck.canCraft}
       >
         <Text
@@ -328,6 +336,21 @@ function ComponentRecipeItem({
       </TouchableOpacity>
     </View>
   );
+});
+
+function groupToolsByType(tools: OwnedTool[]) {
+  const groups = new Map<string, OwnedTool[]>();
+  for (const tool of tools) {
+    const existing = groups.get(tool.toolId) || [];
+    existing.push(tool);
+    groups.set(tool.toolId, existing);
+  }
+  for (const [, group] of groups) {
+    group.sort((a, b) => b.quality - a.quality);
+  }
+  return Array.from(groups.entries()).sort((a, b) => {
+    return b[1][0].quality - a[1][0].quality;
+  });
 }
 
 export default function CraftingScreen() {
@@ -343,15 +366,16 @@ export default function CraftingScreen() {
     craftCheck: CraftCheckResult;
   } | null>(null);
 
-  // Unified handler for crafting any craftable (tool or component)
-  // Always shows material selection modal as a confirmation prompt
-  const handleCraft = (craftable: Tool | CraftedComponent) => {
-    const craftCheck = canCraft(craftable);
-    if (!craftCheck.canCraft) return;
+  const handleCraft = useCallback(
+    (craftable: Tool | CraftedComponent) => {
+      const craftCheck = canCraft(craftable);
+      if (!craftCheck.canCraft) return;
 
-    setSelectedRecipe({ craftable, craftCheck });
-    setModalVisible(true);
-  };
+      setSelectedRecipe({ craftable, craftCheck });
+      setModalVisible(true);
+    },
+    [canCraft]
+  );
 
   const handleMaterialConfirm = (selection: MaterialSelection) => {
     if (!selectedRecipe) return;
@@ -375,9 +399,14 @@ export default function CraftingScreen() {
     setSelectedRecipe(null);
   };
 
-  // Filter tools by unlocked tech
-  const availableTools = TOOLS.filter((tool) => hasTech(tool.requiredTech));
-  const availableComponents = COMPONENTS.filter((comp) => hasTech(comp.requiredTech));
+  const availableTools = useMemo(
+    () => TOOLS.filter((tool) => hasTech(tool.requiredTech)),
+    [hasTech]
+  );
+  const availableComponents = useMemo(
+    () => COMPONENTS.filter((comp) => hasTech(comp.requiredTech)),
+    [hasTech]
+  );
 
   // Track which tool groups are expanded (collapsed by default)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -394,32 +423,16 @@ export default function CraftingScreen() {
     });
   };
 
-  const renderOwnedTools = () => {
-    // Split owned tools into crafting and gathering categories
+  const { craftingGroups, gatheringGroups } = useMemo(() => {
     const craftingTools = state.ownedTools.filter((owned) => isCraftingTool(owned.toolId));
     const gatheringTools = state.ownedTools.filter((owned) => isGatheringTool(owned.toolId));
-
-    // Group tools by toolId and sort by quality (highest first)
-    const groupToolsByType = (tools: OwnedTool[]) => {
-      const groups = new Map<string, OwnedTool[]>();
-      for (const tool of tools) {
-        const existing = groups.get(tool.toolId) || [];
-        existing.push(tool);
-        groups.set(tool.toolId, existing);
-      }
-      // Sort each group by quality (highest first)
-      for (const [, group] of groups) {
-        group.sort((a, b) => b.quality - a.quality);
-      }
-      // Sort groups by highest quality tool
-      return Array.from(groups.entries()).sort((a, b) => {
-        return b[1][0].quality - a[1][0].quality;
-      });
+    return {
+      craftingGroups: groupToolsByType(craftingTools),
+      gatheringGroups: groupToolsByType(gatheringTools),
     };
+  }, [state.ownedTools]);
 
-    const craftingGroups = groupToolsByType(craftingTools);
-    const gatheringGroups = groupToolsByType(gatheringTools);
-
+  const renderOwnedTools = () => {
     const renderToolGroup = (toolId: string, tools: OwnedTool[]) => {
       const toolDef = getToolById(toolId);
       const count = tools.length;
@@ -558,7 +571,7 @@ export default function CraftingScreen() {
               key={tool.id}
               tool={tool}
               craftCheck={craftCheck}
-              onCraft={() => handleCraft(tool)}
+              onCraft={handleCraft}
               colors={colors}
             />
           );
@@ -586,7 +599,7 @@ export default function CraftingScreen() {
               component={comp}
               craftCheck={craftCheck}
               ownedCount={ownedCount}
-              onCraft={() => handleCraft(comp)}
+              onCraft={handleCraft}
               colors={colors}
             />
           );
