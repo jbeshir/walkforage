@@ -110,6 +110,10 @@ function buildRealmBiomeCode(realm: string, biome: BiomeCode): string | null {
   return `${realmCode}${biomeNumber}`;
 }
 
+export function getRealmBiomeCode(realm: string, biome: BiomeCode): string | null {
+  return buildRealmBiomeCode(realm, biome);
+}
+
 /**
  * Get mapping for a realm and biome type
  * @param realm e.g., "Palearctic"

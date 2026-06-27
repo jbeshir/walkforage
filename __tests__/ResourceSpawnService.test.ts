@@ -5,6 +5,7 @@
 import { resourceSpawnService } from '../src/services/ResourceSpawnService';
 import { STONES_BY_ID } from '../src/data/stones';
 import { WOODS_BY_ID } from '../src/data/woods';
+import { getRealmBiomeCode } from '../src/data/gis/mappings';
 import { LocationGeoData } from '../src/types/gis';
 
 describe('ResourceSpawnService', () => {
@@ -235,6 +236,51 @@ describe('ResourceSpawnService', () => {
       for (const id of woodIds) {
         expect(['jarrah', 'eucalyptus', 'manuka']).toContain(id);
       }
+    });
+  });
+
+  describe('realmBiomes biome weighting', () => {
+    const pa04GeoData: LocationGeoData = {
+      geology: {
+        primaryLithology: 'granite',
+        secondaryLithologies: [],
+        confidence: 0.8,
+      },
+      biome: {
+        type: 'temperate_broadleaf_mixed',
+        realm: 'Palearctic',
+        confidence: 0.8,
+      },
+      dataSource: 'detailed',
+      geohash: 'gcpv',
+    };
+
+    it('should build realm-biome codes for mapped realm and biome pairs', () => {
+      expect(getRealmBiomeCode('Palearctic', 'temperate_broadleaf_mixed')).toBe('PA04');
+      expect(getRealmBiomeCode('Nowhere', 'desert')).toBeNull();
+    });
+
+    it('should boost PA04 realmBiomes carriers without starving non-carriers', () => {
+      const draws = 2000;
+      const counts: Record<string, number> = {};
+
+      for (let i = 0; i < draws; i++) {
+        const wood = resourceSpawnService.getRandomWoodForLocation(pa04GeoData);
+        if (wood) {
+          counts[wood.id] = (counts[wood.id] ?? 0) + 1;
+        }
+      }
+
+      const carrierCount =
+        (counts.european_oak ?? 0) +
+        (counts.european_beech ?? 0) +
+        (counts.silver_birch ?? 0) +
+        (counts.european_ash ?? 0);
+
+      expect(counts.european_ash ?? 0).toBeGreaterThan((counts.willow ?? 0) + (counts.poplar ?? 0));
+      expect(counts.willow ?? 0).toBeGreaterThan(0);
+      expect(counts.poplar ?? 0).toBeGreaterThan(0);
+      expect(carrierCount / draws).toBeGreaterThan(0.85);
     });
   });
 });
