@@ -1,5 +1,5 @@
 // Materials Screen - View collected resources
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -16,7 +16,7 @@ interface ResourceItemProps {
   colors: ThemeColors;
 }
 
-function ResourceItem({ stack, type, colors }: ResourceItemProps) {
+const ResourceItem = React.memo(function ResourceItem({ stack, type, colors }: ResourceItemProps) {
   const config = getMaterialConfig(type);
   const resourceData = config.getResourceById(stack.resourceId);
 
@@ -83,7 +83,7 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
       <Text style={[styles.quantity, { color: colors.primary }]}>x{stack.quantity}</Text>
     </View>
   );
-}
+});
 
 export default function InventoryScreen() {
   const { state } = useGameState();
@@ -93,7 +93,7 @@ export default function InventoryScreen() {
   // Track collapsed sections (default all expanded)
   const [collapsedSections, setCollapsedSections] = useState<Set<MaterialType>>(new Set());
 
-  const toggleSection = (type: MaterialType) => {
+  const toggleSection = useCallback((type: MaterialType) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(type)) {
@@ -103,15 +103,19 @@ export default function InventoryScreen() {
       }
       return next;
     });
-  };
+  }, []);
 
   // Calculate totals for each material type dynamically
-  const materialTotals = getAllMaterialTypes().map((type) => {
-    const config = getMaterialConfig(type);
-    const stacks = state.inventory[type];
-    const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
-    return { type, config, stacks, total };
-  });
+  const materialTotals = useMemo(
+    () =>
+      getAllMaterialTypes().map((type) => {
+        const config = getMaterialConfig(type);
+        const stacks = state.inventory[type];
+        const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
+        return { type, config, stacks, total };
+      }),
+    [state.inventory]
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>

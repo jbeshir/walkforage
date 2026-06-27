@@ -1,16 +1,8 @@
 // Cheat Screen - Developer/testing tools for granting resources
 // Appears as a tab after activation (tap Tech Tree header 5 times)
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { TECHNOLOGIES } from '../data/techTree';
@@ -18,8 +10,60 @@ import { useGameState } from '../hooks/useGameState';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 import { getResourceIcon } from '../utils/icons';
+import { ThemeColors } from '../config/theme';
 
 type ResourceTab = 'steps' | MaterialType | 'tech';
+
+type MaterialResource = { id: string; name: string; color: string };
+
+interface MaterialResourceRowProps {
+  materialType: MaterialType;
+  resource: MaterialResource;
+  icon: ReturnType<typeof getResourceIcon>;
+  colors: ThemeColors;
+  onAdd: (materialType: MaterialType, resourceId: string, quantity: number) => void;
+}
+
+const MaterialResourceRow = React.memo(function MaterialResourceRow({
+  materialType,
+  resource,
+  icon,
+  colors,
+  onAdd,
+}: MaterialResourceRowProps) {
+  return (
+    <View style={[styles.resourceItem, { backgroundColor: colors.surfaceSecondary }]}>
+      {icon ? (
+        <Image source={icon} style={styles.resourceIcon} cachePolicy="memory-disk" />
+      ) : (
+        <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
+      )}
+      <Text style={[styles.resourceName, { color: colors.textPrimary }]} numberOfLines={1}>
+        {resource.name}
+      </Text>
+      <View style={styles.quantityButtons}>
+        <TouchableOpacity
+          style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+          onPress={() => onAdd(materialType, resource.id, 1)}
+        >
+          <Text style={styles.quantityButtonText}>+1</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+          onPress={() => onAdd(materialType, resource.id, 10)}
+        >
+          <Text style={styles.quantityButtonText}>+10</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.quantityButton, { backgroundColor: colors.primary }]}
+          onPress={() => onAdd(materialType, resource.id, 100)}
+        >
+          <Text style={styles.quantityButtonText}>+100</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
 
 export default function CheatScreen() {
   const { addResource, syncSteps, unlockTech, resetGame, state } = useGameState();
@@ -35,10 +79,12 @@ export default function CheatScreen() {
     }
   };
 
-  // Generic material add handler
-  const handleAddMaterial = (materialType: MaterialType, resourceId: string, quantity: number) => {
-    addResource(materialType, resourceId, quantity);
-  };
+  const handleAddMaterial = useCallback(
+    (materialType: MaterialType, resourceId: string, quantity: number) => {
+      addResource(materialType, resourceId, quantity);
+    },
+    [addResource]
+  );
 
   const handleUnlockAllTech = () => {
     for (const tech of TECHNOLOGIES) {
@@ -122,54 +168,26 @@ export default function CheatScreen() {
     const resources = config.getAllResources();
 
     return (
-      <ScrollView style={styles.tabContent}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Add {config.pluralName}
-        </Text>
-        <View style={styles.resourceGrid}>
-          {resources.map((resource) => {
-            const icon = getResourceIcon(materialType, resource.id);
-            return (
-              <View
-                key={resource.id}
-                style={[styles.resourceItem, { backgroundColor: colors.surfaceSecondary }]}
-              >
-                {icon ? (
-                  <Image source={icon} style={styles.resourceIcon} cachePolicy="memory-disk" />
-                ) : (
-                  <View style={[styles.colorSwatch, { backgroundColor: resource.color }]} />
-                )}
-                <Text
-                  style={[styles.resourceName, { color: colors.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  {resource.name}
-                </Text>
-                <View style={styles.quantityButtons}>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                    onPress={() => handleAddMaterial(materialType, resource.id, 1)}
-                  >
-                    <Text style={styles.quantityButtonText}>+1</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                    onPress={() => handleAddMaterial(materialType, resource.id, 10)}
-                  >
-                    <Text style={styles.quantityButtonText}>+10</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.primary }]}
-                    onPress={() => handleAddMaterial(materialType, resource.id, 100)}
-                  >
-                    <Text style={styles.quantityButtonText}>+100</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
+      <FlatList
+        style={styles.tabContent}
+        contentContainerStyle={styles.resourceGrid}
+        data={resources}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            Add {config.pluralName}
+          </Text>
+        }
+        renderItem={({ item }) => (
+          <MaterialResourceRow
+            materialType={materialType}
+            resource={item}
+            icon={getResourceIcon(materialType, item.id)}
+            colors={colors}
+            onAdd={handleAddMaterial}
+          />
+        )}
+      />
     );
   };
 
