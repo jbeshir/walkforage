@@ -15,7 +15,7 @@
 // The deep link scheme is configured via "scheme" in app.config.js.
 // This plugin only handles the JavaScript-level intent detection.
 
-const { withMainActivity } = require('@expo/config-plugins');
+const { withMainActivity } = require('expo/config-plugins');
 
 // Modify MainActivity.kt to detect rationale intents and pass to React Native
 const withMainActivityRationale = (config) => {
