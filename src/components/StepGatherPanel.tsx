@@ -101,11 +101,18 @@ export function StepGatherPanel({
         'Step access was denied. Would you like to open Health Connect settings to grant permission?',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => openHealthSettings() },
+          {
+            text: 'Open Settings',
+            onPress: () => {
+              void openHealthSettings().then((ok) => {
+                if (!ok) showToast('Could not open Health Connect settings.', 'error');
+              });
+            },
+          },
         ]
       );
     }
-  }, [requestPermission, syncSteps, openHealthSettings]);
+  }, [requestPermission, syncSteps, openHealthSettings, showToast]);
 
   const handleInstallHealthConnect = useCallback(async () => {
     Alert.alert(
@@ -113,10 +120,17 @@ export function StepGatherPanel({
       'WalkForage needs Health Connect to track your steps. Install it from the Play Store?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Install', onPress: () => openPlayStore() },
+        {
+          text: 'Install',
+          onPress: () => {
+            void openPlayStore().then((ok) => {
+              if (!ok) showToast('Could not open the Play Store.', 'error');
+            });
+          },
+        },
       ]
     );
-  }, [openPlayStore]);
+  }, [openPlayStore, showToast]);
 
   const handleOpenSettings = useCallback(async () => {
     await openHealthSettings();
@@ -171,23 +185,26 @@ export function StepGatherPanel({
   // Health Connect needs to be installed (Android)
   if (needsInstall) {
     return (
-      <View
-        style={[
-          styles.container,
-          compact && styles.containerCompact,
-          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
-        ]}
-      >
-        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-          Health Connect app is required to track steps
-        </Text>
-        <TouchableOpacity
-          style={[styles.installButton, { backgroundColor: colors.info }]}
-          onPress={handleInstallHealthConnect}
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <View
+          style={[
+            styles.container,
+            compact && styles.containerCompact,
+            { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+          ]}
         >
-          <Text style={styles.permissionButtonText}>Install Health Connect</Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+            Health Connect app is required to track steps
+          </Text>
+          <TouchableOpacity
+            style={[styles.installButton, { backgroundColor: colors.info }]}
+            onPress={handleInstallHealthConnect}
+          >
+            <Text style={styles.permissionButtonText}>Install Health Connect</Text>
+          </TouchableOpacity>
+        </View>
+      </>
     );
   }
 
@@ -227,31 +244,34 @@ export function StepGatherPanel({
   // Permission denied - show settings button
   if (permissionStatus === 'denied') {
     return (
-      <View
-        style={[
-          styles.container,
-          compact && styles.containerCompact,
-          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
-        ]}
-      >
-        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-          Step access denied. Enable it in Health Connect settings.
-        </Text>
-        <View style={styles.deniedButtons}>
-          <TouchableOpacity
-            style={[styles.settingsButton, { backgroundColor: colors.warning }]}
-            onPress={handleOpenSettings}
-          >
-            <Text style={styles.settingsButtonText}>Open Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: colors.primary }]}
-            onPress={handleRequestPermission}
-          >
-            <Text style={styles.permissionButtonText}>Try Again</Text>
-          </TouchableOpacity>
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <View
+          style={[
+            styles.container,
+            compact && styles.containerCompact,
+            { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+          ]}
+        >
+          <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+            Step access denied. Enable it in Health Connect settings.
+          </Text>
+          <View style={styles.deniedButtons}>
+            <TouchableOpacity
+              style={[styles.settingsButton, { backgroundColor: colors.warning }]}
+              onPress={handleOpenSettings}
+            >
+              <Text style={styles.settingsButtonText}>Open Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: colors.primary }]}
+              onPress={handleRequestPermission}
+            >
+              <Text style={styles.permissionButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </>
     );
   }
 

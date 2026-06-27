@@ -111,7 +111,7 @@ export function useMapOverlay({ tileLoader, enabled }: UseMapOverlayOptions): Us
       }
 
       debounceTimerRef.current = setTimeout(() => {
-        loadTiles(region);
+        void loadTiles(region);
       }, DEBOUNCE_MS);
     },
     [loadTiles]
@@ -123,7 +123,7 @@ export function useMapOverlay({ tileLoader, enabled }: UseMapOverlayOptions): Us
       setTiles([]);
     } else if (lastRegionRef.current) {
       // Reload tiles if re-enabled and we have a previous region
-      loadTiles(lastRegionRef.current);
+      void loadTiles(lastRegionRef.current);
     }
   }, [enabled, loadTiles]);
 

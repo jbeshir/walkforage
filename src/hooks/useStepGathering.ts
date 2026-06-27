@@ -103,12 +103,14 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
         // If already authorized, sync (debounce will prevent rapid re-syncs)
         if (status === 'authorized') {
-          doSyncSteps();
+          void doSyncSteps().then((r) => {
+            if (!r.success) console.warn('step sync failed:', r.error);
+          });
         }
       }
     }
 
-    init();
+    void init();
     return () => {
       mounted = false;
     };
@@ -121,7 +123,9 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     if (permissionStatus !== 'authorized') return;
 
     const interval = setInterval(() => {
-      doSyncSteps();
+      void doSyncSteps().then((r) => {
+        if (!r.success) console.warn('step sync failed:', r.error);
+      });
     }, autoSyncInterval);
 
     return () => clearInterval(interval);
@@ -191,7 +195,9 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       // If permission granted, sync (debounce will prevent rapid re-syncs)
       if (status === 'authorized') {
-        doSyncSteps();
+        void doSyncSteps().then((r) => {
+          if (!r.success) console.warn('step sync failed:', r.error);
+        });
       }
 
       return status;

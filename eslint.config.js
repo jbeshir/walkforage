@@ -18,7 +18,8 @@ module.exports = [
         ecmaFeatures: {
           jsx: true,
         },
-        project: './tsconfig.json',
+        projectService: true,
+        tsconfigRootDir: __dirname,
       },
       globals: {
         console: 'readonly',
@@ -54,6 +55,7 @@ module.exports = [
     rules: {
       // TypeScript specific
       ...typescriptEslint.configs.recommended.rules,
+      '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
