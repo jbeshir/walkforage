@@ -2,7 +2,7 @@
  * GIS Fallback Utilities
  *
  * Shared functions for estimating geographic data when detailed GIS data
- * is unavailable. Used by both GeoDataService (Expo) and node-gis-loader (Node.js).
+ * is unavailable. Used by both GeoDataService (Expo) and NodeTileLoader.ts (Node.js).
  */
 
 import { GeologyData } from '../types/gis';

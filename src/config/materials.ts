@@ -179,14 +179,6 @@ export function getMaterialIcon(type: MaterialType): string {
   return MATERIAL_TYPES[type].icon;
 }
 
-export function getMaterialPluralName(type: MaterialType): string {
-  return MATERIAL_TYPES[type].pluralName;
-}
-
-export function getMaterialSingularName(type: MaterialType): string {
-  return MATERIAL_TYPES[type].singularName;
-}
-
 export function getGatherableMaterialTypes(): MaterialType[] {
   return (Object.keys(MATERIAL_TYPES) as MaterialType[]).filter(
     (type) => MATERIAL_TYPES[type].gathering !== undefined

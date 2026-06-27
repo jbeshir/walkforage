@@ -55,7 +55,6 @@
     "expo-health-connect": "^0.1.1",
     "expo-image": "~3.0.11",
     "expo-location": "^19.0.8",
-    "expo-sensors": "^15.0.8",
     "expo-sqlite": "^16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
@@ -90,9 +89,10 @@
     "jest-expo": "~54.0.17",
     "prettier": "^3.7.4",
     "react-dom": "^19.1.0",
-    "react-test-renderer": "~19.1.0",
+    "react-test-renderer": "19.1.0",
     "shapefile": "^0.6.6",
     "sharp": "^0.34.5",
+    "tsx": "^4.19.0",
     "typescript": "~5.9.2"
   },
   "private": true
