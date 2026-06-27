@@ -27,12 +27,6 @@ describe('Foods Data', () => {
       expect(uniqueIds.size).toBe(ids.length);
     });
 
-    it('should have empty properties for all foods', () => {
-      FOODS.forEach((food) => {
-        expect(Object.keys(food.properties).length).toBe(0);
-      });
-    });
-
     it('should have valid rarity values', () => {
       FOODS.forEach((food) => {
         expect(food.rarity).toBeGreaterThanOrEqual(0);

@@ -117,8 +117,11 @@ describe('CraftingService', () => {
       });
 
       it('should check required tools', () => {
+        // shaped_handle requires the stone_knife tool (crude_handle requires none),
+        // so this exercises the missing-tool path with a fixture that actually has requiredTools.
+        const shapedHandle = getComponentById('shaped_handle')!;
         const state = createTestState({
-          unlockedTechs: [crudeHandle.requiredTech],
+          unlockedTechs: [shapedHandle.requiredTech],
           inventory: {
             stone: [],
             wood: [{ resourceId: 'european_ash', quantity: 10 }],
@@ -126,13 +129,12 @@ describe('CraftingService', () => {
           },
         });
 
-        const result = CraftingService.canCraft(crudeHandle, state);
+        const result = CraftingService.canCraft(shapedHandle, state);
 
-        // Crude handle requires a stone knife
-        if (crudeHandle.requiredTools.length > 0) {
-          expect(result.canCraft).toBe(false);
-          expect(result.missingRequirements.some((r) => r.includes('Tool:'))).toBe(true);
-        }
+        // No stone_knife is owned, so crafting must be blocked on the required tool.
+        expect(shapedHandle.requiredTools.length).toBeGreaterThan(0);
+        expect(result.canCraft).toBe(false);
+        expect(result.missingRequirements.some((r) => r.includes('Tool:'))).toBe(true);
       });
     });
 
@@ -160,10 +162,9 @@ describe('CraftingService', () => {
         const result = CraftingService.canCraft(haftedAxe, state);
 
         // Hafted axe requires components
-        if (haftedAxe.requiredComponents.length > 0) {
-          expect(result.canCraft).toBe(false);
-          expect(result.missingRequirements.some((r) => r.includes('Component:'))).toBe(true);
-        }
+        expect(haftedAxe.requiredComponents.length).toBeGreaterThan(0);
+        expect(result.canCraft).toBe(false);
+        expect(result.missingRequirements.some((r) => r.includes('Component:'))).toBe(true);
       });
     });
   });
@@ -376,11 +377,7 @@ describe('CraftingService', () => {
 
         // Check if we can craft
         const canCraftResult = CraftingService.canCraft(crudeHandle, state);
-        if (!canCraftResult.canCraft) {
-          // Skip test if requirements aren't met (might be test data issue)
-          console.log('Skipping test: crude_handle requirements not met', canCraftResult);
-          return;
-        }
+        expect(canCraftResult.canCraft).toBe(true);
 
         const result = CraftingService.craft(
           crudeHandle,
@@ -400,13 +397,17 @@ describe('CraftingService', () => {
       it('should consume selected components when crafting tools', () => {
         const haftedAxe = getToolById('hafted_axe')!;
 
-        // Skip if no components required
-        if (haftedAxe.requiredComponents.length === 0) {
-          return;
-        }
+        expect(haftedAxe.requiredComponents.length).toBeGreaterThan(0);
 
-        const componentReq = haftedAxe.requiredComponents[0];
-        const componentInstanceId = 'test_component_123';
+        // hafted_axe requires multiple components (shaped_handle + fiber_binding);
+        // provide an owned instance for EACH so canCraft is genuinely satisfiable.
+        const ownedComponents = haftedAxe.requiredComponents.map((req, i) => ({
+          instanceId: `test_component_${i}`,
+          componentId: req.componentId,
+          materials: { wood: { resourceId: 'european_ash', quantity: 5 } },
+          quality: 0.5,
+        }));
+        const selectedComponentIds = ownedComponents.map((c) => c.instanceId);
 
         const state = createTestState({
           unlockedTechs: [haftedAxe.requiredTech],
@@ -416,14 +417,7 @@ describe('CraftingService', () => {
             materials: {},
             quality: 0.5,
           })),
-          ownedComponents: [
-            {
-              instanceId: componentInstanceId,
-              componentId: componentReq.componentId,
-              materials: { wood: { resourceId: 'european_ash', quantity: 5 } },
-              quality: 0.5,
-            },
-          ],
+          ownedComponents,
           inventory: {
             stone: [{ resourceId: 'flint', quantity: 20 }],
             wood: [{ resourceId: 'european_ash', quantity: 20 }],
@@ -432,16 +426,13 @@ describe('CraftingService', () => {
         });
 
         const canCraftResult = CraftingService.canCraft(haftedAxe, state);
-        if (!canCraftResult.canCraft) {
-          console.log('Skipping test: hafted_axe requirements not met', canCraftResult);
-          return;
-        }
+        expect(canCraftResult.canCraft).toBe(true);
 
         const result = CraftingService.craft(
           haftedAxe,
           {
             selectedMaterials: { stone: 'flint', wood: 'european_ash' },
-            selectedComponentIds: [componentInstanceId],
+            selectedComponentIds,
             selectedFoods: { wild_garlic: 10 },
           },
           state
@@ -449,7 +440,7 @@ describe('CraftingService', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          // Component should be consumed
+          // All selected components should be consumed
           expect(result.newState.ownedComponents.length).toBe(0);
           // Tool should be created
           expect(result.newState.ownedTools.length).toBeGreaterThan(state.ownedTools.length);

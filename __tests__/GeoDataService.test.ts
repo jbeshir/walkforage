@@ -97,59 +97,53 @@ describe('GeoDataService', () => {
 
   describe('ecoregion fields', () => {
     it('should return ecoregion data for mapped locations', async () => {
-      // Central Europe - should have PA04 ecoregion data
-      // Use coordinates that are likely in the Palearctic realm
+      // Paris is present in the bundled tiles.db as geohash u09t.
       const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522); // Paris
 
-      // Ecoregion fields may or may not be present depending on data coverage
-      // But the fields should at least be allowed in the type
       expect(data.biome).toBeDefined();
-      expect(typeof data.biome.type).toBe('string');
+      expect(data.geohash).toBe('u09t');
+      expect(data.biome.type).toBe('temperate_broadleaf_mixed');
+      expect(data.biome.realm).toBe('Palearctic');
+      expect(data.biome.ecoregionId).toBe(664);
     });
 
-    it('should include realm name when available', async () => {
+    it('should include realm name for mapped locations', async () => {
       const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
 
-      // If realm is present, it should be a valid realm name
-      if (data.biome.realm) {
-        const validRealms = [
-          'Palearctic',
-          'Nearctic',
-          'Neotropic',
-          'Afrotropic',
-          'Indomalayan',
-          'Australasia',
-          'Oceania',
-          'Antarctica',
-        ];
-        expect(validRealms).toContain(data.biome.realm);
-      }
+      const validRealms = [
+        'Palearctic',
+        'Nearctic',
+        'Neotropic',
+        'Afrotropic',
+        'Indomalayan',
+        'Australasia',
+        'Oceania',
+        'Antarctica',
+      ];
+      expect(data.biome.realm).toBeDefined();
+      expect(validRealms).toContain(data.biome.realm);
     });
 
-    it('should include ecoregionId when available', async () => {
+    it('should include ecoregionId for mapped locations', async () => {
       const data = await sharedGeoDataService.getLocationData(48.8566, 2.3522);
 
-      // If ecoregionId is present, it should be a positive integer
-      if (data.biome.ecoregionId !== undefined) {
-        expect(Number.isInteger(data.biome.ecoregionId)).toBe(true);
-        expect(data.biome.ecoregionId).toBeGreaterThan(0);
-      }
+      expect(data.biome.ecoregionId).toBeDefined();
+      expect(Number.isInteger(data.biome.ecoregionId)).toBe(true);
+      expect(data.biome.ecoregionId).toBeGreaterThan(0);
     });
 
     it('should return different realm codes for different continents', async () => {
       // Test locations on different continents
-      const europe = await sharedGeoDataService.getLocationData(48.8566, 2.3522); // Paris
+      const europe = await sharedGeoDataService.getLocationData(51.5074, -0.1278); // London
       const northAmerica = await sharedGeoDataService.getLocationData(40.7128, -74.006); // NYC
 
-      // Both should have biome data
       expect(europe.biome.type).toBeDefined();
       expect(northAmerica.biome.type).toBeDefined();
-
-      // If both have realm, they should be different
-      if (europe.biome.realm && northAmerica.biome.realm) {
-        // Palearctic vs Nearctic
-        expect(europe.biome.realm).not.toBe(northAmerica.biome.realm);
-      }
+      expect(europe.geohash).toBe('gcpv');
+      expect(europe.biome.realm).toBe('Palearctic');
+      expect(europe.biome.ecoregionId).toBe(663);
+      expect(northAmerica.biome.realm).toBe('Nearctic');
+      expect(europe.biome.realm).not.toBe(northAmerica.biome.realm);
     });
   });
 
@@ -220,11 +214,7 @@ describe('GeoDataService', () => {
         expect(data).toBeDefined();
         expect(data.biome.type).toBeDefined();
         expect(data.geology.primaryLithology).toBeDefined();
-
-        // If realm is available, check it matches expected realm
-        if (data.biome.realm) {
-          expect(data.biome.realm).toBe(expectedRealm);
-        }
+        expect(data.biome.realm).toBe(expectedRealm);
       }
     );
   });
