@@ -18,19 +18,21 @@ npm run validate
 
 This executes the following in order:
 
-| Step                | Command                      | Description                       |
-| ------------------- | ---------------------------- | --------------------------------- |
-| 1. TypeScript       | `npm run typecheck`          | Type checking with tsc --noEmit   |
-| 2. ESLint           | `npm run lint`               | Linting TypeScript/React code     |
-| 3. Prettier         | `npm run format:check`       | Check code formatting             |
-| 4. Jest             | `npm run test`               | Run all unit tests                |
-| 5. Recipes          | `npm run validate:recipes`   | Validate crafting recipes         |
-| 6. Display          | `npm run validate:display`   | Validate display constraints      |
-| 7. Resources        | `npm run validate:resources` | Validate resource data            |
-| 8. Balance          | `npm run validate:balance`   | Validate game balance             |
-| 9. Icons            | `npm run validate:icons`     | Validate icon assets              |
-| 10. Expo Doctor     | `npm run doctor`             | Check Expo project health         |
-| 11. Dependencies    | `npm run deps:check`         | Check Expo SDK compatibility      |
+| Step                | Command                          | Description                       |
+| ------------------- | -------------------------------- | --------------------------------- |
+| 1. Parity           | `npm run validate:parity`        | Assert validate/CI/docs parity    |
+| 2. Deps             | `npm run validate:deps-declared` | Check deps are declared/used      |
+| 3. TypeScript       | `npm run typecheck`              | Type checking with tsc --noEmit   |
+| 4. ESLint           | `npm run lint`                   | Linting TypeScript/React code     |
+| 5. Prettier         | `npm run format:check`           | Check code formatting             |
+| 6. Jest             | `npm run test`                   | Run all unit tests                |
+| 7. Recipes          | `npm run validate:recipes`       | Validate crafting recipes         |
+| 8. Display          | `npm run validate:display`       | Validate display constraints      |
+| 9. Resources        | `npm run validate:resources`     | Validate resource data            |
+| 10. Balance         | `npm run validate:balance`       | Validate game balance             |
+| 11. Icons           | `npm run validate:icons`         | Validate icon assets              |
+| 12. Expo Doctor     | `npm run doctor`                 | Check Expo project health         |
+| 13. Dependencies    | `npm run deps:check`             | Check Expo SDK compatibility      |
 
 All these checks are also configured in `.github/workflows/ci.yml` and run on every push and PR.
 

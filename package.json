@@ -15,6 +15,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "validate:parity": "tsx src/scripts/validateScriptParity.ts",
+    "validate:deps-declared": "tsx src/scripts/validateDepsDeclared.ts",
     "validate:recipes": "tsx src/scripts/validateRecipes.ts",
     "validate:display": "tsx src/scripts/validateDisplay.ts",
     "validate:balance": "tsx src/scripts/validateBalance.ts",
@@ -38,7 +40,7 @@
     "validate:icons": "tsx scripts/icons/validate.ts",
     "doctor": "npx expo-doctor",
     "deps:check": "npx expo install --check",
-    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run validate:recipes && npm run validate:display && npm run validate:resources && npm run validate:balance && npm run validate:icons && npm run doctor && npm run deps:check"
+    "validate": "npm run validate:parity && npm run validate:deps-declared && npm run typecheck && npm run lint && npm run format:check && npm run test && npm run validate:recipes && npm run validate:display && npm run validate:resources && npm run validate:balance && npm run validate:icons && npm run doctor && npm run deps:check"
   },
   "dependencies": {
     "@kingstinct/react-native-healthkit": "^13.1.0",
@@ -80,6 +82,7 @@
     "@typescript-eslint/parser": "^8.53.0",
     "babel-jest": "~29.7.0",
     "better-sqlite3": "^12.6.0",
+    "depcheck": "^1.4.7",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
