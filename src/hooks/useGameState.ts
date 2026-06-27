@@ -191,12 +191,12 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
     if (timeSinceLastSave >= SAVE_THROTTLE_MS) {
       // Enough time has passed, save immediately
-      saveGameImmediate();
+      void saveGameImmediate();
     } else {
       // Schedule save for when throttle period ends
       const timeUntilNextSave = SAVE_THROTTLE_MS - timeSinceLastSave;
       pendingSaveRef.current = setTimeout(() => {
-        saveGameImmediate();
+        void saveGameImmediate();
         pendingSaveRef.current = null;
       }, timeUntilNextSave);
     }
@@ -213,7 +213,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
   // Load game on mount
   useEffect(() => {
-    loadGame();
+    void loadGame();
   }, [loadGame]);
 
   // Save when app goes to background
@@ -225,7 +225,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
           clearTimeout(pendingSaveRef.current);
           pendingSaveRef.current = null;
         }
-        saveGameImmediate();
+        void saveGameImmediate();
       }
     };
 
@@ -239,7 +239,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
   // Auto-save periodically (backup, in case throttled saves miss something)
   useEffect(() => {
     const interval = setInterval(() => {
-      saveGame();
+      void saveGame();
     }, 30000); // Save every 30 seconds
 
     return () => clearInterval(interval);

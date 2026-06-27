@@ -51,7 +51,8 @@ export class NodeTileLoader implements TileLoader {
 
       if (!row) return null;
       return this.rowToTile(row);
-    } catch {
+    } catch (error) {
+      console.warn(`Failed to get tile ${geohash}:`, error);
       return null;
     }
   }
@@ -70,7 +71,8 @@ export class NodeTileLoader implements TileLoader {
       const stmt = this.db.prepare(`SELECT * FROM tiles WHERE geohash IN (${placeholders})`);
       const rows = stmt.all(...geohashes) as TileRow[];
       return rows.map((row) => this.rowToTile(row));
-    } catch {
+    } catch (error) {
+      console.warn('Failed to get tiles batch:', error);
       return [];
     }
   }
