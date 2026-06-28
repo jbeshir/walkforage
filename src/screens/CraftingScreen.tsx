@@ -1,7 +1,7 @@
 // Crafting Screen - Tool and component crafting interface
 // Updated for lithic era material selection system
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../hooks/useGameState';
@@ -178,6 +178,16 @@ const OwnedComponentItem = React.memo(function OwnedComponentItem({
   );
 });
 
+// Compares only the CraftCheckResult fields these rows render. If a row starts
+// rendering another craftCheck field, add it here or the row can go stale.
+function renderedCraftCheckEqual(a: CraftCheckResult, b: CraftCheckResult): boolean {
+  return (
+    a.canCraft === b.canCraft &&
+    a.missingRequirements.length === b.missingRequirements.length &&
+    a.missingRequirements.every((r, i) => r === b.missingRequirements[i])
+  );
+}
+
 interface ToolRecipeItemProps {
   tool: Tool;
   craftCheck: CraftCheckResult;
@@ -185,81 +195,86 @@ interface ToolRecipeItemProps {
   colors: ThemeColors;
 }
 
-const ToolRecipeItem = React.memo(function ToolRecipeItem({
-  tool,
-  craftCheck,
-  onCraft,
-  colors,
-}: ToolRecipeItemProps) {
-  return (
-    <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
-      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
-        <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
-      </View>
-      <View style={styles.recipeInfo}>
-        <View style={styles.recipeHeader}>
-          <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{tool.name}</Text>
-          <ToolTypeBadge toolId={tool.id} />
+export const ToolRecipeItem = React.memo(
+  function ToolRecipeItem({ tool, craftCheck, onCraft, colors }: ToolRecipeItemProps) {
+    return (
+      <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
+        <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[tool.era] }]}>
+          <Text style={styles.eraText}>{ERA_LABELS[tool.era]}</Text>
         </View>
-        <Text style={[styles.recipeDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-          {tool.description}
-        </Text>
-        <View style={styles.requirementsContainer}>
-          {tool.requiredTools.length > 0 && (
-            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Tools: {tool.requiredTools.map(humanizeId).join(', ')}
-            </Text>
-          )}
-          {tool.requiredComponents.length > 0 && (
-            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Components:{' '}
-              {tool.requiredComponents
-                .map((c) => `${c.quantity}x ${humanizeId(c.componentId)}`)
-                .join(', ')}
-            </Text>
-          )}
-          {(tool.materials.stone || tool.materials.wood) && (
-            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Materials:{' '}
-              {[
-                tool.materials.stone &&
-                  `${tool.materials.stone.quantity}x stone${tool.materials.stone.requiresToolstone ? ' (toolstone)' : ''}`,
-                tool.materials.wood && `${tool.materials.wood.quantity}x wood`,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-            </Text>
-          )}
-        </View>
-        {craftCheck.missingRequirements.length > 0 && (
-          <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
-            <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
-            {craftCheck.missingRequirements.map((req, i) => (
-              <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
-                {req}
-              </Text>
-            ))}
+        <View style={styles.recipeInfo}>
+          <View style={styles.recipeHeader}>
+            <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{tool.name}</Text>
+            <ToolTypeBadge toolId={tool.id} />
           </View>
-        )}
-      </View>
-      <TouchableOpacity
-        style={[
-          styles.craftButton,
-          { backgroundColor: colors.primary },
-          !craftCheck.canCraft && { backgroundColor: colors.border },
-        ]}
-        onPress={() => onCraft(tool)}
-        disabled={!craftCheck.canCraft}
-      >
-        <Text
-          style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
+          <Text
+            style={[styles.recipeDescription, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {tool.description}
+          </Text>
+          <View style={styles.requirementsContainer}>
+            {tool.requiredTools.length > 0 && (
+              <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
+                Tools: {tool.requiredTools.map(humanizeId).join(', ')}
+              </Text>
+            )}
+            {tool.requiredComponents.length > 0 && (
+              <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
+                Components:{' '}
+                {tool.requiredComponents
+                  .map((c) => `${c.quantity}x ${humanizeId(c.componentId)}`)
+                  .join(', ')}
+              </Text>
+            )}
+            {(tool.materials.stone || tool.materials.wood) && (
+              <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
+                Materials:{' '}
+                {[
+                  tool.materials.stone &&
+                    `${tool.materials.stone.quantity}x stone${tool.materials.stone.requiresToolstone ? ' (toolstone)' : ''}`,
+                  tool.materials.wood && `${tool.materials.wood.quantity}x wood`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            )}
+          </View>
+          {craftCheck.missingRequirements.length > 0 && (
+            <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
+              <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
+              {craftCheck.missingRequirements.map((req, i) => (
+                <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
+                  {req}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.craftButton,
+            { backgroundColor: colors.primary },
+            !craftCheck.canCraft && { backgroundColor: colors.border },
+          ]}
+          onPress={() => onCraft(tool)}
+          disabled={!craftCheck.canCraft}
         >
-          Craft
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-});
+          <Text
+            style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
+          >
+            Craft
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  },
+  (prev, next) =>
+    prev.tool === next.tool &&
+    prev.colors === next.colors &&
+    prev.onCraft === next.onCraft &&
+    renderedCraftCheckEqual(prev.craftCheck, next.craftCheck)
+);
 
 interface ComponentRecipeItemProps {
   component: CraftedComponent;
@@ -269,75 +284,86 @@ interface ComponentRecipeItemProps {
   colors: ThemeColors;
 }
 
-const ComponentRecipeItem = React.memo(function ComponentRecipeItem({
-  component,
-  craftCheck,
-  ownedCount,
-  onCraft,
-  colors,
-}: ComponentRecipeItemProps) {
-  return (
-    <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
-      <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[component.era] }]}>
-        <Text style={styles.eraText}>{ERA_LABELS[component.era]}</Text>
-      </View>
-      <View style={styles.recipeInfo}>
-        <View style={styles.recipeHeader}>
-          <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{component.name}</Text>
-          {ownedCount > 0 && (
-            <Text style={[styles.ownedCount, { color: colors.primary }]}>x{ownedCount}</Text>
-          )}
+export const ComponentRecipeItem = React.memo(
+  function ComponentRecipeItem({
+    component,
+    craftCheck,
+    ownedCount,
+    onCraft,
+    colors,
+  }: ComponentRecipeItemProps) {
+    return (
+      <View style={[styles.recipeItem, { borderBottomColor: colors.borderLight }]}>
+        <View style={[styles.eraBadge, { backgroundColor: ERA_COLORS[component.era] }]}>
+          <Text style={styles.eraText}>{ERA_LABELS[component.era]}</Text>
         </View>
-        <Text style={[styles.recipeDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-          {component.description}
-        </Text>
-        <View style={styles.requirementsContainer}>
-          {component.requiredTools.length > 0 && (
-            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Tools: {component.requiredTools.map(humanizeId).join(', ')}
-            </Text>
-          )}
-          {(component.materials.stone || component.materials.wood) && (
-            <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
-              Materials:{' '}
-              {[
-                component.materials.stone && `${component.materials.stone.quantity}x stone`,
-                component.materials.wood && `${component.materials.wood.quantity}x wood`,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-            </Text>
-          )}
-        </View>
-        {craftCheck.missingRequirements.length > 0 && (
-          <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
-            <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
-            {craftCheck.missingRequirements.map((req, i) => (
-              <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
-                {req}
-              </Text>
-            ))}
+        <View style={styles.recipeInfo}>
+          <View style={styles.recipeHeader}>
+            <Text style={[styles.recipeName, { color: colors.textPrimary }]}>{component.name}</Text>
+            {ownedCount > 0 && (
+              <Text style={[styles.ownedCount, { color: colors.primary }]}>x{ownedCount}</Text>
+            )}
           </View>
-        )}
-      </View>
-      <TouchableOpacity
-        style={[
-          styles.craftButton,
-          { backgroundColor: colors.primary },
-          !craftCheck.canCraft && { backgroundColor: colors.border },
-        ]}
-        onPress={() => onCraft(component)}
-        disabled={!craftCheck.canCraft}
-      >
-        <Text
-          style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
+          <Text
+            style={[styles.recipeDescription, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {component.description}
+          </Text>
+          <View style={styles.requirementsContainer}>
+            {component.requiredTools.length > 0 && (
+              <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
+                Tools: {component.requiredTools.map(humanizeId).join(', ')}
+              </Text>
+            )}
+            {(component.materials.stone || component.materials.wood) && (
+              <Text style={[styles.requirementLabel, { color: colors.textTertiary }]}>
+                Materials:{' '}
+                {[
+                  component.materials.stone && `${component.materials.stone.quantity}x stone`,
+                  component.materials.wood && `${component.materials.wood.quantity}x wood`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            )}
+          </View>
+          {craftCheck.missingRequirements.length > 0 && (
+            <View style={[styles.missingContainer, { backgroundColor: colors.warningBackground }]}>
+              <Text style={[styles.missingLabel, { color: colors.warning }]}>Missing:</Text>
+              {craftCheck.missingRequirements.map((req, i) => (
+                <Text key={i} style={[styles.missingText, { color: colors.warningText }]}>
+                  {req}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.craftButton,
+            { backgroundColor: colors.primary },
+            !craftCheck.canCraft && { backgroundColor: colors.border },
+          ]}
+          onPress={() => onCraft(component)}
+          disabled={!craftCheck.canCraft}
         >
-          Craft
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-});
+          <Text
+            style={[styles.craftButtonText, !craftCheck.canCraft && { color: colors.textTertiary }]}
+          >
+            Craft
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  },
+  (prev, next) =>
+    prev.component === next.component &&
+    prev.colors === next.colors &&
+    prev.onCraft === next.onCraft &&
+    prev.ownedCount === next.ownedCount &&
+    renderedCraftCheckEqual(prev.craftCheck, next.craftCheck)
+);
 
 function groupToolsByType(tools: OwnedTool[]) {
   const groups = new Map<string, OwnedTool[]>();
@@ -367,16 +393,22 @@ export default function CraftingScreen() {
     craftCheck: CraftCheckResult;
   } | null>(null);
 
-  const handleCraft = useCallback(
-    (craftable: Tool | CraftedComponent) => {
-      const craftCheck = canCraft(craftable);
-      if (!craftCheck.canCraft) return;
+  // Hold the latest canCraft in a ref so handleCraft can stay referentially
+  // stable (empty deps) while still re-checking craftability at click time.
+  // The ref is updated in an effect (not during render) to keep the
+  // react-hooks/refs lint rule satisfied; effects flush before any user press,
+  // so handleCraft never reads a stale canCraft.
+  const canCraftRef = useRef(canCraft);
+  useEffect(() => {
+    canCraftRef.current = canCraft;
+  }, [canCraft]);
 
-      setSelectedRecipe({ craftable, craftCheck });
-      setModalVisible(true);
-    },
-    [canCraft]
-  );
+  const handleCraft = useCallback((craftable: Tool | CraftedComponent) => {
+    const craftCheck = canCraftRef.current(craftable);
+    if (!craftCheck.canCraft) return;
+    setSelectedRecipe({ craftable, craftCheck });
+    setModalVisible(true);
+  }, []);
 
   const handleMaterialConfirm = (selection: MaterialSelection) => {
     if (!selectedRecipe) return;
