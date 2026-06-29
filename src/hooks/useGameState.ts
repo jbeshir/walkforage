@@ -14,7 +14,7 @@ import React, {
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Inventory, createEmptyInventory } from '../types/resources';
+import { Inventory, ResourceStack, createEmptyInventory } from '../types/resources';
 import { MaterialType, getAllMaterialTypes } from '../config/materials';
 import { OwnedTool, OwnedComponent, CraftingJob, Tool, CraftedComponent } from '../types/tools';
 import {
@@ -32,6 +32,7 @@ import {
 import { hasTech as hasTechPure } from '../services/TechService';
 
 const STORAGE_KEY = 'walkforage_gamestate';
+const SCHEMA_VERSION = 1;
 
 export interface GameState {
   inventory: Inventory;
@@ -58,6 +59,62 @@ const INITIAL_STATE: GameState = {
   totalStepsGathered: 0,
 };
 
+type PersistedObject = Record<string, unknown>;
+type Migration = (obj: PersistedObject) => PersistedObject;
+
+// Ordered migrations keyed by the version they migrate FROM.
+// v0 = unversioned legacy save. Identity/tag migration -> v1.
+const migrations: Record<number, Migration> = {
+  0: (obj) => ({ ...obj, schemaVersion: 1 }),
+};
+
+function toPersisted(s: GameState): GameState & { schemaVersion: number } {
+  return { ...s, schemaVersion: SCHEMA_VERSION };
+}
+
+function versionOf(obj: PersistedObject): number {
+  const v = obj.schemaVersion;
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : 0;
+}
+
+function migratePersisted(obj: PersistedObject): PersistedObject {
+  let current = obj;
+  let version = versionOf(current);
+  while (version < SCHEMA_VERSION) {
+    const migration = migrations[version];
+    if (!migration) {
+      throw new Error(`Missing migration from schema version ${version}`);
+    }
+    current = migration(current);
+    const next = versionOf(current);
+    if (next <= version) {
+      throw new Error(`Migration from version ${version} did not advance schemaVersion`);
+    }
+    version = next;
+  }
+  return current;
+}
+
+function sanitiseCount(x: unknown, fallback: number): number {
+  return typeof x === 'number' && Number.isFinite(x) ? Math.max(0, Math.floor(x)) : fallback;
+}
+
+function asArrayOr<T>(x: unknown, fallback: T[]): T[] {
+  return Array.isArray(x) ? (x as T[]) : fallback;
+}
+
+function sanitiseStacks(x: unknown): ResourceStack[] {
+  if (!Array.isArray(x)) return [];
+  const out: ResourceStack[] = [];
+  for (const el of x) {
+    if (el === null || typeof el !== 'object' || Array.isArray(el)) continue;
+    const rec = el as Record<string, unknown>;
+    if (typeof rec.resourceId !== 'string' || rec.resourceId.length === 0) continue;
+    out.push({ resourceId: rec.resourceId, quantity: sanitiseCount(rec.quantity, 0) });
+  }
+  return out;
+}
+
 // Parameters for crafting (used by both tools and components)
 export interface CraftItemParams extends CraftParams {
   craftable: Tool | CraftedComponent;
@@ -66,6 +123,7 @@ export interface CraftItemParams extends CraftParams {
 export interface GameStateHook {
   state: GameState;
   isLoading: boolean;
+  saveError: boolean;
 
   // Inventory actions
   addResource: (category: keyof Inventory, resourceId: string, quantity: number) => void;
@@ -115,14 +173,18 @@ interface GameStateProviderProps {
 
 // Throttle interval for auto-save (saves at most once per this interval during activity)
 const SAVE_THROTTLE_MS = 3000;
+const SAVE_FAILURE_THRESHOLD = 3;
 
 // Provider component that holds the shared state
 export function GameStateProvider({ children }: GameStateProviderProps) {
   const [state, setState] = useState<GameState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(true);
+  const [saveError, setSaveError] = useState(false);
   const pendingSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveTimeRef = useRef<number>(0);
   const stateRef = useRef<GameState>(state);
+  const savePromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const saveFailureCountRef = useRef(0);
 
   // Keep stateRef in sync with state for use in callbacks
   useEffect(() => {
@@ -133,21 +195,47 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     try {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved) as Partial<GameState>;
-        // Merge inventories - ensure all material types exist
+        const rawParsed = JSON.parse(saved) as unknown;
+        // Migrate unversioned/older saves up to current schema before validation.
+        const base: PersistedObject =
+          rawParsed !== null && typeof rawParsed === 'object' && !Array.isArray(rawParsed)
+            ? (rawParsed as PersistedObject)
+            : {};
+        const migrated = migratePersisted(base);
+
+        // Rebuild inventory: only accept well-formed stacks per material type.
         const mergedInventory = createEmptyInventory();
-        if (parsed.inventory) {
-          for (const type of getAllMaterialTypes()) {
-            if (parsed.inventory[type]) {
-              mergedInventory[type] = parsed.inventory[type];
-            }
-          }
+        const migratedInventory =
+          migrated.inventory !== null &&
+          typeof migrated.inventory === 'object' &&
+          !Array.isArray(migrated.inventory)
+            ? (migrated.inventory as Record<string, unknown>)
+            : {};
+        for (const type of getAllMaterialTypes()) {
+          mergedInventory[type] = sanitiseStacks(migratedInventory[type]);
         }
-        // Merge with initial state to handle missing fields
+
         setState({
           ...INITIAL_STATE,
-          ...parsed,
           inventory: mergedInventory,
+          unlockedTechs: asArrayOr(migrated.unlockedTechs, INITIAL_STATE.unlockedTechs),
+          ownedTools: asArrayOr(migrated.ownedTools, INITIAL_STATE.ownedTools),
+          ownedComponents: asArrayOr(migrated.ownedComponents, INITIAL_STATE.ownedComponents),
+          craftingQueue: asArrayOr(migrated.craftingQueue, INITIAL_STATE.craftingQueue),
+          explorationPoints: sanitiseCount(
+            migrated.explorationPoints,
+            INITIAL_STATE.explorationPoints
+          ),
+          availableSteps: sanitiseCount(migrated.availableSteps, INITIAL_STATE.availableSteps),
+          totalStepsGathered: sanitiseCount(
+            migrated.totalStepsGathered,
+            INITIAL_STATE.totalStepsGathered
+          ),
+          lastSyncTimestamp:
+            typeof migrated.lastSyncTimestamp === 'number' &&
+            Number.isFinite(migrated.lastSyncTimestamp)
+              ? Math.max(0, migrated.lastSyncTimestamp)
+              : INITIAL_STATE.lastSyncTimestamp,
         });
       }
     } catch (error) {
@@ -157,25 +245,26 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     }
   }, []);
 
-  // Save using ref so it can be called from AppState listener without stale closure
-  const saveGameImmediate = useCallback(async () => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stateRef.current));
+  const enqueueSave = useCallback((): Promise<void> => {
+    const doWrite = async (): Promise<void> => {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(stateRef.current)));
       lastSaveTimeRef.current = Date.now();
-    } catch (error) {
+      saveFailureCountRef.current = 0;
+      setSaveError(false);
+    };
+    savePromiseRef.current = savePromiseRef.current.then(doWrite).catch((error: unknown) => {
+      saveFailureCountRef.current += 1;
       console.error('Failed to save game:', error);
-    }
+      if (saveFailureCountRef.current >= SAVE_FAILURE_THRESHOLD) {
+        setSaveError(true);
+      }
+    });
+    return savePromiseRef.current;
   }, []);
 
-  // Public save function that uses current state
-  const saveGame = useCallback(async () => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      lastSaveTimeRef.current = Date.now();
-    } catch (error) {
-      console.error('Failed to save game:', error);
-    }
-  }, [state]);
+  const saveGame = useCallback(async (): Promise<void> => {
+    await enqueueSave();
+  }, [enqueueSave]);
 
   // Throttled save: saves immediately if throttle period has passed,
   // otherwise schedules a save for the end of the throttle period
@@ -191,16 +280,16 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
     if (timeSinceLastSave >= SAVE_THROTTLE_MS) {
       // Enough time has passed, save immediately
-      saveGameImmediate();
+      void enqueueSave();
     } else {
       // Schedule save for when throttle period ends
       const timeUntilNextSave = SAVE_THROTTLE_MS - timeSinceLastSave;
       pendingSaveRef.current = setTimeout(() => {
-        saveGameImmediate();
+        void enqueueSave();
         pendingSaveRef.current = null;
       }, timeUntilNextSave);
     }
-  }, [saveGameImmediate]);
+  }, [enqueueSave]);
 
   const resetGame = useCallback(async () => {
     try {
@@ -213,7 +302,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
 
   // Load game on mount
   useEffect(() => {
-    loadGame();
+    void loadGame();
   }, [loadGame]);
 
   // Save when app goes to background
@@ -225,7 +314,7 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
           clearTimeout(pendingSaveRef.current);
           pendingSaveRef.current = null;
         }
-        saveGameImmediate();
+        void enqueueSave();
       }
     };
 
@@ -234,16 +323,16 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     return () => {
       subscription.remove();
     };
-  }, [saveGameImmediate]);
+  }, [enqueueSave]);
 
   // Auto-save periodically (backup, in case throttled saves miss something)
   useEffect(() => {
     const interval = setInterval(() => {
-      saveGame();
+      void enqueueSave();
     }, 30000); // Save every 30 seconds
 
     return () => clearInterval(interval);
-  }, [saveGame]);
+  }, [enqueueSave]);
 
   // Throttled save on state changes (after initial load)
   // Unlike debounce, throttle guarantees saves happen during sustained activity
@@ -433,12 +522,15 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
     };
   }, []);
 
-  // Memoize context value to prevent unnecessary re-renders of consumers
-  // Callbacks are stable (useCallback with empty/stable deps), so only state/isLoading matter
+  // Memoize context value to prevent unnecessary re-renders of consumers.
+  // Every field below is either a state slice or a useCallback; the callbacks
+  // whose identity tracks a state slice are listed explicitly so consumers
+  // always receive fresh callbacks when the relevant state changes.
   const value: GameStateHook = useMemo(
     () => ({
       state,
       isLoading,
+      saveError,
       addResource,
       removeResource,
       hasResource,
@@ -459,8 +551,30 @@ export function GameStateProvider({ children }: GameStateProviderProps) {
       loadGame,
       resetGame,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, isLoading]
+    [
+      state,
+      isLoading,
+      saveError,
+      addResource,
+      removeResource,
+      hasResource,
+      getResourceCount,
+      unlockTech,
+      hasTech,
+      hasTool,
+      getOwnedTools,
+      getBestTool,
+      getOwnedComponents,
+      canCraft,
+      craft,
+      addExplorationPoints,
+      syncSteps,
+      spendSteps,
+      getStepGatheringState,
+      saveGame,
+      loadGame,
+      resetGame,
+    ]
   );
 
   return React.createElement(GameStateContext.Provider, { value }, children);

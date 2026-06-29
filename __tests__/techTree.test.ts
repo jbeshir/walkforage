@@ -7,8 +7,20 @@ describe('Tech Tree Data', () => {
       expect(TECHNOLOGIES.length).toBeGreaterThan(0);
     });
 
-    it('should have exactly 7 lithic era technologies', () => {
-      expect(TECHNOLOGIES.length).toBe(7);
+    it('should include the core lithic era technologies', () => {
+      const coreTechIds = [
+        'basic_knapping',
+        'grinding',
+        'cordage_making',
+        'hafting',
+        'blade_technology',
+        'composite_tools',
+        'polished_stone',
+      ];
+      expect(TECHNOLOGIES.length).toBeGreaterThanOrEqual(coreTechIds.length);
+      for (const id of coreTechIds) {
+        expect(TECH_BY_ID[id]).toBeDefined();
+      }
     });
 
     it('should have unique ids for all technologies', () => {

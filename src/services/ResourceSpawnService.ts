@@ -7,10 +7,16 @@ import { STONES, STONES_BY_ID, getToolstones } from '../data/stones';
 import { WOODS, WOODS_BY_ID, getWoodsByBiome } from '../data/woods';
 import { FOODS, FOODS_BY_ID, getFoodsByBiome } from '../data/foods';
 import { getLithologyMapping } from '../data/gis';
-import { getRealmBiomeMapping, getRealmBiomeFoodMapping } from '../data/gis/mappings';
+import {
+  getRealmBiomeCode,
+  getRealmBiomeMapping,
+  getRealmBiomeFoodMapping,
+} from '../data/gis/mappings';
 import { calculateAltitudeBias, MIN_ALTITUDE_MULTIPLIER } from '../config/altitude';
 
 class ResourceSpawnService {
+  private static readonly REALM_BIOME_MATCH_BOOST = 4;
+
   /**
    * Select a stone type based on geological data
    */
@@ -68,6 +74,22 @@ class ResourceSpawnService {
     });
   }
 
+  /** Boost weights for resources whose realmBiomes includes the location's realm+biome code.
+   *  Multiplicative; non-matching resources keep their weight (never zeroed). No-op when code
+   *  is null or realmBiomes is missing/empty. Composes with altitude bias. */
+  private applyRealmBiomeBias<T extends { realmBiomes?: string[] }>(
+    resources: T[],
+    weights: number[],
+    realmBiomeCode: string | null
+  ): number[] {
+    if (!realmBiomeCode || weights.length !== resources.length) return weights;
+    return weights.map((w, i) =>
+      resources[i].realmBiomes?.includes(realmBiomeCode)
+        ? w * ResourceSpawnService.REALM_BIOME_MATCH_BOOST
+        : w
+    );
+  }
+
   /**
    * Select a wood type based on biome data
    */
@@ -90,9 +112,14 @@ class ResourceSpawnService {
           .filter((w): w is WoodType => w !== undefined);
 
         // Apply altitude bias to weights
-        const biasedWeights = this.applyAltitudeBias(mappedWoods, realmMapping.weights, altitude);
+        const code = getRealmBiomeCode(realm, biomeType);
+        const altBiased = this.applyAltitudeBias(mappedWoods, realmMapping.weights, altitude);
+        const biomeBiased = this.applyRealmBiomeBias(mappedWoods, altBiased, code);
 
-        const woodId = this.weightedRandomSelect(realmMapping.woodIds, biasedWeights);
+        const woodId = this.weightedRandomSelect(
+          mappedWoods.map((w) => w.id),
+          biomeBiased
+        );
         const wood = WOODS_BY_ID[woodId];
         if (wood) return wood;
       }
@@ -152,9 +179,14 @@ class ResourceSpawnService {
           .filter((f): f is FoodType => f !== undefined);
 
         // Apply altitude bias to weights
-        const biasedWeights = this.applyAltitudeBias(mappedFoods, realmMapping.weights, altitude);
+        const code = getRealmBiomeCode(realm, biomeType);
+        const altBiased = this.applyAltitudeBias(mappedFoods, realmMapping.weights, altitude);
+        const biomeBiased = this.applyRealmBiomeBias(mappedFoods, altBiased, code);
 
-        const foodId = this.weightedRandomSelect(realmMapping.foodIds, biasedWeights);
+        const foodId = this.weightedRandomSelect(
+          mappedFoods.map((f) => f.id),
+          biomeBiased
+        );
         const food = FOODS_BY_ID[foodId];
         if (food) return food;
       }

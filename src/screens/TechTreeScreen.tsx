@@ -1,5 +1,5 @@
 // Tech Tree Screen - View and unlock technologies
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameState } from '../hooks/useGameState';
@@ -21,11 +21,17 @@ interface TechNodeProps {
   tech: Technology;
   isUnlocked: boolean;
   isAvailable: boolean;
-  onPress: () => void;
+  onPress: (tech: Technology) => void;
   colors: ThemeColors;
 }
 
-function TechNode({ tech, isUnlocked, isAvailable, onPress, colors }: TechNodeProps) {
+const TechNode = React.memo(function TechNode({
+  tech,
+  isUnlocked,
+  isAvailable,
+  onPress,
+  colors,
+}: TechNodeProps) {
   const bgColor = isUnlocked
     ? ERA_COLORS[tech.era]
     : isAvailable
@@ -35,7 +41,7 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress, colors }: TechNodePr
   return (
     <TouchableOpacity
       style={[styles.techNode, { backgroundColor: bgColor, borderColor: colors.borderLight }]}
-      onPress={onPress}
+      onPress={() => onPress(tech)}
     >
       <Text style={styles.techName}>{tech.name}</Text>
       {isUnlocked && (
@@ -50,7 +56,7 @@ function TechNode({ tech, isUnlocked, isAvailable, onPress, colors }: TechNodePr
       )}
     </TouchableOpacity>
   );
-}
+});
 
 // Constants for cheat menu activation
 const CHEAT_TAP_COUNT = 5;
@@ -88,56 +94,65 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
     }
   }, [onEnableCheatMode]);
 
-  const availableTechs = getAvailableTechs(state.unlockedTechs);
+  const availableTechIds = useMemo(
+    () => new Set(getAvailableTechs(state.unlockedTechs).map((t) => t.id)),
+    [state.unlockedTechs]
+  );
 
   // Get total count of a resource type across all specific resources
-  const getTotalResourceCount = (resourceType: MaterialType): number => {
-    const stacks = state.inventory[resourceType];
-    return stacks.reduce((sum, stack) => sum + stack.quantity, 0);
-  };
+  const getTotalResourceCount = useCallback(
+    (resourceType: MaterialType): number => {
+      const stacks = state.inventory[resourceType];
+      return stacks.reduce((sum, stack) => sum + stack.quantity, 0);
+    },
+    [state.inventory]
+  );
 
-  const handleTechPress = (tech: Technology) => {
-    if (hasTech(tech.id)) {
-      // Show tech details in modal
-      setViewingTech(tech);
-      setUnlockedModalVisible(true);
-      return;
-    }
+  const handleTechPress = useCallback(
+    (tech: Technology) => {
+      if (hasTech(tech.id)) {
+        // Show tech details in modal
+        setViewingTech(tech);
+        setUnlockedModalVisible(true);
+        return;
+      }
 
-    // Check if available
-    const isAvailable = tech.prerequisites.every((prereqId) => hasTech(prereqId));
-    if (!isAvailable) {
-      const missing = tech.prerequisites
-        .filter((prereqId) => !hasTech(prereqId))
-        .map((prereqId) => TECH_BY_ID[prereqId]?.name || prereqId);
-      Alert.alert('Locked', `Requires: ${missing.join(', ')}`);
-      return;
-    }
+      // Check if available
+      const isAvailable = tech.prerequisites.every((prereqId) => hasTech(prereqId));
+      if (!isAvailable) {
+        const missing = tech.prerequisites
+          .filter((prereqId) => !hasTech(prereqId))
+          .map((prereqId) => TECH_BY_ID[prereqId]?.name || prereqId);
+        Alert.alert('Locked', `Requires: ${missing.join(', ')}`);
+        return;
+      }
 
-    // Check resources by type
-    const missingResources = tech.resourceCost.filter(
-      (cost) => getTotalResourceCount(cost.resourceType) < cost.quantity
-    );
+      // Check resources by type
+      const missingResources = tech.resourceCost.filter(
+        (cost) => getTotalResourceCount(cost.resourceType) < cost.quantity
+      );
 
-    if (missingResources.length > 0) {
-      const missing = missingResources
-        .map((r) => `${r.quantity} ${getMaterialIcon(r.resourceType)}`)
-        .join(', ');
-      Alert.alert('Insufficient Resources', `Need: ${missing}`);
-      return;
-    }
+      if (missingResources.length > 0) {
+        const missing = missingResources
+          .map((r) => `${r.quantity} ${getMaterialIcon(r.resourceType)}`)
+          .join(', ');
+        Alert.alert('Insufficient Resources', `Need: ${missing}`);
+        return;
+      }
 
-    // If no resources required, just unlock directly
-    if (tech.resourceCost.length === 0) {
-      unlockTech(tech.id);
-      Alert.alert('Unlocked!', `${tech.name} is now available.`);
-      return;
-    }
+      // If no resources required, just unlock directly
+      if (tech.resourceCost.length === 0) {
+        unlockTech(tech.id);
+        Alert.alert('Unlocked!', `${tech.name} is now available.`);
+        return;
+      }
 
-    // Open material selection modal
-    setSelectedTech(tech);
-    setModalVisible(true);
-  };
+      // Open material selection modal
+      setSelectedTech(tech);
+      setModalVisible(true);
+    },
+    [hasTech, unlockTech, getTotalResourceCount]
+  );
 
   const handleModalConfirm = (selection: ResourceSelection) => {
     if (!selectedTech) return;
@@ -189,8 +204,8 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
                     key={tech.id}
                     tech={tech}
                     isUnlocked={hasTech(tech.id)}
-                    isAvailable={availableTechs.some((t) => t.id === tech.id)}
-                    onPress={() => handleTechPress(tech)}
+                    isAvailable={availableTechIds.has(tech.id)}
+                    onPress={handleTechPress}
                     colors={colors}
                   />
                 ))}

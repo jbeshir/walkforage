@@ -99,16 +99,23 @@ export default function ForageScreen() {
 
   // Fetch geo data when location changes
   useEffect(() => {
+    let cancelled = false;
     if (location && geoDataService) {
       geoDataService
         .getLocationData(location.latitude, location.longitude, {
           altitude: location.altitude,
           altitudeAccuracy: location.altitudeAccuracy,
         })
-        .then(setGeoData)
+        .then((d) => {
+          if (!cancelled) setGeoData(d);
+        })
         .catch((err: Error) => console.warn('Failed to get geo data:', err));
     }
-  }, [location, geoDataService]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.latitude, location?.longitude, geoDataService]);
 
   const { overlayPanel } = colors;
 

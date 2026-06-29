@@ -14,3 +14,11 @@ export function capitalizeFirst(str: string): string {
 export function formatSnakeCase(str: string): string {
   return str.split('_').map(capitalizeFirst).join(' ');
 }
+
+/**
+ * Convert a snake_case identifier to a space-separated string for display,
+ * preserving the original letter case. Converts "stone_axe" to "stone axe".
+ */
+export function humanizeId(str: string): string {
+  return str.replace(/_/g, ' ');
+}

@@ -60,12 +60,12 @@ export function GeoDataProvider({ children }: GeoDataProviderProps) {
       }
     }
 
-    initialize();
+    void initialize();
 
     return () => {
       mounted = false;
       if (service) {
-        service.close();
+        void service.close();
       }
     };
   }, []);

@@ -1,5 +1,5 @@
 // Materials Screen - View collected resources
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -9,6 +9,7 @@ import { ResourceStack, isToolstone } from '../types/resources';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 import { ThemeColors } from '../config/theme';
 import { getResourceIcon } from '../utils/icons';
+import { getScientificName } from '../utils/resourceDetails';
 
 interface ResourceItemProps {
   stack: ResourceStack;
@@ -16,7 +17,11 @@ interface ResourceItemProps {
   colors: ThemeColors;
 }
 
-function ResourceItem({ stack, type, colors }: ResourceItemProps) {
+export const ResourceItem = React.memo(function ResourceItem({
+  stack,
+  type,
+  colors,
+}: ResourceItemProps) {
   const config = getMaterialConfig(type);
   const resourceData = config.getResourceById(stack.resourceId);
 
@@ -42,6 +47,7 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
 
   // Get icon if available
   const icon = getResourceIcon(type, stack.resourceId);
+  const scientificName = getScientificName(type, stack.resourceId);
 
   return (
     <View style={[styles.resourceItem, { borderBottomColor: colors.borderLight }]}>
@@ -57,6 +63,11 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
           </Text>
           {showToolstoneBadge && <Text style={styles.toolstoneBadge}>Toolstone</Text>}
         </View>
+        {scientificName ? (
+          <Text style={[styles.scientificName, { color: colors.textSecondary }]}>
+            {scientificName}
+          </Text>
+        ) : null}
         <Text
           style={[styles.resourceDescription, { color: colors.textSecondary }]}
           numberOfLines={2}
@@ -83,7 +94,7 @@ function ResourceItem({ stack, type, colors }: ResourceItemProps) {
       <Text style={[styles.quantity, { color: colors.primary }]}>x{stack.quantity}</Text>
     </View>
   );
-}
+});
 
 export default function InventoryScreen() {
   const { state } = useGameState();
@@ -93,7 +104,7 @@ export default function InventoryScreen() {
   // Track collapsed sections (default all expanded)
   const [collapsedSections, setCollapsedSections] = useState<Set<MaterialType>>(new Set());
 
-  const toggleSection = (type: MaterialType) => {
+  const toggleSection = useCallback((type: MaterialType) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(type)) {
@@ -103,18 +114,22 @@ export default function InventoryScreen() {
       }
       return next;
     });
-  };
+  }, []);
 
   // Calculate totals for each material type dynamically
-  const materialTotals = getAllMaterialTypes().map((type) => {
-    const config = getMaterialConfig(type);
-    const stacks = state.inventory[type];
-    const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
-    return { type, config, stacks, total };
-  });
+  const materialTotals = useMemo(
+    () =>
+      getAllMaterialTypes().map((type) => {
+        const config = getMaterialConfig(type);
+        const stacks = state.inventory[type];
+        const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
+        return { type, config, stacks, total };
+      }),
+    [state.inventory]
+  );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Summary stats - dynamic for all material types */}
         <View
@@ -188,6 +203,9 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   summaryCard: {
@@ -277,6 +295,11 @@ const styles = StyleSheet.create({
   resourceName: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  scientificName: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 1,
   },
   toolstoneBadge: {
     fontSize: 10,

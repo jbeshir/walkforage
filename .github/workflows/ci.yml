@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate script parity
+        run: npm run validate:parity
+
+      - name: Validate dependency declarations
+        run: npm run validate:deps-declared
+
       - name: Run typecheck
         run: npm run typecheck
 
@@ -50,6 +56,9 @@ jobs:
 
       - name: Validate game balance
         run: npm run validate:balance
+
+      - name: Validate icons
+        run: npm run validate:icons
 
       - name: Run Expo doctor
         run: npm run doctor

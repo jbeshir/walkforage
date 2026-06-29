@@ -34,7 +34,7 @@ export function useHealthRationaleIntent(): {
       }
     }
 
-    checkInitialUrl();
+    void checkInitialUrl();
 
     // Listen for URL changes (in case app is already open)
     const subscription = Linking.addEventListener('url', ({ url }) => {

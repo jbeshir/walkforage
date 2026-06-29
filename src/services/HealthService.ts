@@ -28,7 +28,7 @@ async function loadHealthModule(): Promise<void> {
   }
 }
 
-class HealthService {
+export class HealthService {
   private initialized = false;
   private permissionStatus: HealthPermissionStatus = 'not_determined';
   private sdkStatus: number = SDK_STATUS.SDK_UNAVAILABLE;
@@ -141,11 +141,15 @@ class HealthService {
         }
 
         // Request the permission - this opens the Health Connect UI
-        console.log('Requesting Health Connect permission...');
+        if (__DEV__) {
+          console.log('Requesting Health Connect permission...');
+        }
         const permissions = await HealthConnect.requestPermission([
           { accessType: 'read', recordType: 'Steps' },
         ]);
-        console.log('Permission response:', JSON.stringify(permissions));
+        if (__DEV__) {
+          console.log('Permission response:', JSON.stringify(permissions));
+        }
 
         // Check if steps permission was granted
         const hasStepsPermission = permissions.some(
@@ -199,9 +203,12 @@ class HealthService {
           },
         });
 
-        // Sum up all step records
-        const totalSteps = result.records.reduce((sum, record) => sum + record.count, 0);
-        return totalSteps;
+        // Sum up all step records (defensive: malformed/NaN payload -> 0)
+        const totalSteps = (result?.records ?? []).reduce(
+          (sum, record) => sum + (Number(record?.count) || 0),
+          0
+        );
+        return Math.floor(totalSteps);
       } else if (Platform.OS === 'ios' && HealthKit) {
         // Query step samples from HealthKit
         const samples = await HealthKit.queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
@@ -215,8 +222,11 @@ class HealthService {
           unit: 'count',
         });
 
-        // Sum up all step samples
-        const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+        // Sum up all step samples (defensive: malformed/NaN payload -> 0)
+        const totalSteps = (samples ?? []).reduce(
+          (sum, sample) => sum + (Number(sample?.quantity) || 0),
+          0
+        );
         return Math.floor(totalSteps);
       }
 

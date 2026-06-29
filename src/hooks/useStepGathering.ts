@@ -103,15 +103,19 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
         // If already authorized, sync (debounce will prevent rapid re-syncs)
         if (status === 'authorized') {
-          doSyncSteps();
+          void doSyncSteps().then((r) => {
+            if (!r.success) console.warn('step sync failed:', r.error);
+          });
         }
       }
     }
 
-    init();
+    void init();
     return () => {
       mounted = false;
     };
+    // Mount-only init: doSyncSteps reads live state via getStepGatheringState() and live
+    // permission via healthService, so an empty dep array can't capture stale step data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -121,10 +125,14 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     if (permissionStatus !== 'authorized') return;
 
     const interval = setInterval(() => {
-      doSyncSteps();
+      void doSyncSteps().then((r) => {
+        if (!r.success) console.warn('step sync failed:', r.error);
+      });
     }, autoSyncInterval);
 
     return () => clearInterval(interval);
+    // doSyncSteps reads live state via getStepGatheringState()/healthService each tick,
+    // so omitting it from deps can't read stale step data; re-run only on the listed deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSyncInterval, permissionStatus]);
 
@@ -191,7 +199,9 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
       // If permission granted, sync (debounce will prevent rapid re-syncs)
       if (status === 'authorized') {
-        doSyncSteps();
+        void doSyncSteps().then((r) => {
+          if (!r.success) console.warn('step sync failed:', r.error);
+        });
       }
 
       return status;

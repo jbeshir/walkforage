@@ -407,33 +407,210 @@ describe('useGameState', () => {
     });
   });
 
-  describe('Quality multipliers', () => {
-    it('should apply quality multiplier to tool durability', () => {
-      const baseDurability = 100;
-      const qualityMultipliers = {
-        poor: 0.75,
-        normal: 1.0,
-        good: 1.25,
-        excellent: 1.5,
-      };
+  describe('Persistence integrity (Stage 2)', () => {
+    it('migrates an unversioned legacy save and tags it to the current schema', async () => {
+      mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify({ explorationPoints: 42 }));
 
-      expect(baseDurability * qualityMultipliers.poor).toBe(75);
-      expect(baseDurability * qualityMultipliers.normal).toBe(100);
-      expect(baseDurability * qualityMultipliers.good).toBe(125);
-      expect(baseDurability * qualityMultipliers.excellent).toBe(150);
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.state.explorationPoints).toBe(42);
+      expect(result.current.state.unlockedTechs).toEqual([]);
+
+      mockAsyncStorage.setItem.mockClear();
+
+      await act(async () => {
+        await result.current.saveGame();
+      });
+
+      const written = JSON.parse(mockAsyncStorage.setItem.mock.calls[0][1]);
+      expect(written.schemaVersion).toBe(1);
     });
-  });
 
-  describe('Repair degradation', () => {
-    it('should calculate repair degradation correctly', () => {
-      const baseDurability = 100;
-      const degradationFactor = 0.95;
+    it('falls back to INITIAL_STATE on corrupt JSON', async () => {
+      mockAsyncStorage.getItem.mockResolvedValueOnce('{ this is not valid json');
 
-      // Each repair reduces max durability by 5%
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 0))).toBe(100);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 1))).toBe(95);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 3))).toBe(85);
-      expect(Math.floor(baseDurability * Math.pow(degradationFactor, 5))).toBe(77);
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.state.explorationPoints).toBe(0);
+      expect(result.current.state.unlockedTechs).toEqual([]);
+      expect(result.current.state.inventory.stone).toEqual([]);
+    });
+
+    it('sanitises non-finite and negative numeric fields to safe defaults', async () => {
+      mockAsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({
+          availableSteps: NaN,
+          totalStepsGathered: 'x',
+          explorationPoints: -5,
+        })
+      );
+
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const stepState = result.current.getStepGatheringState();
+      expect(result.current.state.explorationPoints).toBe(0);
+      expect(stepState.availableSteps).toBe(0);
+      expect(stepState.totalStepsGathered).toBe(0);
+    });
+
+    it('falls back to defaults when array fields are not arrays', async () => {
+      mockAsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({ ownedTools: 'corrupt', unlockedTechs: { bad: true } })
+      );
+
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(Array.isArray(result.current.state.ownedTools)).toBe(true);
+      expect(result.current.state.ownedTools).toEqual([]);
+      expect(Array.isArray(result.current.state.unlockedTechs)).toBe(true);
+      expect(result.current.state.unlockedTechs).toEqual([]);
+    });
+
+    it('drops malformed inventory stack elements and coerces quantities', async () => {
+      const save = JSON.stringify({
+        inventory: {
+          stone: [
+            { resourceId: 'flint', quantity: 'bad' },
+            { quantity: 5 },
+            'garbage',
+            null,
+            { resourceId: 'granite', quantity: 3.9 },
+          ],
+        },
+      });
+      mockAsyncStorage.getItem.mockResolvedValueOnce(save);
+
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const stone = result.current.state.inventory.stone;
+      expect(stone).toContainEqual({ resourceId: 'flint', quantity: 0 });
+      expect(stone).toContainEqual({ resourceId: 'granite', quantity: 3 });
+      expect(stone).toHaveLength(2);
+    });
+
+    it('serializes writes so the latest queued save wins and writes do not interleave', async () => {
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let resolveFirst!: () => void;
+      let resolveSecond!: () => void;
+      const first = new Promise<void>((resolve) => {
+        resolveFirst = resolve;
+      });
+      const second = new Promise<void>((resolve) => {
+        resolveSecond = resolve;
+      });
+      mockAsyncStorage.setItem.mockReset();
+      mockAsyncStorage.setItem
+        .mockReturnValueOnce(first as unknown as Promise<void>)
+        .mockReturnValueOnce(second as unknown as Promise<void>);
+
+      act(() => {
+        result.current.addExplorationPoints(100);
+      });
+
+      let save1!: Promise<void>;
+      act(() => {
+        save1 = result.current.saveGame();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        result.current.addExplorationPoints(50);
+      });
+
+      let save2!: Promise<void>;
+      act(() => {
+        save2 = result.current.saveGame();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveFirst();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(2);
+      const secondWritten = JSON.parse(mockAsyncStorage.setItem.mock.calls[1][1]);
+      expect(secondWritten.explorationPoints).toBe(150);
+
+      await act(async () => {
+        resolveSecond();
+        await save1;
+        await save2;
+      });
+    });
+
+    it('flags saveError after repeated save failures and clears it on success', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+        await waitFor(() => {
+          expect(result.current.isLoading).toBe(false);
+        });
+
+        mockAsyncStorage.setItem.mockReset();
+        mockAsyncStorage.setItem
+          .mockRejectedValueOnce(new Error('disk full'))
+          .mockRejectedValueOnce(new Error('disk full'))
+          .mockRejectedValueOnce(new Error('disk full'));
+
+        for (let i = 0; i < 3; i++) {
+          await act(async () => {
+            await result.current.saveGame();
+          });
+        }
+
+        await waitFor(() => {
+          expect(result.current.saveError).toBe(true);
+        });
+
+        mockAsyncStorage.setItem.mockResolvedValueOnce(undefined as unknown as void);
+
+        await act(async () => {
+          await result.current.saveGame();
+        });
+
+        await waitFor(() => {
+          expect(result.current.saveError).toBe(false);
+        });
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 });
