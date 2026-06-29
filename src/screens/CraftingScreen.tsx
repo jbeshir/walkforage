@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 import { CraftCheckResult } from '../services/CraftingService';
 import { ThemeColors } from '../config/theme';
@@ -185,7 +185,7 @@ interface ToolRecipeItemProps {
   colors: ThemeColors;
 }
 
-const ToolRecipeItem = React.memo(function ToolRecipeItem({
+export const ToolRecipeItem = React.memo(function ToolRecipeItem({
   tool,
   craftCheck,
   onCraft,
@@ -355,7 +355,12 @@ function groupToolsByType(tools: OwnedTool[]) {
 }
 
 export default function CraftingScreen() {
-  const { state, canCraft, craft, hasTech, getOwnedComponents } = useGameState();
+  const ownedTools = useGameStore((s) => s.ownedTools);
+  const ownedComponents = useGameStore((s) => s.ownedComponents);
+  const unlockedTechs = useGameStore((s) => s.unlockedTechs);
+  const canCraft = useGameStore((s) => s.canCraft);
+  const craft = useGameStore((s) => s.craft);
+  const getOwnedComponents = useGameStore((s) => s.getOwnedComponents);
   const { theme } = useTheme();
   const { colors } = theme;
   const [activeTab, setActiveTab] = useState<TabType>('owned');
@@ -401,12 +406,12 @@ export default function CraftingScreen() {
   };
 
   const availableTools = useMemo(
-    () => TOOLS.filter((tool) => hasTech(tool.requiredTech)),
-    [hasTech]
+    () => TOOLS.filter((tool) => unlockedTechs.includes(tool.requiredTech)),
+    [unlockedTechs]
   );
   const availableComponents = useMemo(
-    () => COMPONENTS.filter((comp) => hasTech(comp.requiredTech)),
-    [hasTech]
+    () => COMPONENTS.filter((comp) => unlockedTechs.includes(comp.requiredTech)),
+    [unlockedTechs]
   );
 
   // Track which tool groups are expanded (collapsed by default)
@@ -425,13 +430,13 @@ export default function CraftingScreen() {
   };
 
   const { craftingGroups, gatheringGroups } = useMemo(() => {
-    const craftingTools = state.ownedTools.filter((owned) => isCraftingTool(owned.toolId));
-    const gatheringTools = state.ownedTools.filter((owned) => isGatheringTool(owned.toolId));
+    const craftingTools = ownedTools.filter((owned) => isCraftingTool(owned.toolId));
+    const gatheringTools = ownedTools.filter((owned) => isGatheringTool(owned.toolId));
     return {
       craftingGroups: groupToolsByType(craftingTools),
       gatheringGroups: groupToolsByType(gatheringTools),
     };
-  }, [state.ownedTools]);
+  }, [ownedTools]);
 
   const renderOwnedTools = () => {
     const renderToolGroup = (toolId: string, tools: OwnedTool[]) => {
@@ -540,14 +545,14 @@ export default function CraftingScreen() {
         <Text
           style={[styles.sectionTitle, styles.sectionTitleMarginTop, { color: colors.textPrimary }]}
         >
-          Components ({state.ownedComponents.length})
+          Components ({ownedComponents.length})
         </Text>
-        {state.ownedComponents.length === 0 ? (
+        {ownedComponents.length === 0 ? (
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
             No components crafted yet.
           </Text>
         ) : (
-          state.ownedComponents.map((comp) => (
+          ownedComponents.map((comp) => (
             <OwnedComponentItem key={comp.instanceId} component={comp} colors={colors} />
           ))
         )}

@@ -21,7 +21,7 @@ import {
   calculateGatherableAmount,
   calculateGatheringAbility,
 } from '../config/gathering';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 
 let toastId = 0;
@@ -57,7 +57,7 @@ export function StepGatherPanel({
     openPlayStore,
   } = stepGathering;
 
-  const { state } = useGameState();
+  const ownedTools = useGameStore((s) => s.ownedTools);
   const { colors } = useTheme().theme;
 
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
@@ -71,13 +71,13 @@ export function StepGatherPanel({
       getGatherableMaterialTypes()
         .map((materialType) => {
           const config = getMaterialConfig(materialType);
-          const ability = calculateGatheringAbility(materialType, state.ownedTools);
+          const ability = calculateGatheringAbility(materialType, ownedTools);
           const maxYield = Math.floor(2 * ability - 1);
           const yieldRange = maxYield <= 1 ? '1' : `1-${maxYield}`;
           return { materialType, config, ability, yieldRange };
         })
         .filter(({ ability }) => ability >= 1),
-    [state.ownedTools]
+    [ownedTools]
   );
 
   const [showRationale, setShowRationale] = useState(false);

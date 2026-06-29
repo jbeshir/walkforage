@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 import { ResourceStack, isToolstone } from '../types/resources';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
@@ -97,7 +97,7 @@ export const ResourceItem = React.memo(function ResourceItem({
 });
 
 export default function InventoryScreen() {
-  const { state } = useGameState();
+  const inventory = useGameStore((s) => s.inventory);
   const { theme } = useTheme();
   const { colors } = theme;
 
@@ -121,11 +121,11 @@ export default function InventoryScreen() {
     () =>
       getAllMaterialTypes().map((type) => {
         const config = getMaterialConfig(type);
-        const stacks = state.inventory[type];
+        const stacks = inventory[type];
         const total = stacks.reduce((sum, s) => sum + s.quantity, 0);
         return { type, config, stacks, total };
       }),
-    [state.inventory]
+    [inventory]
   );
 
   return (

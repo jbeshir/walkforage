@@ -1,12 +1,12 @@
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('../src/hooks/useGameState', () => ({ useGameState: jest.fn() }));
+jest.mock('../src/store/gameStore', () => ({ useGameStore: jest.fn() }));
 jest.mock('../src/hooks/useTheme', () => ({ useTheme: jest.fn() }));
 
 import { render, screen } from '@testing-library/react-native';
 import { PersistenceErrorBanner } from '../src/components/PersistenceErrorBanner';
-import { useGameState } from '../src/hooks/useGameState';
+import { useGameStore } from '../src/store/gameStore';
 import { useTheme } from '../src/hooks/useTheme';
 import { lightTheme } from '../src/config/theme';
 
@@ -20,7 +20,9 @@ describe('PersistenceErrorBanner', () => {
   });
 
   it('renders a banner when saveError is true', () => {
-    (useGameState as jest.Mock).mockReturnValue({ saveError: true });
+    (useGameStore as unknown as jest.Mock).mockImplementation((selector) =>
+      selector({ saveError: true })
+    );
 
     render(<PersistenceErrorBanner />);
 
@@ -28,7 +30,9 @@ describe('PersistenceErrorBanner', () => {
   });
 
   it('renders nothing when saveError is false', () => {
-    (useGameState as jest.Mock).mockReturnValue({ saveError: false });
+    (useGameStore as unknown as jest.Mock).mockImplementation((selector) =>
+      selector({ saveError: false })
+    );
 
     render(<PersistenceErrorBanner />);
 
