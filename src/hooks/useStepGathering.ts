@@ -1,10 +1,10 @@
 // useStepGathering - Hook for step-based resource gathering
 // Syncs steps from HealthConnect/HealthKit and allows spending steps for resources
-// Uses useGameState for persistence across screen changes
+// Uses useGameStore for persistence across screen changes
 
 import { useState, useCallback, useEffect } from 'react';
 import { healthService } from '../services/HealthService';
-import { useGameState } from './useGameState';
+import { useGameStore } from '../store/gameStore';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
 import { MaterialType, getMaterialConfig, getGatherableMaterialTypes } from '../config/materials';
@@ -59,13 +59,13 @@ export interface UseStepGatheringReturn {
 export function useStepGathering(options: UseStepGatheringOptions = {}): UseStepGatheringReturn {
   const { onGather, autoSyncInterval = 0 } = options;
 
-  // Get persisted state and update functions from useGameState
-  const {
-    state: gameState,
-    getStepGatheringState, // Keep for callbacks that need fresh data
-    syncSteps: persistSyncSteps,
-    spendSteps: persistSpendSteps,
-  } = useGameState();
+  const ownedTools = useGameStore((s) => s.ownedTools);
+  const availableSteps = useGameStore((s) => s.availableSteps);
+  const lastSyncTimestamp = useGameStore((s) => s.lastSyncTimestamp);
+  const totalStepsGathered = useGameStore((s) => s.totalStepsGathered);
+  const getStepGatheringState = useGameStore((s) => s.getStepGatheringState);
+  const persistSyncSteps = useGameStore((s) => s.syncSteps);
+  const persistSpendSteps = useGameStore((s) => s.spendSteps);
 
   // Permission status is ephemeral - checked with health service on each init
   const [permissionStatus, setPermissionStatus] =
@@ -228,7 +228,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
       }
 
       // Check if gathering is enabled for this material (ability >= 1)
-      const gatheringAbility = calculateGatheringAbility(materialType, gameState.ownedTools);
+      const gatheringAbility = calculateGatheringAbility(materialType, ownedTools);
       if (gatheringAbility === 0) {
         return {
           success: false,
@@ -269,7 +269,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
         stepsSpent: STEPS_PER_GATHER,
       };
     },
-    [getStepGatheringState, gameState.ownedTools, spendSteps, onGather]
+    [getStepGatheringState, ownedTools, spendSteps, onGather]
   );
 
   const openHealthSettings = useCallback(async (): Promise<boolean> => {
@@ -281,9 +281,9 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
   }, []);
 
   return {
-    availableSteps: gameState.availableSteps,
-    lastSyncTimestamp: gameState.lastSyncTimestamp,
-    totalStepsGathered: gameState.totalStepsGathered,
+    availableSteps,
+    lastSyncTimestamp,
+    totalStepsGathered,
     permissionStatus,
     isLoading,
     syncSteps: doSyncSteps,
