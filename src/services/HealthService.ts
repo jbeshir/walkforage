@@ -56,117 +56,75 @@ function toStepReadError(error: unknown): StepReadResult & { ok: false } {
 }
 
 export class HealthService {
+  // What the last refreshStatus() found. Nothing here outlives the next refresh: Health Connect can
+  // be installed, updated or have its grant revoked while the app runs.
   private initialized = false;
   private permissionStatus: HealthPermissionStatus = 'not_determined';
   private sdkStatus: number = SDK_STATUS.SDK_UNAVAILABLE;
 
   /**
-   * Initialize the health service
-   * Must be called before other methods
+   * Re-check SDK availability, initialize the client and re-read the step grant. Every sync
+   * trigger calls this first, so the status and needs-install state are never stale.
    */
-  async initialize(): Promise<boolean> {
-    if (this.initialized) return true;
+  async refreshStatus(): Promise<HealthPermissionStatus> {
+    this.initialized = await this.initialize();
+    this.permissionStatus = this.initialized ? await this.readGrant() : 'unavailable';
+    return this.permissionStatus;
+  }
 
+  private async initialize(): Promise<boolean> {
     await loadHealthModule();
 
     try {
       if (Platform.OS === 'android' && HealthConnect) {
-        // Check SDK status first
-        const status = await HealthConnect.getSdkStatus();
-        this.sdkStatus = status;
-
-        if (status === SDK_STATUS.SDK_UNAVAILABLE) {
-          this.permissionStatus = 'unavailable';
-          return false;
-        }
-
-        if (status === SDK_STATUS.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
-          // Health Connect needs to be installed/updated
-          this.permissionStatus = 'unavailable';
-          return false;
-        }
-
-        // SDK is available, initialize
-        const isAvailable = await HealthConnect.initialize();
-        if (!isAvailable) {
-          this.permissionStatus = 'unavailable';
-          return false;
-        }
-        this.initialized = true;
-        return true;
+        this.sdkStatus = SDK_STATUS.SDK_UNAVAILABLE; // until the SDK answers
+        this.sdkStatus = await HealthConnect.getSdkStatus();
+        // Unavailable, or Health Connect needs to be installed/updated
+        if (this.sdkStatus !== SDK_STATUS.SDK_AVAILABLE) return false;
+        return await HealthConnect.initialize();
       } else if (Platform.OS === 'ios' && HealthKit) {
-        // Check if HealthKit is available
-        const isAvailable = await HealthKit.isHealthDataAvailable();
-        if (!isAvailable) {
-          this.permissionStatus = 'unavailable';
-          return false;
-        }
-        this.initialized = true;
-        return true;
-      } else {
-        // Web or unsupported platform
-        this.permissionStatus = 'unavailable';
-        return false;
+        return await HealthKit.isHealthDataAvailable();
       }
+      // Web or unsupported platform
+      return false;
     } catch (error) {
       console.error('Health service initialization failed:', error);
-      this.permissionStatus = 'unavailable';
       return false;
     }
   }
 
-  /**
-   * Check if we already have permission (without requesting)
-   */
-  async checkPermission(): Promise<HealthPermissionStatus> {
-    if (!this.initialized) {
-      const success = await this.initialize();
-      if (!success) return this.permissionStatus;
-    }
-
+  /** The step grant on an initialized client. */
+  private async readGrant(): Promise<HealthPermissionStatus> {
+    // Keeps what the user last told us when the platform can't say (HealthKit hides read grants).
+    const known =
+      this.permissionStatus === 'unavailable' ? 'not_determined' : this.permissionStatus;
+    if (Platform.OS !== 'android' || !HealthConnect) return known;
     try {
-      if (Platform.OS === 'android' && HealthConnect) {
-        // Check existing permissions without requesting
-        const granted = await HealthConnect.getGrantedPermissions();
-        const hasStepsPermission = granted.some(
-          (p) => p.recordType === 'Steps' && p.accessType === 'read'
-        );
-
-        this.permissionStatus = hasStepsPermission ? 'authorized' : 'not_determined';
-        return this.permissionStatus;
+      const granted = await HealthConnect.getGrantedPermissions();
+      if (granted.some((p) => p.recordType === 'Steps' && p.accessType === 'read')) {
+        return 'authorized';
       }
+      // A denial stays a denial (the UI then offers settings); a revoked grant can be asked again.
+      return known === 'denied' ? 'denied' : 'not_determined';
     } catch (error) {
       console.warn('Check permission failed:', error);
+      return known;
     }
-
-    return this.permissionStatus;
   }
 
   /**
    * Request permission to read step data
    */
   async requestPermission(): Promise<HealthPermissionStatus> {
-    if (!this.initialized) {
-      const success = await this.initialize();
-      if (!success) {
-        console.warn('Health service not initialized, cannot request permission');
-        return this.permissionStatus;
-      }
+    const current = await this.refreshStatus();
+    if (current === 'unavailable') {
+      console.warn('Health service not initialized, cannot request permission');
+      return current;
     }
+    if (current === 'authorized') return current;
 
     try {
       if (Platform.OS === 'android' && HealthConnect) {
-        // First check if we already have permission
-        const granted = await HealthConnect.getGrantedPermissions();
-        const alreadyHasPermission = granted.some(
-          (p) => p.recordType === 'Steps' && p.accessType === 'read'
-        );
-
-        if (alreadyHasPermission) {
-          this.permissionStatus = 'authorized';
-          return 'authorized';
-        }
-
         // Request the permission - this opens the Health Connect UI
         if (__DEV__) {
           console.log('Requesting Health Connect permission...');
@@ -208,13 +166,11 @@ export class HealthService {
 
   /**
    * Read the step total for [startMs, endMs). Errors are returned as codes, never as 0 steps.
+   * Reads use the client the last refreshStatus() initialized.
    */
   async readSteps(startMs: number, endMs: number): Promise<StepReadResult> {
     if (!this.initialized) {
-      const success = await this.initialize();
-      if (!success) {
-        return { ok: false, code: 'not_initialized', message: 'Health service is not available' };
-      }
+      return { ok: false, code: 'not_initialized', message: 'Health service is not available' };
     }
 
     const startDate = new Date(startMs);
@@ -294,13 +250,6 @@ export class HealthService {
   }
 
   /**
-   * Check if service is initialized
-   */
-  isInitialized(): boolean {
-    return this.initialized;
-  }
-
-  /**
    * Check if Health Connect needs to be installed or updated
    */
   needsHealthConnectInstall(): boolean {
@@ -358,21 +307,6 @@ export class HealthService {
       console.error('Failed to open Play Store:', error);
       return false;
     }
-  }
-
-  /**
-   * Get detailed status for UI display
-   */
-  getDetailedStatus(): {
-    available: boolean;
-    needsInstall: boolean;
-    hasPermission: boolean;
-  } {
-    return {
-      available: this.initialized || this.sdkStatus === SDK_STATUS.SDK_AVAILABLE,
-      needsInstall: this.needsHealthConnectInstall(),
-      hasPermission: this.permissionStatus === 'authorized',
-    };
   }
 }
 

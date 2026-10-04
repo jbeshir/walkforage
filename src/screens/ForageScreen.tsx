@@ -72,7 +72,6 @@ export default function ForageScreen() {
 
   const stepGathering = useStepGathering({
     onGather: handleStepGather,
-    autoSyncInterval: 60000, // Sync every minute
   });
 
   const { location, error, status, startTracking } = useLocation();

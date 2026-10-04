@@ -61,15 +61,15 @@ describe('HealthService', () => {
       Platform.OS = 'android';
     });
 
-    describe('initialize', () => {
-      it('should handle SDK unavailable status', async () => {
+    describe('refreshStatus', () => {
+      it('should report unavailable when the SDK is unavailable', async () => {
         fakeHC.sdkStatus = 1; // SDK_UNAVAILABLE
 
         const svc = new HealthService();
-        const result = await svc.initialize();
 
-        expect(result).toBe(false);
+        expect(await svc.refreshStatus()).toBe('unavailable');
         expect(svc.getPermissionStatus()).toBe('unavailable');
+        expect(svc.needsHealthConnectInstall()).toBe(false);
       });
 
       it('should flag an install when the provider needs an update', async () => {
@@ -77,36 +77,56 @@ describe('HealthService', () => {
 
         const svc = new HealthService();
 
-        expect(await svc.initialize()).toBe(false);
+        expect(await svc.refreshStatus()).toBe('unavailable');
         expect(svc.needsHealthConnectInstall()).toBe(true);
       });
 
-      it('should return true when already initialized', async () => {
-        const svc = new HealthService();
-        const firstResult = await svc.initialize();
-        const secondResult = await svc.initialize();
+      it('should report unavailable when the client does not initialize', async () => {
+        fakeHC.initializeResult = false;
 
-        expect(firstResult).toBe(true);
-        expect(secondResult).toBe(true);
-        expect(fakeHC.callsTo('initialize')).toHaveLength(1);
-      });
-    });
-
-    describe('checkPermission', () => {
-      it('should return status when permission exists', async () => {
-        const svc = new HealthService();
-        const result = await svc.checkPermission();
-
-        expect(result).toBe('authorized');
+        expect(await new HealthService().refreshStatus()).toBe('unavailable');
       });
 
-      it('should handle empty permissions', async () => {
+      it('should report authorized when step access is granted', async () => {
+        expect(await new HealthService().refreshStatus()).toBe('authorized');
+      });
+
+      it('should report not_determined when step access is not granted', async () => {
         fakeHC.granted = false;
 
-        const svc = new HealthService();
-        const result = await svc.checkPermission();
+        expect(await new HealthService().refreshStatus()).toBe('not_determined');
+      });
 
-        expect(result).toBe('not_determined');
+      it('should re-check the SDK, client and grant on every call', async () => {
+        const svc = new HealthService();
+        fakeHC.sdkStatus = 2;
+        expect(await svc.refreshStatus()).toBe('unavailable');
+        expect(svc.needsHealthConnectInstall()).toBe(true);
+
+        // Health Connect installed while the app runs
+        fakeHC.sdkStatus = 3;
+        expect(await svc.refreshStatus()).toBe('authorized');
+        expect(svc.needsHealthConnectInstall()).toBe(false);
+
+        // Step access revoked in Health Connect settings
+        fakeHC.granted = false;
+        expect(await svc.refreshStatus()).toBe('not_determined');
+
+        expect(fakeHC.callsTo('getSdkStatus')).toHaveLength(3);
+        expect(fakeHC.callsTo('initialize')).toHaveLength(2);
+        expect(fakeHC.callsTo('getGrantedPermissions')).toHaveLength(2);
+      });
+
+      it('should keep a denial until access is granted', async () => {
+        fakeHC.granted = false;
+        fakeHC.grantOnRequest = false;
+        const svc = new HealthService();
+        expect(await svc.requestPermission()).toBe('denied');
+
+        expect(await svc.refreshStatus()).toBe('denied');
+
+        fakeHC.granted = true;
+        expect(await svc.refreshStatus()).toBe('authorized');
       });
     });
 
@@ -144,11 +164,18 @@ describe('HealthService', () => {
     describe('readSteps', () => {
       const now = Date.UTC(2026, 9, 4, 12);
 
+      /** A service whose status was refreshed, as every sync does before reading. */
+      async function connected(): Promise<HealthService> {
+        const svc = new HealthService();
+        await svc.refreshStatus();
+        return svc;
+      }
+
       it('should return the aggregate step total for the window, with no origin filter', async () => {
         const records = walk(now - HOUR_MS, now, 25);
         fakeHC.upsert(records);
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({
           ok: true,
@@ -171,7 +198,7 @@ describe('HealthService', () => {
         fakeHC.upsert(walk(now - HOUR_MS, now, 30, ON_DEVICE_ORIGIN)); // 1800 on-device
         fakeHC.upsert(fitbitBatch(now - HOUR_MS, now, 400)); // 1600 Fitbit, higher priority
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 1600 });
       });
@@ -181,7 +208,7 @@ describe('HealthService', () => {
           { start: now - 2 * HOUR_MS, end: now, count: 1000, origin: ON_DEVICE_ORIGIN },
         ]);
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now + HOUR_MS)).toEqual({ ok: true, steps: 500 });
       });
@@ -190,14 +217,14 @@ describe('HealthService', () => {
         const records = walk(now - 25 * HOUR_MS, now, 3); // 1500 per-minute records
         fakeHC.upsert(records);
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - 25 * HOUR_MS, now)).toEqual({ ok: true, steps: 4500 });
         expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(1);
       });
 
       it('should return 0 steps when there are no records', async () => {
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 0 });
       });
@@ -207,7 +234,7 @@ describe('HealthService', () => {
           { start: now - 30 * 60_000, end: now - 29 * 60_000, count: NaN, origin: 'android' },
         ]);
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 0 });
       });
@@ -224,7 +251,7 @@ describe('HealthService', () => {
         fakeHC.upsert(walk(now - HOUR_MS, now, 10));
         fakeHC.failNext('aggregateRecord', error);
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({
           ok: false,
@@ -237,9 +264,17 @@ describe('HealthService', () => {
       it('should report not_initialized when Health Connect cannot initialize', async () => {
         fakeHC.sdkStatus = 1;
 
-        const svc = new HealthService();
+        const svc = await connected();
 
         expect(await svc.readSteps(now - HOUR_MS, now)).toMatchObject({
+          ok: false,
+          code: 'not_initialized',
+        });
+        expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
+      });
+
+      it('should report not_initialized before any status refresh', async () => {
+        expect(await new HealthService().readSteps(now - HOUR_MS, now)).toMatchObject({
           ok: false,
           code: 'not_initialized',
         });
@@ -275,23 +310,10 @@ describe('HealthService', () => {
       });
     });
 
-    describe('getDetailedStatus', () => {
-      it('should return status object', () => {
-        const status = healthService.getDetailedStatus();
-
-        expect(status).toHaveProperty('available');
-        expect(status).toHaveProperty('needsInstall');
-        expect(status).toHaveProperty('hasPermission');
-        expect(typeof status.available).toBe('boolean');
-        expect(typeof status.needsInstall).toBe('boolean');
-        expect(typeof status.hasPermission).toBe('boolean');
-      });
-    });
-
     describe('openHealthSettings', () => {
       it('should call platform settings opener', async () => {
         const svc = new HealthService();
-        await svc.initialize();
+        await svc.refreshStatus();
         const result = await svc.openHealthSettings();
 
         expect(result).toBe(true);
@@ -305,15 +327,30 @@ describe('HealthService', () => {
       Platform.OS = 'ios';
     });
 
-    describe('initialize', () => {
+    describe('refreshStatus', () => {
       it('should check HealthKit availability', async () => {
         mockIsHealthDataAvailable.mockResolvedValue(true);
 
         const svc = new HealthService();
-        const result = await svc.initialize();
+        const result = await svc.refreshStatus();
 
-        expect(result).toBe(true);
+        expect(result).toBe('not_determined');
         expect(svc.isAvailable()).toBe(true);
+      });
+
+      it('should report unavailable when HealthKit is unavailable', async () => {
+        mockIsHealthDataAvailable.mockResolvedValue(false);
+
+        expect(await new HealthService().refreshStatus()).toBe('unavailable');
+      });
+
+      it('should keep an authorization HealthKit cannot report', async () => {
+        mockIsHealthDataAvailable.mockResolvedValue(true);
+        mockRequestAuthorization.mockResolvedValue(undefined);
+        const svc = new HealthService();
+        await svc.requestPermission();
+
+        expect(await svc.refreshStatus()).toBe('authorized');
       });
     });
 
@@ -347,7 +384,7 @@ describe('HealthService', () => {
         const startMs = endMs - HOUR_MS;
 
         const svc = new HealthService();
-        await svc.initialize();
+        await svc.refreshStatus();
 
         expect(await svc.readSteps(startMs, endMs)).toEqual({ ok: true, steps: 451 });
         expect(mockQueryQuantitySamples).toHaveBeenCalledWith(
@@ -362,7 +399,7 @@ describe('HealthService', () => {
         mockQueryQuantitySamples.mockResolvedValue([{ quantity: 150.5 }, { quantity: NaN }]);
 
         const svc = new HealthService();
-        await svc.initialize();
+        await svc.refreshStatus();
 
         expect(await svc.readSteps(Date.now() - HOUR_MS, Date.now())).toEqual({
           ok: true,
@@ -375,7 +412,7 @@ describe('HealthService', () => {
         mockQueryQuantitySamples.mockRejectedValue(new Error('Query failed'));
 
         const svc = new HealthService();
-        await svc.initialize();
+        await svc.refreshStatus();
 
         expect(await svc.readSteps(Date.now() - HOUR_MS, Date.now())).toEqual({
           ok: false,
@@ -405,16 +442,16 @@ describe('HealthService', () => {
       fakeHC.failNext('getSdkStatus', new Error('SDK check failed'));
 
       const svc = new HealthService();
-      const result = await svc.initialize();
+      const result = await svc.refreshStatus();
 
-      expect(result).toBe(false);
+      expect(result).toBe('unavailable');
     });
 
     it('should handle permission check errors gracefully', async () => {
       fakeHC.failNext('getGrantedPermissions', new Error('Check failed'));
 
       const svc = new HealthService();
-      const result = await svc.checkPermission();
+      const result = await svc.refreshStatus();
 
       expect(result).toBe('not_determined');
     });
@@ -431,11 +468,6 @@ describe('HealthService', () => {
   });
 
   describe('Service Methods', () => {
-    it('should have isInitialized method', () => {
-      expect(typeof healthService.isInitialized).toBe('function');
-      expect(typeof healthService.isInitialized()).toBe('boolean');
-    });
-
     it('should have needsHealthConnectInstall method', () => {
       expect(typeof healthService.needsHealthConnectInstall).toBe('function');
       expect(typeof healthService.needsHealthConnectInstall()).toBe('boolean');

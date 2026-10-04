@@ -194,11 +194,25 @@ describe('stepLedger', () => {
     const now = local(2026, 10, 4, 18);
 
     it('re-reads the reconcile window after a recent sync', () => {
-      expect(reconcileFrom(now - HOUR_MS, now)).toBe(now - 14 * DAY_MS);
+      expect(reconcileFrom(now - HOUR_MS, now, 'full')).toBe(now - 14 * DAY_MS);
     });
 
     it('reads everything since an older sync', () => {
-      expect(reconcileFrom(now - 45 * DAY_MS, now)).toBe(now - 45 * DAY_MS);
+      expect(reconcileFrom(now - 45 * DAY_MS, now, 'full')).toBe(now - 45 * DAY_MS);
+    });
+
+    it('re-reads only the recent window in recent mode', () => {
+      expect(reconcileFrom(now - HOUR_MS, now, 'recent')).toBe(now - 2 * DAY_MS);
+      expect(reconcileFrom(now - 2 * DAY_MS, now, 'recent')).toBe(now - 2 * DAY_MS);
+    });
+
+    it('reads as a full sync in recent mode when the last sync is before the recent window', () => {
+      expect(reconcileFrom(now - 2 * DAY_MS - 1, now, 'recent')).toBe(now - 14 * DAY_MS);
+      expect(reconcileFrom(now - 45 * DAY_MS, now, 'recent')).toBe(now - 45 * DAY_MS);
+    });
+
+    it('re-reads the recent window in recent mode when the clock is behind the last sync', () => {
+      expect(reconcileFrom(now + HOUR_MS, now, 'recent')).toBe(now - 2 * DAY_MS);
     });
   });
 

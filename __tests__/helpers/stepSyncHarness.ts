@@ -4,7 +4,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fakeHC } from './fakeHealthConnect';
-import { healthService } from '../../src/services/HealthService';
 import { useStepSyncStatus } from '../../src/services/stepSync';
 import {
   useGameStore,
@@ -44,12 +43,6 @@ export function storedGame(): Record<string, unknown> {
   return JSON.parse(storage.get(STORAGE_KEY)!) as Record<string, unknown>;
 }
 
-/** Loads the saved game and checks step access, as app start does. */
-export async function loadAndConnect(): Promise<void> {
-  await loadGame();
-  await healthService.checkPermission();
-}
-
 /** A process restart: memory goes back to initial state and the saved game is loaded again. */
 export async function restartApp(): Promise<void> {
   useGameStore.setState({
@@ -59,7 +52,7 @@ export async function restartApp(): Promise<void> {
     loadFailed: false,
   });
   __resetPersistenceForTests();
-  await loadAndConnect();
+  await loadGame();
 }
 
 export function ledger(): StepLedger {

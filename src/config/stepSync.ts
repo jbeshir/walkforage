@@ -6,3 +6,7 @@ export const RECONCILE_DAYS = 14;
 export const WELCOME_DAYS = 7;
 /** Health Connect shares only this many days before the app's first grant. */
 export const HISTORY_WINDOW_DAYS = 30;
+/** Days of buckets the foreground interval re-reads, for data arriving minutes after a walk. */
+export const RECENT_RECONCILE_DAYS = 2;
+/** How often the foreground app re-reads recent days. */
+export const FOREGROUND_RECONCILE_MS = 5 * 60_000;

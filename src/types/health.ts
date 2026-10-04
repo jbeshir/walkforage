@@ -46,6 +46,12 @@ export interface DayCredit {
 }
 
 /**
+ * How much a sync re-reads. `full` reconciles the last RECONCILE_DAYS; `recent` (the foreground
+ * interval) only the last RECENT_RECONCILE_DAYS, unless time before that was never read.
+ */
+export type StepSyncMode = 'full' | 'recent';
+
+/**
  * Result of a step sync. On error nothing was credited and the ledger did not change.
  * `welcome`: the first sync of a new game, which also credited the last week.
  * `historyLimitedBefore`: after a reinstall, steps before this time could not be read.

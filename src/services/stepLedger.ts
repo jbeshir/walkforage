@@ -7,8 +7,8 @@
 // a high-water mark: only a total above it is credited, and a lower total is ignored (steps are
 // never clawed back).
 
-import { DayCredit, StepBucket, StepLedger } from '../types/health';
-import { RECONCILE_DAYS, WELCOME_DAYS } from '../config/stepSync';
+import { DayCredit, StepBucket, StepLedger, StepSyncMode } from '../types/health';
+import { RECENT_RECONCILE_DAYS, RECONCILE_DAYS, WELCOME_DAYS } from '../config/stepSync';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -61,10 +61,14 @@ export function welcomeBuckets(nowMs: number): StepBucket[] {
 }
 
 /**
- * Where a sync starts re-reading: everything since the last sync, and at least the last
- * RECONCILE_DAYS, so data a watch or fitness app delivers late is still credited.
+ * Where a sync starts re-reading. A full sync reads everything since the last sync, and at least
+ * the last RECONCILE_DAYS, so data a watch or fitness app delivers late is still credited. A
+ * recent sync reads only the last RECENT_RECONCILE_DAYS, unless the last sync was before them:
+ * then it reads as a full sync.
  */
-export function reconcileFrom(lastSyncedAt: number, nowMs: number): number {
+export function reconcileFrom(lastSyncedAt: number, nowMs: number, mode: StepSyncMode): number {
+  const recentFrom = nowMs - RECENT_RECONCILE_DAYS * DAY_MS;
+  if (mode === 'recent' && lastSyncedAt >= recentFrom) return recentFrom;
   return Math.min(lastSyncedAt, nowMs - RECONCILE_DAYS * DAY_MS);
 }
 

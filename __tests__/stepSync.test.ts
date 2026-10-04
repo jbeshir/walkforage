@@ -10,7 +10,6 @@ import {
   availableSteps,
   hcTotal,
   ledger,
-  loadAndConnect,
   local,
   restartApp,
   seedSave,
@@ -21,9 +20,8 @@ import {
 import { setTimeZone } from './helpers/timeZone';
 import { syncSteps, useStepSyncStatus } from '../src/services/stepSync';
 import { ledgerSince } from '../src/services/stepLedger';
-import { healthService } from '../src/services/HealthService';
 import { useGameStore } from '../src/store/gameStore';
-import { saveGame, startPersistence } from '../src/store/persistence';
+import { loadGame, saveGame, startPersistence } from '../src/store/persistence';
 import type { FakeStepRecordInput } from './helpers/fakeHealthConnect';
 
 jest.mock(
@@ -84,7 +82,7 @@ describe('stepSync', () => {
       const before = hourly(weekStart - 3 * DAY_MS, weekStart, 400); // older than the welcome week
       const week = hourly(weekStart, NOW, 300);
       fakeHC.upsert([...before, ...week]);
-      await loadAndConnect();
+      await loadGame();
 
       const welcome = await syncSteps();
 
@@ -125,7 +123,7 @@ describe('stepSync', () => {
     it('does not give a welcome credit to a restored save', async () => {
       fakeHC.upsert(hourly(NOW - 10 * DAY_MS, NOW, 300));
       seedSave({ availableSteps: 50, stepLedger: ledgerSince(NOW - 2 * HOUR_MS) });
-      await loadAndConnect();
+      await loadGame();
 
       expect(await syncSteps()).toMatchObject({
         status: 'synced',
@@ -142,7 +140,7 @@ describe('stepSync', () => {
     const records = hourly(lastSync, NOW, 500);
     fakeHC.upsert(records);
     const blob = seedSave({ availableSteps: 2000, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
     const savedLedger = ledger();
 
     fakeHC.failNext('aggregateRecord', hcErrors.serviceUnavailable());
@@ -171,7 +169,7 @@ describe('stepSync', () => {
     const lastSync = local(2026, 9, 26, 12);
     fakeHC.upsert(hourly(lastSync, NOW, 100));
     const blob = seedSave({ availableSteps: 10, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
     const savedLedger = ledger();
 
     fakeHC.failNext('aggregateRecord', hcErrors.remote(), 1, 4); // the 5th of 9 buckets
@@ -193,7 +191,7 @@ describe('stepSync', () => {
   it('shares one in-flight sync between concurrent callers and credits once', async () => {
     fakeHC.upsert(hourly(NOW - 3 * HOUR_MS, NOW, 400));
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - 3 * HOUR_MS) });
-    await loadAndConnect();
+    await loadGame();
     fakeHC.latencyMs = 1500;
 
     const first = syncSteps();
@@ -201,7 +199,7 @@ describe('stepSync', () => {
 
     expect(second).toBe(first);
     expect(useStepSyncStatus.getState().syncing).toBe(true);
-    await jest.advanceTimersByTimeAsync(1500);
+    await jest.advanceTimersByTimeAsync(4 * 1500); // status refresh (3 calls) and one read
 
     expect(await first).toMatchObject({ status: 'synced', credited: 1200 });
     expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(1);
@@ -209,29 +207,122 @@ describe('stepSync', () => {
     expect(useStepSyncStatus.getState().syncing).toBe(false);
   });
 
+  describe('modes', () => {
+    /** Loads a game whose ledger was synced at `syncedAt`, with buckets back to 24 Sep. */
+    async function loadSyncedAt(syncedAt: number): Promise<void> {
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 9, 24, 12)) });
+      await loadGame();
+      jest.setSystemTime(syncedAt);
+      expect(await syncSteps()).toMatchObject({ status: 'synced' });
+      jest.setSystemTime(NOW);
+      fakeHC.calls = [];
+    }
+
+    it('re-reads only the buckets of the last 2 days in recent mode', async () => {
+      await loadSyncedAt(NOW - HOUR_MS);
+      const late = hourly(local(2026, 9, 29, 9), local(2026, 9, 29, 12), 500);
+      const recent = hourly(local(2026, 10, 3, 9), local(2026, 10, 3, 12), 200);
+      fakeHC.upsert([...late, ...recent]);
+
+      expect(await syncSteps('recent')).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(recent),
+      });
+      expect(aggregateWindows()).toEqual([
+        { start: local(2026, 10, 2), end: local(2026, 10, 3) },
+        { start: local(2026, 10, 3), end: local(2026, 10, 4) },
+        { start: local(2026, 10, 4), end: NOW },
+      ]);
+
+      expect(await syncSteps('full')).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(late),
+      });
+    });
+
+    it('reads as a full sync in recent mode when the last sync was before the last 2 days', async () => {
+      await loadSyncedAt(NOW - 3 * DAY_MS);
+      const late = hourly(local(2026, 9, 25, 9), local(2026, 9, 25, 12), 500);
+      fakeHC.upsert(late);
+
+      expect(await syncSteps('recent')).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(late),
+      });
+      const windows = aggregateWindows();
+      expect(windows[0]).toEqual({ start: local(2026, 9, 24, 12), end: local(2026, 9, 25) });
+      expect(windows).toHaveLength(11);
+    });
+
+    it('gives the welcome credit in recent mode when there is no ledger', async () => {
+      await loadGame();
+
+      expect(await syncSteps('recent')).toMatchObject({ status: 'synced', welcome: true });
+      expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(8);
+    });
+
+    it('runs one full sync after a recent one for full callers that arrive during it', async () => {
+      await loadSyncedAt(NOW - HOUR_MS);
+      const late = hourly(local(2026, 9, 29, 9), local(2026, 9, 29, 12), 500);
+      fakeHC.upsert(late);
+      fakeHC.latencyMs = 1000;
+
+      const recent = syncSteps('recent');
+      const full = syncSteps('full');
+
+      expect(syncSteps('full')).toBe(full);
+      expect(syncSteps('recent')).toBe(recent);
+      expect(full).not.toBe(recent);
+      await jest.advanceTimersByTimeAsync(MINUTE_MS);
+
+      expect(await recent).toMatchObject({ status: 'synced', credited: 0 });
+      expect(await full).toMatchObject({ status: 'synced', credited: sumCounts(late) });
+      expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(3 + 11);
+      expect(fakeHC.callsTo('getSdkStatus')).toHaveLength(2);
+      expect(availableSteps()).toBe(sumCounts(late));
+      expect(useStepSyncStatus.getState().syncing).toBe(false);
+    });
+
+    it('lets a recent caller join a running full sync', async () => {
+      await loadSyncedAt(NOW - HOUR_MS);
+      fakeHC.latencyMs = 1000;
+
+      const full = syncSteps('full');
+
+      expect(syncSteps('recent')).toBe(full);
+      await jest.advanceTimersByTimeAsync(MINUTE_MS);
+      expect(await full).toMatchObject({ status: 'synced' });
+      expect(fakeHC.callsTo('getSdkStatus')).toHaveLength(1);
+    });
+  });
+
   it('reads up to the sync start, so steps starting during a slow read are credited next time', async () => {
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - HOUR_MS) });
     fakeHC.upsert(hourly(NOW - HOUR_MS, NOW, 300));
-    await loadAndConnect();
+    await loadGame();
     fakeHC.latencyMs = 5000;
 
     const pending = syncSteps();
+    await jest.advanceTimersByTimeAsync(3 * 5000); // status refresh
+    const readStart = Date.now();
     // A record starting while the read is in flight
-    fakeHC.upsert([{ start: NOW + 1000, end: NOW + MINUTE_MS, count: 70, origin: 'android' }]);
+    fakeHC.upsert([
+      { start: readStart + 1000, end: readStart + MINUTE_MS, count: 70, origin: 'android' },
+    ]);
     await jest.advanceTimersByTimeAsync(5000);
 
-    expect(await pending).toMatchObject({ status: 'synced', credited: 300, syncedAt: NOW });
-    expect(ledger().lastSyncedAt).toBe(NOW);
+    expect(await pending).toMatchObject({ status: 'synced', credited: 300, syncedAt: readStart });
+    expect(ledger().lastSyncedAt).toBe(readStart);
 
     fakeHC.latencyMs = 0;
-    jest.setSystemTime(NOW + 2 * MINUTE_MS);
+    jest.setSystemTime(readStart + 2 * MINUTE_MS);
     expect(await syncSteps()).toMatchObject({ status: 'synced', credited: 70 });
   });
 
   it('still credits real steps after cheat bonus steps', async () => {
     fakeHC.upsert(hourly(NOW - 2 * HOUR_MS, NOW, 1500));
     seedSave({ availableSteps: 100, stepLedger: ledgerSince(NOW - 2 * HOUR_MS) });
-    await loadAndConnect();
+    await loadGame();
     const savedLedger = ledger();
 
     useGameStore.getState().addBonusSteps(1000);
@@ -241,13 +332,14 @@ describe('stepSync', () => {
     expect(availableSteps()).toBe(100 + 1000 + 3000);
   });
 
-  it('reports a revoked permission and advances nothing', async () => {
+  it('reports a permission revoked during the sync and advances nothing', async () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     fakeHC.upsert(hourly(NOW - 2 * HOUR_MS, NOW, 1500));
     const blob = seedSave({ availableSteps: 100, stepLedger: ledgerSince(NOW - 2 * HOUR_MS) });
-    await loadAndConnect();
+    await loadGame();
     const savedLedger = ledger();
-    fakeHC.granted = false;
+    // Granted when the sync checks, revoked by the time it reads
+    fakeHC.failNext('aggregateRecord', hcErrors.permission());
 
     expect(await syncSteps()).toMatchObject({ status: 'error', code: 'permission' });
     expect(availableSteps()).toBe(100);
@@ -259,7 +351,7 @@ describe('stepSync', () => {
   it('returns not_authorized without reading when step access is not granted', async () => {
     fakeHC.granted = false;
     seedSave({ availableSteps: 100, stepLedger: ledgerSince(NOW - HOUR_MS) });
-    await loadAndConnect();
+    await loadGame();
 
     expect(await syncSteps()).toMatchObject({ status: 'error', code: 'not_authorized' });
     expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
@@ -270,7 +362,7 @@ describe('stepSync', () => {
     const records = hourly(lastSync, NOW, 250);
     fakeHC.upsert(records);
     const blob = seedSave({ availableSteps: 700, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
 
     // The sync's write never lands, as when the process dies mid-write.
     let failWrite!: () => void;
@@ -309,7 +401,7 @@ describe('stepSync', () => {
     const lastSync = NOW - 2 * DAY_MS;
     fakeHC.upsert(hourly(lastSync, NOW, 100));
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
     expect(await syncSteps()).toMatchObject({ credited: 48 * 100 });
     const synced = ledger();
 
@@ -338,7 +430,6 @@ describe('stepSync', () => {
   describe('hydration gate', () => {
     it('returns not_loaded before the saved game has loaded, reading and writing nothing', async () => {
       seedSave({ availableSteps: 100, stepLedger: ledgerSince(NOW - HOUR_MS) });
-      await healthService.checkPermission();
 
       expect(useGameStore.getState().isLoading).toBe(true);
       expect(await syncSteps()).toMatchObject({ status: 'error', code: 'not_loaded' });
@@ -353,7 +444,7 @@ describe('stepSync', () => {
       mockAsyncStorage.getItem.mockRejectedValueOnce(new Error('SQLITE_IOERR'));
       const stop = startPersistence();
 
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState().loadFailed).toBe(true);
       expect(useGameStore.getState().isLoading).toBe(false);
@@ -374,7 +465,7 @@ describe('stepSync', () => {
     it('sets loadFailed on a corrupt save and keeps it on disk', async () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockAsyncStorage.getItem.mockResolvedValueOnce('[1, 2, 3]');
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState().loadFailed).toBe(true);
       await saveGame();

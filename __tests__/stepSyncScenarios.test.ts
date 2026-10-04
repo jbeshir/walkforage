@@ -20,7 +20,6 @@ import {
   availableSteps,
   hcTotal,
   ledger,
-  loadAndConnect,
   local,
   restartApp,
   seedSave,
@@ -32,6 +31,7 @@ import { setTimeZone } from './helpers/timeZone';
 import { syncSteps } from '../src/services/stepSync';
 import { ledgerSince, localDayStart } from '../src/services/stepLedger';
 import { useGameStore } from '../src/store/gameStore';
+import { loadGame } from '../src/store/persistence';
 import { StepBucket, StepSyncResult } from '../src/types/health';
 import type { FakeStepRecordInput } from './helpers/fakeHealthConnect';
 
@@ -120,7 +120,7 @@ describe('step sync scenarios', () => {
         lastSyncedAt: lastSync,
       },
     });
-    await loadAndConnect();
+    await loadGame();
 
     const result = await syncSteps();
 
@@ -142,7 +142,7 @@ describe('step sync scenarios', () => {
       seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 10, 3, 8)) });
       const morning = walk(local(2026, 10, 4, 9), local(2026, 10, 4, 9, 30), 40);
       fakeHC.upsert(morning);
-      await loadAndConnect();
+      await loadGame();
       expect(credited(await syncAt(NOW))).toBe(1200); // check-in at 18:00
 
       // At 21:00 the Fitbit app delivers today 14:00–17:00 and a backlog for yesterday evening.
@@ -168,7 +168,7 @@ describe('step sync scenarios', () => {
       seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 10, 4, 8)) });
       const onDevice = walk(local(2026, 10, 4, 14), local(2026, 10, 4, 17), 10); // 1800
       fakeHC.upsert(onDevice);
-      await loadAndConnect();
+      await loadGame();
       expect(credited(await syncAt(NOW))).toBe(1800);
 
       jest.setSystemTime(local(2026, 10, 4, 21));
@@ -189,7 +189,7 @@ describe('step sync scenarios', () => {
       const today = local(2026, 10, 4);
       seedSave({ availableSteps: 0, stepLedger: ledgerSince(today) });
       fakeHC.upsert(walk(local(2026, 10, 4, 10), local(2026, 10, 4, 10, 50), 100)); // 5000 on-device
-      await loadAndConnect();
+      await loadGame();
       expect(credited(await syncAt(local(2026, 10, 4, 12)))).toBe(5000);
 
       // Fitbit's batch for the same hour counts 4200 and wins on priority: the total drops.
@@ -225,7 +225,7 @@ describe('step sync scenarios', () => {
 
   it('in session: credits steps whose records are written minutes after the walk', async () => {
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 10, 4, 8)) });
-    await loadAndConnect();
+    await loadGame();
     expect(credited(await syncAt(NOW))).toBe(0);
 
     // Walk 18:00–18:20; the phone writes the records at 18:25.
@@ -253,7 +253,7 @@ describe('step sync scenarios', () => {
     ];
     fakeHC.upsert(records);
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
 
     let total = 0;
     const syncAndCheck = async (at: number) => {
@@ -300,7 +300,7 @@ describe('step sync scenarios', () => {
     const evening = walk(lastSync + HOUR_MS, lastSync + HOUR_MS + 50 * MINUTE_MS, 10);
     fakeHC.upsert([...days, ...evening]);
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
-    await loadAndConnect();
+    await loadGame();
 
     const result = await syncSteps();
 
@@ -337,7 +337,7 @@ describe('step sync scenarios', () => {
           lastSyncedAt: lastSync,
         },
       });
-      await loadAndConnect();
+      await loadGame();
 
       const result = await syncSteps();
 
@@ -370,7 +370,7 @@ describe('step sync scenarios', () => {
       // Old phone: the last sync before the backup.
       fakeHC.upsert(history);
       seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 9, 25)) });
-      await loadAndConnect();
+      await loadGame();
       jest.setSystemTime(backupAt);
       const backedUp = credited(await syncSteps());
       expect(backedUp).toBe(startingIn(history, local(2026, 9, 25), backupAt));
@@ -411,7 +411,7 @@ describe('step sync scenarios', () => {
       ]);
       fakeHC.upsert(records);
       seedSave({ availableSteps: 2500, totalStepsGathered: 4000, lastSyncTimestamp: watermark }, 1);
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState()).toMatchObject({
         availableSteps: 2500,
@@ -436,7 +436,7 @@ describe('step sync scenarios', () => {
       const watermark = NOW - 3 * HOUR_MS;
       fakeHC.upsert(walk(NOW - 5 * HOUR_MS, NOW, 2));
       seedSave({ availableSteps: 10, lastSyncTimestamp: watermark }, 0);
-      await loadAndConnect();
+      await loadGame();
 
       expect(credited(await syncSteps())).toBe(3 * 60 * 2);
       expect(storedGame()).toMatchObject({ schemaVersion: 2, availableSteps: 370 });
@@ -446,7 +446,7 @@ describe('step sync scenarios', () => {
       const week = walk(local(2026, 9, 27, 10), local(2026, 9, 27, 11), 25);
       fakeHC.upsert([...walk(local(2026, 9, 20, 10), local(2026, 9, 20, 11), 25), ...week]);
       seedSave({ availableSteps: 300, lastSyncTimestamp: 0 }, 1);
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState().stepLedger).toBeNull();
       expect(await syncSteps()).toMatchObject({ credited: sumCounts(week), welcome: true });
@@ -470,7 +470,7 @@ describe('step sync scenarios', () => {
         availableSteps: 0,
         stepLedger: { ...valid, buckets: valid.buckets.map((b) => ({ ...b, extra: 1 })) },
       });
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState().stepLedger).toEqual(valid);
     });
@@ -488,7 +488,7 @@ describe('step sync scenarios', () => {
       async (_label, buckets) => {
         fakeHC.upsert(walk(NOW - 4 * HOUR_MS, NOW, 5));
         seedSave({ availableSteps: 0, stepLedger: { buckets, lastSyncedAt } });
-        await loadAndConnect();
+        await loadGame();
 
         expect(useGameStore.getState().stepLedger).toEqual(ledgerSince(lastSyncedAt));
         expect(await syncSteps()).toMatchObject({ credited: 2 * 60 * 5, welcome: false });
@@ -503,7 +503,7 @@ describe('step sync scenarios', () => {
       ['null', { buckets: valid.buckets, lastSyncedAt: null }],
     ])('drops a ledger whose lastSyncedAt is %s', async (_label, stepLedger) => {
       seedSave({ availableSteps: 0, stepLedger });
-      await loadAndConnect();
+      await loadGame();
 
       expect(useGameStore.getState().stepLedger).toBeNull();
     });
