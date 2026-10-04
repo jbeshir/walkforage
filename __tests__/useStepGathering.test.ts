@@ -1,55 +1,68 @@
 // Tests for useStepGathering hook
-// Tests step synchronization, material gathering, permission handling
+// Runs against the fake Health Connect with the real HealthService, step sync, store and
+// persistence (in-memory AsyncStorage).
 
 import React, { ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fakeHC, hcErrors, walk, sumCounts } from './helpers/fakeHealthConnect';
 import { useStepGathering } from '../src/hooks/useStepGathering';
 import { GameStateProvider } from '../src/hooks/useGameState';
-import { healthService } from '../src/services/HealthService';
+import { useStepSyncStatus } from '../src/services/stepSync';
+import { useGameStore, STORAGE_KEY } from '../src/store/gameStore';
 import { STEPS_PER_GATHER } from '../src/config/gathering';
 
-// Mock the health service
-jest.mock('../src/services/HealthService', () => ({
-  healthService: {
-    isAvailable: jest.fn(),
-    initialize: jest.fn(),
-    checkPermission: jest.fn(),
-    requestPermission: jest.fn(),
-    getPermissionStatus: jest.fn(),
-    getStepsSince: jest.fn(),
-    needsHealthConnectInstall: jest.fn(),
-    openHealthSettings: jest.fn(),
-    openHealthConnectPlayStore: jest.fn(),
-  },
-}));
+jest.mock(
+  'react-native-health-connect',
+  () => jest.requireActual('./helpers/fakeHealthConnect').fakeHealthConnectModule
+);
 
-// Get the mocked module
-const mockHealthService = healthService as jest.Mocked<typeof healthService>;
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const NOW = Date.UTC(2026, 9, 4, 18);
+
+let storage: Map<string, string>;
+
+function seedSave(data: Record<string, unknown>): void {
+  storage.set(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, ...data }));
+}
+
+/** Where the last successful sync left off (the end of the window it read). */
+function watermark(): number {
+  return useGameStore.getState().lastSyncTimestamp;
+}
+
+function storedGame(): Record<string, unknown> {
+  return JSON.parse(storage.get(STORAGE_KEY)!) as Record<string, unknown>;
+}
 
 // Wrapper component for tests
 function TestWrapper({ children }: { children: ReactNode }) {
   return React.createElement(GameStateProvider, null, children);
 }
 
+async function renderReady(options?: Parameters<typeof useStepGathering>[0]) {
+  const rendered = renderHook(() => useStepGathering(options), { wrapper: TestWrapper });
+  await waitFor(() => {
+    expect(rendered.result.current.isLoading).toBe(false);
+  });
+  return rendered;
+}
+
 describe('useStepGathering', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-
-    // Default mocks - health service available and authorized
-    mockHealthService.isAvailable.mockReturnValue(true);
-    mockHealthService.initialize.mockResolvedValue(true);
-    mockHealthService.checkPermission.mockResolvedValue('authorized');
-    mockHealthService.getPermissionStatus.mockReturnValue('authorized');
-    mockHealthService.getStepsSince.mockResolvedValue(0);
-    mockHealthService.needsHealthConnectInstall.mockReturnValue(false);
-    mockHealthService.openHealthSettings.mockResolvedValue(true);
-    mockHealthService.openHealthConnectPlayStore.mockResolvedValue(true);
-
-    // Default: no saved game
-    mockAsyncStorage.getItem.mockResolvedValue(null);
+    jest.useFakeTimers({ now: NOW });
+    Platform.OS = 'android';
+    fakeHC.reset();
+    useStepSyncStatus.setState({ syncing: false, lastResult: null });
+    storage = new Map();
+    mockAsyncStorage.getItem.mockImplementation(async (key) => storage.get(key) ?? null);
+    mockAsyncStorage.setItem.mockImplementation(async (key, value) => {
+      storage.set(key, value);
+    });
   });
 
   afterEach(() => {
@@ -63,202 +76,247 @@ describe('useStepGathering', () => {
       expect(result.current.isLoading).toBe(true);
     });
 
-    it('should complete loading after initialization', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-    });
-
-    it('should report available when health service is available', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+    it('should report available and authorized after initialization', async () => {
+      const { result } = await renderReady();
 
       expect(result.current.isAvailable).toBe(true);
+      expect(result.current.permissionStatus).toBe('authorized');
+      expect(fakeHC.callsTo('getGrantedPermissions').length).toBeGreaterThan(0);
     });
 
     it('should report unavailable when health service is not available', async () => {
-      mockHealthService.isAvailable.mockReturnValue(false);
+      Platform.OS = 'web';
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       expect(result.current.isAvailable).toBe(false);
-      expect(result.current.permissionStatus).toBe('unavailable');
-    });
-
-    it('should check permission status on mount', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(mockHealthService.checkPermission).toHaveBeenCalled();
-      expect(result.current.permissionStatus).toBe('authorized');
-    });
-
-    it('should handle initialization failure gracefully', async () => {
-      mockHealthService.initialize.mockResolvedValue(false);
-      mockHealthService.getPermissionStatus.mockReturnValue('unavailable');
-
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
       expect(result.current.permissionStatus).toBe('unavailable');
     });
   });
 
   describe('Permission Request', () => {
     it('should request permission when requested', async () => {
-      mockHealthService.checkPermission.mockResolvedValue('not_determined');
-      mockHealthService.getPermissionStatus.mockReturnValue('not_determined');
-      mockHealthService.requestPermission.mockResolvedValue('authorized');
+      fakeHC.granted = false;
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       expect(result.current.permissionStatus).toBe('not_determined');
 
       await act(async () => {
-        const status = await result.current.requestPermission();
-        expect(status).toBe('authorized');
+        expect(await result.current.requestPermission()).toBe('authorized');
       });
 
-      expect(mockHealthService.requestPermission).toHaveBeenCalled();
+      expect(fakeHC.callsTo('requestPermission')).toHaveLength(1);
       expect(result.current.permissionStatus).toBe('authorized');
     });
 
     it('should handle permission denial', async () => {
-      mockHealthService.checkPermission.mockResolvedValue('not_determined');
-      mockHealthService.getPermissionStatus.mockReturnValue('not_determined');
-      mockHealthService.requestPermission.mockResolvedValue('denied');
+      fakeHC.granted = false;
+      fakeHC.grantOnRequest = false;
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await act(async () => {
-        const status = await result.current.requestPermission();
-        expect(status).toBe('denied');
+        expect(await result.current.requestPermission()).toBe('denied');
       });
 
       expect(result.current.permissionStatus).toBe('denied');
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+    });
+
+    it('should credit steps exactly once after an in-app grant', async () => {
+      fakeHC.granted = false;
+      const records = walk(NOW - 2 * HOUR_MS, NOW, 20);
+      fakeHC.upsert(records);
+      seedSave({ availableSteps: 500, lastSyncTimestamp: NOW - 2 * HOUR_MS });
+
+      const { result } = await renderReady();
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+
+      await act(async () => {
+        await result.current.requestPermission();
+      });
+
+      await waitFor(() => {
+        expect(result.current.availableSteps).toBe(500 + sumCounts(records));
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000);
+      });
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(1);
+      expect(result.current.availableSteps).toBe(500 + sumCounts(records));
     });
   });
 
   describe('Step Synchronization', () => {
-    it('should sync steps from health service', async () => {
-      mockHealthService.getStepsSince.mockResolvedValue(5000);
+    it('should sync on mount and credit only new steps on a manual sync', async () => {
+      fakeHC.upsert(walk(NOW - HOUR_MS, NOW, 50));
+      seedSave({ availableSteps: 0, lastSyncTimestamp: NOW - HOUR_MS });
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
+      const { result } = await renderReady();
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.availableSteps).toBe(3000);
       });
 
-      // Advance time to allow debounce
-      act(() => {
-        jest.advanceTimersByTime(31000);
+      const mark = watermark();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(11 * MINUTE_MS);
       });
+      fakeHC.upsert(walk(mark, mark + 10 * MINUTE_MS, 30));
 
       await act(async () => {
-        const syncResult = await result.current.syncSteps();
-        expect(syncResult.success).toBe(true);
-        expect(syncResult.newSteps).toBe(5000);
+        expect(await result.current.syncSteps()).toEqual({ status: 'synced', credited: 300 });
       });
+      expect(result.current.availableSteps).toBe(3300);
+      expect(storedGame()).toMatchObject({ availableSteps: 3300 });
     });
 
-    it('should debounce rapid sync requests', async () => {
-      mockHealthService.getStepsSince.mockResolvedValue(1000);
+    it('should share the mount sync with a manual tap and credit once', async () => {
+      const records = walk(NOW - HOUR_MS, NOW, 40);
+      fakeHC.upsert(records);
+      seedSave({ availableSteps: 0, lastSyncTimestamp: NOW - HOUR_MS });
+      fakeHC.latencyMs = 1500;
 
       const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
+      await waitFor(
+        () => {
+          expect(fakeHC.callsTo('readRecords')).toHaveLength(1);
+        },
+        { timeout: 5000 }
+      );
+      expect(useStepSyncStatus.getState().syncing).toBe(true);
+
+      let manual!: Promise<unknown>;
+      act(() => {
+        manual = result.current.syncSteps();
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1500);
+      });
+
+      expect(await manual).toEqual({ status: 'synced', credited: sumCounts(records) });
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(1);
+      expect(result.current.availableSteps).toBe(sumCounts(records));
+    });
+
+    it('should not sync or save before the saved game has loaded', async () => {
+      const records = walk(NOW - HOUR_MS, NOW, 10);
+      fakeHC.upsert(records);
+      seedSave({ availableSteps: 7000, lastSyncTimestamp: NOW - HOUR_MS });
+      let finishLoad!: () => void;
+      mockAsyncStorage.getItem.mockImplementationOnce(
+        (key) =>
+          new Promise((resolve) => {
+            finishLoad = () => resolve(storage.get(key) ?? null);
+          })
+      );
+
+      const { result } = await renderReady();
+      expect(result.current.permissionStatus).toBe('authorized');
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(31_000); // past the periodic save
+      });
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(storedGame()).toMatchObject({ availableSteps: 7000 });
+
+      await act(async () => {
+        finishLoad();
+      });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.availableSteps).toBe(7000 + sumCounts(records));
       });
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(1);
+      expect(storedGame()).toMatchObject({ availableSteps: 7000 + sumCounts(records) });
+    });
 
-      // First sync (after debounce time)
-      act(() => {
-        jest.advanceTimersByTime(31000);
-      });
+    it('should not sync when the saved game failed to load', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      seedSave({ availableSteps: 7000, lastSyncTimestamp: NOW - HOUR_MS });
+      mockAsyncStorage.getItem.mockRejectedValueOnce(new Error('SQLITE_IOERR'));
+
+      const { result } = await renderReady();
 
       await act(async () => {
-        await result.current.syncSteps();
+        expect(await result.current.syncSteps()).toMatchObject({
+          status: 'error',
+          code: 'not_loaded',
+        });
+      });
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
+      consoleError.mockRestore();
+      consoleWarn.mockRestore();
+    });
+
+    it('should report a read error and keep steps and watermark', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      seedSave({ availableSteps: 900, lastSyncTimestamp: NOW - HOUR_MS });
+      fakeHC.upsert(walk(NOW - HOUR_MS, NOW, 10));
+
+      const { result } = await renderReady();
+      await waitFor(() => {
+        expect(result.current.availableSteps).toBe(1500);
       });
 
-      // Immediate second sync should be debounced
+      const mark = watermark();
       await act(async () => {
-        const secondResult = await result.current.syncSteps();
-        expect(secondResult.newSteps).toBe(0); // Debounced
+        await jest.advanceTimersByTimeAsync(MINUTE_MS);
       });
+      fakeHC.failNext('readRecords', hcErrors.rateLimited());
+
+      await act(async () => {
+        expect(await result.current.syncSteps()).toMatchObject({
+          status: 'error',
+          code: 'rate_limited',
+        });
+      });
+      expect(result.current.availableSteps).toBe(1500);
+      expect(watermark()).toBe(mark);
+      expect(storedGame()).toMatchObject({ availableSteps: 1500, lastSyncTimestamp: mark });
+      consoleError.mockRestore();
     });
 
     it('should fail sync when permission not granted', async () => {
-      mockHealthService.checkPermission.mockResolvedValue('not_determined');
-      mockHealthService.getPermissionStatus.mockReturnValue('not_determined');
+      fakeHC.granted = false;
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await act(async () => {
-        const syncResult = await result.current.syncSteps();
-        expect(syncResult.success).toBe(false);
-        expect(syncResult.error).toContain('Permission');
+        expect(await result.current.syncSteps()).toMatchObject({
+          status: 'error',
+          code: 'not_authorized',
+        });
       });
     });
 
     it('should not credit historical steps on first sync', async () => {
-      mockHealthService.getStepsSince.mockResolvedValue(10000);
+      fakeHC.upsert(walk(NOW - 3 * HOUR_MS, NOW, 50));
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
+      const { result } = await renderReady();
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(useStepSyncStatus.getState().lastResult).toEqual({
+          status: 'synced',
+          credited: 0,
+        });
       });
-
-      // First sync should not credit historical steps
-      await act(async () => {
-        const syncResult = await result.current.syncSteps();
-        expect(syncResult.newSteps).toBe(0);
-      });
+      expect(result.current.availableSteps).toBe(0);
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+      expect(watermark()).toBeGreaterThanOrEqual(NOW);
+      expect(storedGame()).toMatchObject({ availableSteps: 0, lastSyncTimestamp: watermark() });
     });
   });
 
   describe('Step Spending', () => {
     it('should spend steps correctly', async () => {
-      // Start with saved state that has steps
-      mockAsyncStorage.getItem.mockResolvedValue(
-        JSON.stringify({
-          availableSteps: 3000,
-          lastSyncTimestamp: Date.now() - 60000,
-          totalStepsGathered: 0,
-        })
-      );
+      seedSave({ availableSteps: 3000, lastSyncTimestamp: NOW - 60000, totalStepsGathered: 0 });
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await waitFor(() => {
         expect(result.current.availableSteps).toBe(3000);
@@ -274,19 +332,9 @@ describe('useStepGathering', () => {
     });
 
     it('should track total steps gathered', async () => {
-      mockAsyncStorage.getItem.mockResolvedValue(
-        JSON.stringify({
-          availableSteps: 5000,
-          lastSyncTimestamp: Date.now() - 60000,
-          totalStepsGathered: 10000,
-        })
-      );
+      seedSave({ availableSteps: 5000, lastSyncTimestamp: NOW - 60000, totalStepsGathered: 10000 });
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await waitFor(() => {
         expect(result.current.totalStepsGathered).toBe(10000);
@@ -297,33 +345,21 @@ describe('useStepGathering', () => {
   describe('Material Gathering', () => {
     beforeEach(() => {
       // Start with enough steps for gathering
-      mockAsyncStorage.getItem.mockResolvedValue(
-        JSON.stringify({
-          availableSteps: 5000,
-          lastSyncTimestamp: Date.now() - 60000,
-          totalStepsGathered: 0,
-          inventory: { stone: [], wood: [], food: [] },
-          unlockedTechs: [],
-          ownedTools: [],
-          ownedComponents: [],
-        })
-      );
+      seedSave({
+        availableSteps: 5000,
+        lastSyncTimestamp: NOW - 60000,
+        totalStepsGathered: 0,
+        inventory: { stone: [], wood: [], food: [] },
+        unlockedTechs: [],
+        ownedTools: [],
+        ownedComponents: [],
+      });
     });
 
     it('should fail gathering when no steps available', async () => {
-      mockAsyncStorage.getItem.mockResolvedValue(
-        JSON.stringify({
-          availableSteps: 0,
-          lastSyncTimestamp: Date.now() - 60000,
-          totalStepsGathered: 0,
-        })
-      );
+      seedSave({ availableSteps: 0, lastSyncTimestamp: NOW - 60000, totalStepsGathered: 0 });
 
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await act(async () => {
         const gatherResult = await result.current.gatherMaterial('stone', null);
@@ -334,11 +370,7 @@ describe('useStepGathering', () => {
 
     it('should succeed gathering wood (base ability allows gathering)', async () => {
       // Wood has baseGatheringAbility of 1, so it doesn't require a tool
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await waitFor(() => {
         expect(result.current.availableSteps).toBe(5000);
@@ -354,13 +386,7 @@ describe('useStepGathering', () => {
     it('should succeed gathering stone (no tool required)', async () => {
       const onGather = jest.fn();
 
-      const { result } = renderHook(() => useStepGathering({ onGather }), {
-        wrapper: TestWrapper,
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady({ onGather });
 
       await waitFor(() => {
         expect(result.current.availableSteps).toBe(5000);
@@ -382,11 +408,7 @@ describe('useStepGathering', () => {
     });
 
     it('should succeed gathering food (no tool required)', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await waitFor(() => {
         expect(result.current.availableSteps).toBe(5000);
@@ -400,11 +422,7 @@ describe('useStepGathering', () => {
     });
 
     it('should return list of gatherable material types', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       expect(result.current.gatherableMaterialTypes).toBeDefined();
       expect(result.current.gatherableMaterialTypes.length).toBeGreaterThan(0);
@@ -414,81 +432,53 @@ describe('useStepGathering', () => {
   });
 
   describe('Auto-sync Interval', () => {
-    it('should auto-sync when interval is set', async () => {
-      mockHealthService.getStepsSince.mockResolvedValue(1000);
+    it('should credit steps walked since the last sync on each interval tick', async () => {
+      seedSave({ availableSteps: 0, lastSyncTimestamp: NOW - MINUTE_MS });
 
-      const { result } = renderHook(() => useStepGathering({ autoSyncInterval: 60000 }), {
-        wrapper: TestWrapper,
-      });
-
+      const { result } = await renderReady({ autoSyncInterval: 60000 });
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(useStepSyncStatus.getState().lastResult).toEqual({
+          status: 'synced',
+          credited: 0,
+        });
+      });
+      const readsAfterMount = fakeHC.callsTo('readRecords').length;
+
+      fakeHC.upsert(walk(watermark(), watermark() + MINUTE_MS, 80));
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(61000);
       });
 
-      // Fast-forward to trigger auto-sync
-      act(() => {
-        jest.advanceTimersByTime(61000);
-      });
-
-      // Verify that sync was attempted
-      // Note: Due to debouncing, the actual sync behavior depends on state
-      expect(mockHealthService.getPermissionStatus).toHaveBeenCalled();
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(readsAfterMount + 1);
+      expect(result.current.availableSteps).toBe(80);
     });
 
     it('should not auto-sync when interval is 0', async () => {
-      const { result } = renderHook(() => useStepGathering({ autoSyncInterval: 0 }), {
-        wrapper: TestWrapper,
-      });
+      seedSave({ availableSteps: 0, lastSyncTimestamp: NOW - MINUTE_MS });
 
+      await renderReady({ autoSyncInterval: 0 });
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(useStepSyncStatus.getState().lastResult).not.toBeNull();
+      });
+      const initialCallCount = fakeHC.callsTo('readRecords').length;
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(120000);
       });
 
-      const initialCallCount = mockHealthService.getStepsSince.mock.calls.length;
-
-      // Fast-forward time
-      act(() => {
-        jest.advanceTimersByTime(120000);
-      });
-
-      // Should not have made additional sync calls
-      expect(mockHealthService.getStepsSince.mock.calls.length).toBe(initialCallCount);
+      expect(fakeHC.callsTo('readRecords')).toHaveLength(initialCallCount);
     });
   });
 
   describe('Health Settings', () => {
     it('should open health settings', async () => {
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
+      const { result } = await renderReady();
 
       await act(async () => {
-        const opened = await result.current.openHealthSettings();
-        expect(opened).toBe(true);
+        expect(await result.current.openHealthSettings()).toBe(true);
       });
 
-      expect(mockHealthService.openHealthSettings).toHaveBeenCalled();
-    });
-
-    it('should open Play Store for Health Connect installation', async () => {
-      mockHealthService.needsHealthConnectInstall.mockReturnValue(true);
-
-      const { result } = renderHook(() => useStepGathering(), { wrapper: TestWrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.needsInstall).toBe(true);
-
-      await act(async () => {
-        const opened = await result.current.openPlayStore();
-        expect(opened).toBe(true);
-      });
-
-      expect(mockHealthService.openHealthConnectPlayStore).toHaveBeenCalled();
+      expect(fakeHC.callsTo('openHealthConnectSettings')).toHaveLength(1);
     });
   });
 });

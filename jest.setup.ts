@@ -177,7 +177,12 @@ export { mockLocationSubscription };
 // Reset all mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
-  useGameStore.setState({ ...createInitialGameData(), isLoading: true, saveError: false });
+  useGameStore.setState({
+    ...createInitialGameData(),
+    isLoading: true,
+    saveError: false,
+    loadFailed: false,
+  });
   __resetPersistenceForTests();
   __resetCanCraftCache();
 });

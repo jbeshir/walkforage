@@ -7,18 +7,32 @@
 export type HealthPermissionStatus = 'not_determined' | 'denied' | 'authorized' | 'unavailable';
 
 /**
- * Result from syncing steps from health service
+ * Why a step read failed. `unavailable` covers Health Connect updating or its service dying.
  */
-export interface StepSyncResult {
-  /** Number of new steps synced */
-  newSteps: number;
-  /** Total available steps after sync */
-  totalAvailable: number;
-  /** Whether sync was successful */
-  success: boolean;
-  /** Error message if sync failed */
-  error?: string;
-}
+export type StepReadErrorCode =
+  | 'permission'
+  | 'unavailable'
+  | 'rate_limited'
+  | 'not_initialized'
+  | 'unknown';
+
+/**
+ * Step total for a time window. A failed read is never reported as 0 steps.
+ */
+export type StepReadResult =
+  | { ok: true; steps: number }
+  | { ok: false; code: StepReadErrorCode; message: string };
+
+/**
+ * Result of a step sync. On error nothing was credited and the sync position did not move.
+ */
+export type StepSyncResult =
+  | { status: 'synced'; credited: number }
+  | {
+      status: 'error';
+      code: StepReadErrorCode | 'not_authorized' | 'not_loaded';
+      message: string;
+    };
 
 /**
  * Result from a gather action

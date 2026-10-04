@@ -68,7 +68,7 @@ const MaterialResourceRow = React.memo(function MaterialResourceRow({
 
 export default function CheatScreen() {
   const addResource = useGameStore((s) => s.addResource);
-  const syncSteps = useGameStore((s) => s.syncSteps);
+  const addBonusSteps = useGameStore((s) => s.addBonusSteps);
   const unlockTech = useGameStore((s) => s.unlockTech);
   const availableSteps = useGameStore((s) => s.availableSteps);
   const unlockedTechs = useGameStore((s) => s.unlockedTechs);
@@ -80,7 +80,7 @@ export default function CheatScreen() {
   const handleAddSteps = () => {
     const amount = parseInt(stepsAmount, 10);
     if (!isNaN(amount) && amount > 0) {
-      syncSteps(amount);
+      addBonusSteps(amount);
     }
   };
 
@@ -155,7 +155,7 @@ export default function CheatScreen() {
           <TouchableOpacity
             key={amount}
             style={[styles.quickButton, { backgroundColor: colors.surfaceSecondary }]}
-            onPress={() => syncSteps(amount)}
+            onPress={() => addBonusSteps(amount)}
           >
             <Text style={[styles.quickButtonText, { color: colors.primary }]}>+{amount}</Text>
           </TouchableOpacity>

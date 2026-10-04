@@ -22,9 +22,23 @@ import {
   calculateGatheringAbility,
 } from '../config/gathering';
 import { useGameStore } from '../store/gameStore';
+import { useStepSyncStatus } from '../services/stepSync';
+import { StepSyncResult } from '../types/health';
 import { useTheme } from '../hooks/useTheme';
 
 let toastId = 0;
+
+type StepSyncErrorCode = Extract<StepSyncResult, { status: 'error' }>['code'];
+
+const SYNC_ERROR_TEXT: Record<StepSyncErrorCode, string> = {
+  permission: 'Step access was revoked. Reconnect Health Connect to sync.',
+  unavailable: 'Health Connect is unavailable right now. Your steps are safe; try again later.',
+  rate_limited: 'Health Connect is busy. Your steps are safe; try again in a minute.',
+  not_initialized: "Health Connect isn't ready. Your steps are safe; try again.",
+  not_authorized: 'Step access not granted.',
+  not_loaded: "Your saved game hasn't loaded, so steps can't be synced yet.",
+  unknown: 'Sync failed. Your steps are safe; try again.',
+};
 
 export interface StepGatherPanelProps {
   /** Step gathering hook return value */
@@ -58,6 +72,7 @@ export function StepGatherPanel({
   } = stepGathering;
 
   const ownedTools = useGameStore((s) => s.ownedTools);
+  const syncing = useStepSyncStatus((s) => s.syncing);
   const { colors } = useTheme().theme;
 
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
@@ -93,10 +108,9 @@ export function StepGatherPanel({
   }, []);
 
   const handleRequestPermission = useCallback(async () => {
+    // A grant starts the sync from useStepGathering; nothing to do here on success.
     const status = await requestPermission();
-    if (status === 'authorized') {
-      await syncSteps();
-    } else if (status === 'denied') {
+    if (status === 'denied') {
       Alert.alert(
         'Permission Denied',
         'Step access was denied. Would you like to open Health Connect settings to grant permission?',
@@ -113,7 +127,7 @@ export function StepGatherPanel({
         ]
       );
     }
-  }, [requestPermission, syncSteps, openHealthSettings, showToast]);
+  }, [requestPermission, openHealthSettings, showToast]);
 
   const handleInstallHealthConnect = useCallback(async () => {
     Alert.alert(
@@ -154,12 +168,12 @@ export function StepGatherPanel({
 
   const handleSync = useCallback(async () => {
     const result = await syncSteps();
-    if (result.success && result.newSteps > 0) {
-      showToast(`+${result.newSteps} steps synced!`, 'info');
-    } else if (result.success) {
-      showToast('No new steps', 'info');
+    if (result.status === 'error') {
+      showToast(SYNC_ERROR_TEXT[result.code], 'error');
+    } else if (result.credited > 0) {
+      showToast(`+${result.credited.toLocaleString()} steps synced!`, 'info');
     } else {
-      showToast(result.error || 'Sync failed', 'error');
+      showToast('Up to date: no new steps since your last sync', 'info');
     }
   }, [syncSteps, showToast]);
 
@@ -307,9 +321,15 @@ export function StepGatherPanel({
             </View>
             <TouchableOpacity
               onPress={handleSync}
+              disabled={syncing}
+              accessibilityState={{ disabled: syncing, busy: syncing }}
               style={[styles.syncButton, { backgroundColor: colors.surfaceSecondary }]}
             >
-              <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync</Text>
+              {syncing ? (
+                <ActivityIndicator size="small" color={colors.info} />
+              ) : (
+                <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync</Text>
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.compactButtons}>
@@ -365,9 +385,15 @@ export function StepGatherPanel({
           </Text>
           <TouchableOpacity
             onPress={handleSync}
+            disabled={syncing}
+            accessibilityState={{ disabled: syncing, busy: syncing }}
             style={[styles.syncButtonFull, { backgroundColor: colors.surfaceSecondary }]}
           >
-            <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
+            {syncing ? (
+              <ActivityIndicator size="small" color={colors.info} />
+            ) : (
+              <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
+            )}
           </TouchableOpacity>
         </View>
 

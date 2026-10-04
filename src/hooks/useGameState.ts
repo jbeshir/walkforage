@@ -12,6 +12,7 @@ export interface GameStateHook {
   state: GameState;
   isLoading: boolean;
   saveError: boolean;
+  loadFailed: boolean;
 
   // Inventory actions
   addResource: (category: keyof Inventory, resourceId: string, quantity: number) => void;
@@ -37,7 +38,7 @@ export interface GameStateHook {
   addExplorationPoints: (points: number) => void;
 
   // Step gathering actions
-  syncSteps: (newSteps: number) => void;
+  addBonusSteps: (amount: number) => void;
   spendSteps: (amount: number) => void;
   getStepGatheringState: () => {
     availableSteps: number;
@@ -77,6 +78,7 @@ export function useGameState(): GameStateHook {
     },
     isLoading: s.isLoading,
     saveError: s.saveError,
+    loadFailed: s.loadFailed,
     addResource: s.addResource,
     removeResource: s.removeResource,
     hasResource: s.hasResource,
@@ -90,7 +92,7 @@ export function useGameState(): GameStateHook {
     canCraft: s.canCraft,
     craft: s.craft,
     addExplorationPoints: s.addExplorationPoints,
-    syncSteps: s.syncSteps,
+    addBonusSteps: s.addBonusSteps,
     spendSteps: s.spendSteps,
     getStepGatheringState: s.getStepGatheringState,
     saveGame,

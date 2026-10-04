@@ -26,7 +26,11 @@ let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 function enqueueSave(): Promise<void> {
   const doWrite = async (): Promise<void> => {
     // Read LIVE state at execution time so the latest queued save wins.
-    const data = selectData(useGameStore.getState());
+    const state = useGameStore.getState();
+    // Until the stored game has loaded, memory holds initial state, not the player's game:
+    // writing it would overwrite their save.
+    if (state.isLoading || state.loadFailed) return;
+    const data = selectData(state);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(data)));
     lastSaveTime = Date.now();
     saveFailureCount = 0;
@@ -70,12 +74,11 @@ export async function loadGame(): Promise<void> {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
     if (saved) {
       const rawParsed = JSON.parse(saved) as unknown;
+      if (rawParsed === null || typeof rawParsed !== 'object' || Array.isArray(rawParsed)) {
+        throw new Error('Saved game is not an object');
+      }
       // Migrate unversioned/older saves up to current schema before validation.
-      const base =
-        rawParsed !== null && typeof rawParsed === 'object' && !Array.isArray(rawParsed)
-          ? (rawParsed as Record<string, unknown>)
-          : {};
-      const migrated = migratePersisted(base);
+      const migrated = migratePersisted(rawParsed as Record<string, unknown>);
 
       // Rebuild inventory: only accept well-formed stacks per material type.
       const mergedInventory = createEmptyInventory();
@@ -110,7 +113,10 @@ export async function loadGame(): Promise<void> {
       });
     }
   } catch (error) {
+    // Unreadable, corrupt or unmigratable: keep the stored blob untouched (saves are blocked)
+    // and never let the initial state pass for a real game.
     console.error('Failed to load game:', error);
+    useGameStore.getState()._setLoadFailed(true);
   } finally {
     useGameStore.getState()._setLoading(false);
   }

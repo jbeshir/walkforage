@@ -1,9 +1,10 @@
 // useStepGathering - Hook for step-based resource gathering
-// Syncs steps from HealthConnect/HealthKit and allows spending steps for resources
-// Uses useGameStore for persistence across screen changes
+// Wires the step sync (src/services/stepSync.ts) to the screen lifecycle and allows spending
+// steps for resources. Uses useGameStore for persistence across screen changes
 
 import { useState, useCallback, useEffect } from 'react';
 import { healthService } from '../services/HealthService';
+import { syncSteps } from '../services/stepSync';
 import { useGameStore } from '../store/gameStore';
 import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
 import { LocationGeoData } from '../types/gis';
@@ -25,8 +26,6 @@ export interface UseStepGatheringOptions {
 export interface UseStepGatheringReturn {
   /** Steps available for gathering (reactive - use for render) */
   availableSteps: number;
-  /** Timestamp of last step sync */
-  lastSyncTimestamp: number;
   /** Total steps ever used for gathering */
   totalStepsGathered: number;
   /** Current health permission status */
@@ -56,15 +55,19 @@ export interface UseStepGatheringReturn {
   gatherableMaterialTypes: MaterialType[];
 }
 
+async function syncAndLog(): Promise<void> {
+  const result = await syncSteps();
+  if (result.status === 'error') console.warn('step sync failed:', result.code, result.message);
+}
+
 export function useStepGathering(options: UseStepGatheringOptions = {}): UseStepGatheringReturn {
   const { onGather, autoSyncInterval = 0 } = options;
 
   const ownedTools = useGameStore((s) => s.ownedTools);
   const availableSteps = useGameStore((s) => s.availableSteps);
-  const lastSyncTimestamp = useGameStore((s) => s.lastSyncTimestamp);
   const totalStepsGathered = useGameStore((s) => s.totalStepsGathered);
   const getStepGatheringState = useGameStore((s) => s.getStepGatheringState);
-  const persistSyncSteps = useGameStore((s) => s.syncSteps);
+  const isHydrated = useGameStore((s) => !s.isLoading);
   const persistSpendSteps = useGameStore((s) => s.spendSteps);
 
   // Permission status is ephemeral - checked with health service on each init
@@ -100,13 +103,6 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
       if (mounted) {
         setPermissionStatus(status);
         setIsLoading(false);
-
-        // If already authorized, sync (debounce will prevent rapid re-syncs)
-        if (status === 'authorized') {
-          void doSyncSteps().then((r) => {
-            if (!r.success) console.warn('step sync failed:', r.error);
-          });
-        }
       }
     }
 
@@ -114,101 +110,36 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     return () => {
       mounted = false;
     };
-    // Mount-only init: doSyncSteps reads live state via getStepGatheringState() and live
-    // permission via healthService, so an empty dep array can't capture stale step data.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync once the saved game has loaded and step access is granted: on mount, and again
+  // when the user grants access in-app.
+  useEffect(() => {
+    if (!isHydrated || permissionStatus !== 'authorized') return;
+    void syncAndLog();
+  }, [isHydrated, permissionStatus]);
 
   // Auto-sync interval
   useEffect(() => {
     if (autoSyncInterval <= 0) return;
     if (permissionStatus !== 'authorized') return;
 
-    const interval = setInterval(() => {
-      void doSyncSteps().then((r) => {
-        if (!r.success) console.warn('step sync failed:', r.error);
-      });
-    }, autoSyncInterval);
+    const interval = setInterval(() => void syncAndLog(), autoSyncInterval);
 
     return () => clearInterval(interval);
-    // doSyncSteps reads live state via getStepGatheringState()/healthService each tick,
-    // so omitting it from deps can't read stale step data; re-run only on the listed deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSyncInterval, permissionStatus]);
-
-  // Internal sync function that uses persisted state
-  const doSyncSteps = useCallback(async (): Promise<StepSyncResult> => {
-    // Get fresh state to avoid stale closure issues
-    const currentState = getStepGatheringState();
-
-    // Check permission via service to avoid stale closure issues
-    // (permissionStatus from closure may be stale when called from init effect)
-    const currentPermission = healthService.getPermissionStatus();
-    if (currentPermission !== 'authorized') {
-      return {
-        newSteps: 0,
-        totalAvailable: currentState.availableSteps,
-        success: false,
-        error: 'Permission not granted',
-      };
-    }
-
-    // Debounce: don't re-sync within 30 seconds (persists across app restarts)
-    const MIN_SYNC_INTERVAL_MS = 30000;
-    if (currentState.lastSyncTimestamp > 0) {
-      const timeSinceLastSync = Date.now() - currentState.lastSyncTimestamp;
-      if (timeSinceLastSync < MIN_SYNC_INTERVAL_MS) {
-        return {
-          newSteps: 0,
-          totalAvailable: currentState.availableSteps,
-          success: true,
-        };
-      }
-    }
-
-    try {
-      // Get steps since last sync
-      // On first launch (no timestamp), start fresh - don't credit historical steps
-      const isFirstSync = !currentState.lastSyncTimestamp;
-      const syncSince = currentState.lastSyncTimestamp || Date.now();
-      const newSteps = isFirstSync ? 0 : await healthService.getStepsSince(syncSince);
-
-      // Persist the new steps to game state (also updates lastSyncTimestamp)
-      persistSyncSteps(newSteps);
-
-      return {
-        newSteps,
-        totalAvailable: currentState.availableSteps + newSteps,
-        success: true,
-      };
-    } catch (error) {
-      return {
-        newSteps: 0,
-        totalAvailable: currentState.availableSteps,
-        success: false,
-        error: error instanceof Error ? error.message : 'Sync failed',
-      };
-    }
-  }, [getStepGatheringState, persistSyncSteps]);
 
   const requestPermission = useCallback(async (): Promise<HealthPermissionStatus> => {
     setIsLoading(true);
     try {
+      // A grant flips permissionStatus to 'authorized', which triggers the sync effect above.
       const status = await healthService.requestPermission();
       setPermissionStatus(status);
-
-      // If permission granted, sync (debounce will prevent rapid re-syncs)
-      if (status === 'authorized') {
-        void doSyncSteps().then((r) => {
-          if (!r.success) console.warn('step sync failed:', r.error);
-        });
-      }
-
       return status;
     } finally {
       setIsLoading(false);
     }
-  }, [doSyncSteps]);
+  }, []);
 
   const spendSteps = useCallback(
     (amount: number) => {
@@ -282,11 +213,10 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
   return {
     availableSteps,
-    lastSyncTimestamp,
     totalStepsGathered,
     permissionStatus,
     isLoading,
-    syncSteps: doSyncSteps,
+    syncSteps,
     requestPermission,
     gatherMaterial,
     spendSteps,

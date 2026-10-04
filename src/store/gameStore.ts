@@ -108,6 +108,8 @@ export function createInitialGameData(): GameData {
 export interface GameStore extends GameData {
   isLoading: boolean;
   saveError: boolean;
+  /** The stored game could not be read; saves are blocked so it is never overwritten. */
+  loadFailed: boolean;
 
   // Mutating actions
   addResource: (category: keyof Inventory, resourceId: string, quantity: number) => void;
@@ -115,7 +117,10 @@ export interface GameStore extends GameData {
   unlockTech: (techId: string) => void;
   craft: (params: CraftItemParams) => { success: boolean; error?: string };
   addExplorationPoints: (points: number) => void;
-  syncSteps: (newSteps: number) => void;
+  /** Credit synced steps and move the sync position to the end of the window read. */
+  applyStepSync: (credited: number, lastSyncTimestamp: number) => void;
+  /** Add steps without touching the sync position (cheat screen). */
+  addBonusSteps: (amount: number) => void;
   spendSteps: (amount: number) => void;
 
   // Stable getter methods (read live state via get())
@@ -137,6 +142,7 @@ export interface GameStore extends GameData {
   _hydrate: (data: GameData) => void;
   _setLoading: (b: boolean) => void;
   _setSaveError: (b: boolean) => void;
+  _setLoadFailed: (b: boolean) => void;
   _reset: () => void;
 }
 
@@ -167,6 +173,7 @@ export const useGameStore = create<GameStore>()(
     ...createInitialGameData(),
     isLoading: true,
     saveError: false,
+    loadFailed: false,
 
     addResource: (category, resourceId, quantity) =>
       set((s) => ({
@@ -216,11 +223,13 @@ export const useGameStore = create<GameStore>()(
     addExplorationPoints: (points) =>
       set((s) => ({ explorationPoints: s.explorationPoints + points })),
 
-    syncSteps: (newSteps) =>
+    applyStepSync: (credited, lastSyncTimestamp) =>
       set((s) => ({
-        availableSteps: s.availableSteps + newSteps,
-        lastSyncTimestamp: Date.now(),
+        availableSteps: s.availableSteps + credited,
+        lastSyncTimestamp,
       })),
+
+    addBonusSteps: (amount) => set((s) => ({ availableSteps: s.availableSteps + amount })),
 
     spendSteps: (amount) =>
       set((s) => ({
@@ -286,8 +295,11 @@ export const useGameStore = create<GameStore>()(
 
     _setSaveError: (b) => set({ saveError: b }),
 
+    _setLoadFailed: (b) => set({ loadFailed: b }),
+
     _reset: () => {
-      set({ ...createInitialGameData() });
+      // The stored game has been deleted, so there is no save left for loadFailed to protect.
+      set({ ...createInitialGameData(), loadFailed: false });
       __resetCanCraftCache();
     },
   }))

@@ -2,7 +2,7 @@
 // Uses HealthConnect on Android and HealthKit on iOS
 
 import { Platform, Linking } from 'react-native';
-import { HealthPermissionStatus } from '../types/health';
+import { HealthPermissionStatus, StepReadResult } from '../types/health';
 
 // Conditional imports - these will be resolved at build time
 let HealthConnect: typeof import('react-native-health-connect') | null = null;
@@ -26,6 +26,29 @@ async function loadHealthModule(): Promise<void> {
   } catch (error) {
     console.warn('Failed to load health module:', error);
   }
+}
+
+/**
+ * Map a rejected read to a code. RNHC rejects with the `code` from its ExceptionsUtils mapping:
+ * a rate limit and "Health Connect is updating" both arrive as SERVICE_UNAVAILABLE (only the
+ * message tells them apart), and a RemoteException arrives as UNDERLYING_ERROR.
+ */
+function toStepReadError(error: unknown): StepReadResult & { ok: false } {
+  const code = (error as { code?: unknown } | null)?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  if (/rate limit|quota/i.test(message)) {
+    return { ok: false, code: 'rate_limited', message };
+  }
+  if (code === 'PERMISSION_ERROR' || /SecurityException|permission/i.test(message)) {
+    return { ok: false, code: 'permission', message };
+  }
+  if (code === 'SERVICE_UNAVAILABLE' || /RemoteException|updating/i.test(message)) {
+    return { ok: false, code: 'unavailable', message };
+  }
+  if (code === 'CLIENT_NOT_INITIALIZED') {
+    return { ok: false, code: 'not_initialized', message };
+  }
+  return { ok: false, code: 'unknown', message };
 }
 
 export class HealthService {
@@ -180,35 +203,41 @@ export class HealthService {
   }
 
   /**
-   * Get step count since a given timestamp
-   * @param sinceTimestamp - Start time for step count (ms since epoch)
-   * @returns Number of steps since the given time
+   * Read the step total for [startMs, endMs). Errors are returned as codes, never as 0 steps.
    */
-  async getStepsSince(sinceTimestamp: number): Promise<number> {
+  async readSteps(startMs: number, endMs: number): Promise<StepReadResult> {
     if (!this.initialized) {
       const success = await this.initialize();
-      if (!success) return 0;
+      if (!success) {
+        return { ok: false, code: 'not_initialized', message: 'Health service is not available' };
+      }
     }
 
-    const startDate = new Date(sinceTimestamp);
-    const endDate = new Date();
+    const startDate = new Date(startMs);
+    const endDate = new Date(endMs);
 
     try {
       if (Platform.OS === 'android' && HealthConnect) {
-        const result = await HealthConnect.readRecords('Steps', {
-          timeRangeFilter: {
-            operator: 'between',
-            startTime: startDate.toISOString(),
-            endTime: endDate.toISOString(),
-          },
-        });
-
-        // Sum up all step records (defensive: malformed/NaN payload -> 0)
-        const totalSteps = (result?.records ?? []).reduce(
-          (sum, record) => sum + (Number(record?.count) || 0),
-          0
-        );
-        return Math.floor(totalSteps);
+        let totalSteps = 0;
+        let pageToken: string | undefined;
+        do {
+          const page = await HealthConnect.readRecords('Steps', {
+            timeRangeFilter: {
+              operator: 'between',
+              startTime: startDate.toISOString(),
+              endTime: endDate.toISOString(),
+            },
+            pageToken,
+          });
+          // Defensive: a NaN count from the bridge counts as 0
+          totalSteps = page.records.reduce(
+            (sum, record) => sum + (Number(record.count) || 0),
+            totalSteps
+          );
+          // Health Connect may end paging with '' rather than undefined
+          pageToken = page.pageToken || undefined;
+        } while (pageToken);
+        return { ok: true, steps: Math.floor(totalSteps) };
       } else if (Platform.OS === 'ios' && HealthKit) {
         // Query step samples from HealthKit
         const samples = await HealthKit.queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
@@ -227,23 +256,14 @@ export class HealthService {
           (sum, sample) => sum + (Number(sample?.quantity) || 0),
           0
         );
-        return Math.floor(totalSteps);
+        return { ok: true, steps: Math.floor(totalSteps) };
       }
 
-      return 0;
+      return { ok: false, code: 'unavailable', message: 'Step data is not available here' };
     } catch (error) {
       console.error('Failed to read steps:', error);
-      return 0;
+      return toStepReadError(error);
     }
-  }
-
-  /**
-   * Get today's step count
-   */
-  async getTodaySteps(): Promise<number> {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    return this.getStepsSince(startOfDay.getTime());
   }
 
   /**
