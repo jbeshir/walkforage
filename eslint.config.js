@@ -80,4 +80,21 @@ module.exports = [
       'prefer-const': 'warn',
     },
   },
+  {
+    // Expo config plugins run in Node as CommonJS during prebuild
+    files: ['plugins/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'writable',
+      },
+    },
+    rules: {
+      'no-undef': 'error',
+      'no-unused-vars': 'error',
+      'prefer-const': 'error',
+    },
+  },
 ];

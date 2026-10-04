@@ -1,4 +1,4 @@
-// Persistence Error Banner - Non-modal warning for save failures
+// Persistence Error Banner - Non-modal warning for load and save failures
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,16 +8,24 @@ import { useTheme } from '../hooks/useTheme';
 
 export function PersistenceErrorBanner(): React.ReactElement | null {
   const saveError = useGameStore((s) => s.saveError);
+  const loadFailed = useGameStore((s) => s.loadFailed);
   const { theme } = useTheme();
   const { colors } = theme;
   const insets = useSafeAreaInsets();
 
-  if (!saveError) return null;
+  // A failed load blocks every save (so the stored game is not overwritten), so it takes
+  // precedence over a save error.
+  const message = loadFailed
+    ? "Couldn't load your saved game. Progress isn't being saved; restart the app to retry."
+    : saveError
+      ? "Progress isn't being saved"
+      : null;
+  if (message === null) return null;
 
   return (
     <View
       accessibilityRole="alert"
-      accessibilityLabel="Progress isn't being saved"
+      accessibilityLabel={message}
       pointerEvents="none"
       style={[
         styles.banner,
@@ -28,9 +36,7 @@ export function PersistenceErrorBanner(): React.ReactElement | null {
         },
       ]}
     >
-      <Text style={[styles.text, { color: colors.warningText }]}>
-        {"⚠ Progress isn't being saved"}
-      </Text>
+      <Text style={[styles.text, { color: colors.warningText }]}>{`⚠ ${message}`}</Text>
     </View>
   );
 }

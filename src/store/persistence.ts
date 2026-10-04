@@ -14,6 +14,8 @@ import {
 } from './gameStore';
 import { getAllMaterialTypes } from '../config/materials';
 import { createEmptyInventory } from '../types/resources';
+import { StepBucket, StepLedger } from '../types/health';
+import { ledgerSince } from '../services/stepLedger';
 
 const SAVE_THROTTLE_MS = 3000;
 const SAVE_FAILURE_THRESHOLD = 3;
@@ -26,7 +28,11 @@ let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 function enqueueSave(): Promise<void> {
   const doWrite = async (): Promise<void> => {
     // Read LIVE state at execution time so the latest queued save wins.
-    const data = selectData(useGameStore.getState());
+    const state = useGameStore.getState();
+    // Until the stored game has loaded, memory holds initial state, not the player's game:
+    // writing it would overwrite their save.
+    if (state.isLoading || state.loadFailed) return;
+    const data = selectData(state);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(data)));
     lastSaveTime = Date.now();
     saveFailureCount = 0;
@@ -65,17 +71,53 @@ function throttledSave(): void {
   }
 }
 
+function isTime(x: unknown): x is number {
+  return typeof x === 'number' && Number.isFinite(x) && x >= 0;
+}
+
+function sanitiseBuckets(x: unknown): StepBucket[] | null {
+  if (!Array.isArray(x) || x.length === 0) return null;
+  const buckets: StepBucket[] = [];
+  for (const el of x) {
+    if (el === null || typeof el !== 'object') return null;
+    const { startMs, endMs, credited } = el as Record<string, unknown>;
+    if (!isTime(startMs) || !isTime(endMs) || !isTime(credited) || endMs <= startMs) return null;
+    const previous = buckets[buckets.length - 1];
+    if (previous && previous.endMs !== startMs) return null;
+    buckets.push({ startMs, endMs, credited });
+  }
+  return buckets;
+}
+
+/**
+ * A stored ledger, or null if there is none. Null means a new game whose first sync credits the
+ * welcome week, so a ledger with either part still usable does not become null:
+ * - Valid buckets with a bad `lastSyncedAt` keep their high-water marks and take `lastSyncedAt`
+ *   from the first bucket's start, the earliest the last sync could have been. Every bucket is
+ *   then re-read, which credits only above the marks, so no day is skipped or credited twice.
+ * - Bad buckets with a valid `lastSyncedAt` restart from `lastSyncedAt`, crediting the steps
+ *   since then (never twice, but late data for days before it is lost).
+ * Only a ledger with neither is dropped.
+ */
+function sanitiseLedger(x: unknown): StepLedger | null {
+  if (x === null || typeof x !== 'object' || Array.isArray(x)) return null;
+  const { buckets, lastSyncedAt } = x as Record<string, unknown>;
+  const sanitised = sanitiseBuckets(buckets);
+  const syncedAt = isTime(lastSyncedAt) && lastSyncedAt > 0 ? lastSyncedAt : undefined;
+  if (sanitised) return { buckets: sanitised, lastSyncedAt: syncedAt ?? sanitised[0].startMs };
+  return syncedAt === undefined ? null : ledgerSince(syncedAt);
+}
+
 export async function loadGame(): Promise<void> {
   try {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
     if (saved) {
       const rawParsed = JSON.parse(saved) as unknown;
+      if (rawParsed === null || typeof rawParsed !== 'object' || Array.isArray(rawParsed)) {
+        throw new Error('Saved game is not an object');
+      }
       // Migrate unversioned/older saves up to current schema before validation.
-      const base =
-        rawParsed !== null && typeof rawParsed === 'object' && !Array.isArray(rawParsed)
-          ? (rawParsed as Record<string, unknown>)
-          : {};
-      const migrated = migratePersisted(base);
+      const migrated = migratePersisted(rawParsed as Record<string, unknown>);
 
       // Rebuild inventory: only accept well-formed stacks per material type.
       const mergedInventory = createEmptyInventory();
@@ -102,15 +144,14 @@ export async function loadGame(): Promise<void> {
           migrated.totalStepsGathered,
           initialData.totalStepsGathered
         ),
-        lastSyncTimestamp:
-          typeof migrated.lastSyncTimestamp === 'number' &&
-          Number.isFinite(migrated.lastSyncTimestamp)
-            ? Math.max(0, migrated.lastSyncTimestamp)
-            : initialData.lastSyncTimestamp,
+        stepLedger: sanitiseLedger(migrated.stepLedger),
       });
     }
   } catch (error) {
+    // Unreadable, corrupt or unmigratable: keep the stored blob untouched (saves are blocked)
+    // and never let the initial state pass for a real game.
     console.error('Failed to load game:', error);
+    useGameStore.getState()._setLoadFailed(true);
   } finally {
     useGameStore.getState()._setLoading(false);
   }

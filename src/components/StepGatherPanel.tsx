@@ -22,7 +22,11 @@ import {
   calculateGatheringAbility,
 } from '../config/gathering';
 import { useGameStore } from '../store/gameStore';
+import { useStepSyncStatus } from '../services/stepSync';
 import { useTheme } from '../hooks/useTheme';
+import { formatTime } from '../utils/time';
+import { SyncStatus } from './SyncStatus';
+import { WelcomeBackSummary } from './WelcomeBackSummary';
 
 let toastId = 0;
 
@@ -53,11 +57,14 @@ export function StepGatherPanel({
     gatherMaterial,
     isAvailable,
     needsInstall,
+    unsupported,
     openHealthSettings,
     openPlayStore,
   } = stepGathering;
 
   const ownedTools = useGameStore((s) => s.ownedTools);
+  const syncing = useStepSyncStatus((s) => s.syncing);
+  const hasSynced = useGameStore((s) => s.stepLedger !== null);
   const { colors } = useTheme().theme;
 
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
@@ -93,10 +100,9 @@ export function StepGatherPanel({
   }, []);
 
   const handleRequestPermission = useCallback(async () => {
+    // A grant starts the sync from useStepGathering; nothing to do here on success.
     const status = await requestPermission();
-    if (status === 'authorized') {
-      await syncSteps();
-    } else if (status === 'denied') {
+    if (status === 'denied') {
       Alert.alert(
         'Permission Denied',
         'Step access was denied. Would you like to open Health Connect settings to grant permission?',
@@ -113,7 +119,7 @@ export function StepGatherPanel({
         ]
       );
     }
-  }, [requestPermission, syncSteps, openHealthSettings, showToast]);
+  }, [requestPermission, openHealthSettings, showToast]);
 
   const handleInstallHealthConnect = useCallback(async () => {
     Alert.alert(
@@ -153,19 +159,28 @@ export function StepGatherPanel({
   );
 
   const handleSync = useCallback(async () => {
+    // Errors show in SyncStatus and credits in WelcomeBackSummary; only "nothing new" needs a toast.
     const result = await syncSteps();
-    if (result.success && result.newSteps > 0) {
-      showToast(`+${result.newSteps} steps synced!`, 'info');
-    } else if (result.success) {
-      showToast('No new steps', 'info');
-    } else {
-      showToast(result.error || 'Sync failed', 'error');
+    if (result.status === 'synced' && result.credited === 0) {
+      showToast(`Up to date (synced ${formatTime(result.syncedAt)})`, 'info');
     }
   }, [syncSteps, showToast]);
 
   // Not available on this platform
   if (!isAvailable) {
-    return null;
+    return (
+      <View
+        style={[
+          styles.container,
+          compact && styles.containerCompact,
+          { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
+        ]}
+      >
+        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+          Step tracking isn&apos;t available on this device
+        </Text>
+      </View>
+    );
   }
 
   // Loading state
@@ -220,13 +235,17 @@ export function StepGatherPanel({
         ]}
       >
         <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-          Connect health to gather resources with steps
+          {hasSynced
+            ? "Step access is off. Reconnect to add the steps you've walked since your last sync."
+            : 'Connect health to gather resources with steps'}
         </Text>
         <TouchableOpacity
           style={[styles.permissionButton, { backgroundColor: colors.primary }]}
           onPress={handleRequestPermission}
         >
-          <Text style={styles.permissionButtonText}>Connect Health</Text>
+          <Text style={styles.permissionButtonText}>
+            {hasSynced ? 'Reconnect Health' : 'Connect Health'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowRationale(true)} style={styles.learnWhyLink}>
           <Text style={[styles.learnWhyText, { color: colors.info }]}>Learn why we need this</Text>
@@ -276,10 +295,10 @@ export function StepGatherPanel({
     );
   }
 
-  // Unavailable (unsupported device/platform)
-  if (permissionStatus === 'unavailable') {
-    return null;
-  }
+  // Health Connect unavailable (e.g. updating, or not supported here): saved steps can still be
+  // spent, and SyncStatus explains why nothing syncs.
+  const healthUnavailable =
+    permissionStatus !== 'unavailable' ? null : unsupported ? 'unsupported' : 'unavailable';
 
   // Compact mode for overlay
   if (compact) {
@@ -293,9 +312,10 @@ export function StepGatherPanel({
             { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
           ]}
         >
+          <WelcomeBackSummary />
           <Text style={[styles.compactLabel, { color: colors.textSecondary }]}>Forage</Text>
           <View style={styles.compactHeader}>
-            <View>
+            <View style={styles.compactSteps}>
               <Text style={[styles.stepCount, { color: colors.primary }]}>
                 {availableSteps.toLocaleString()} steps
               </Text>
@@ -304,12 +324,20 @@ export function StepGatherPanel({
                   ? `${gatherableCount} gather${gatherableCount !== 1 ? 's' : ''} available`
                   : `${STEPS_PER_GATHER - (availableSteps % STEPS_PER_GATHER)} more for next`}
               </Text>
+              <SyncStatus healthUnavailable={healthUnavailable} onRetry={handleSync} />
             </View>
             <TouchableOpacity
               onPress={handleSync}
+              disabled={syncing}
+              accessibilityLabel="Sync steps"
+              accessibilityState={{ disabled: syncing, busy: syncing }}
               style={[styles.syncButton, { backgroundColor: colors.surfaceSecondary }]}
             >
-              <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync</Text>
+              {syncing ? (
+                <ActivityIndicator size="small" color={colors.info} />
+              ) : (
+                <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync</Text>
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.compactButtons}>
@@ -351,6 +379,7 @@ export function StepGatherPanel({
           { backgroundColor: colors.overlayPanel, shadowColor: colors.shadow },
         ]}
       >
+        <WelcomeBackSummary />
         <Text style={[styles.title, { color: colors.textPrimary }]}>Forage</Text>
 
         <View style={styles.stepSection}>
@@ -365,10 +394,18 @@ export function StepGatherPanel({
           </Text>
           <TouchableOpacity
             onPress={handleSync}
+            disabled={syncing}
+            accessibilityLabel="Sync steps"
+            accessibilityState={{ disabled: syncing, busy: syncing }}
             style={[styles.syncButtonFull, { backgroundColor: colors.surfaceSecondary }]}
           >
-            <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
+            {syncing ? (
+              <ActivityIndicator size="small" color={colors.info} />
+            ) : (
+              <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
+            )}
           </TouchableOpacity>
+          <SyncStatus healthUnavailable={healthUnavailable} onRetry={handleSync} />
         </View>
 
         <View style={styles.gatherSection}>
@@ -453,6 +490,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  compactSteps: {
+    flex: 1,
+    marginRight: 8,
   },
   compactButtons: {
     flexDirection: 'row',

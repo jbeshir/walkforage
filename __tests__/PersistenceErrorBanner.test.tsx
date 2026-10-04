@@ -21,7 +21,7 @@ describe('PersistenceErrorBanner', () => {
 
   it('renders a banner when saveError is true', () => {
     (useGameStore as unknown as jest.Mock).mockImplementation((selector) =>
-      selector({ saveError: true })
+      selector({ saveError: true, loadFailed: false })
     );
 
     render(<PersistenceErrorBanner />);
@@ -29,13 +29,24 @@ describe('PersistenceErrorBanner', () => {
     expect(screen.getByText(/Progress isn'?t being saved/)).toBeTruthy();
   });
 
-  it('renders nothing when saveError is false', () => {
+  it('renders nothing when saveError and loadFailed are false', () => {
     (useGameStore as unknown as jest.Mock).mockImplementation((selector) =>
-      selector({ saveError: false })
+      selector({ saveError: false, loadFailed: false })
     );
 
     render(<PersistenceErrorBanner />);
 
     expect(screen.queryByText(/Progress isn'?t being saved/)).toBeNull();
+  });
+
+  it('explains that the saved game could not be loaded when loadFailed is true', () => {
+    (useGameStore as unknown as jest.Mock).mockImplementation((selector) =>
+      selector({ saveError: false, loadFailed: true })
+    );
+
+    render(<PersistenceErrorBanner />);
+
+    expect(screen.getByText(/Couldn't load your saved game/)).toBeTruthy();
+    expect(screen.getByLabelText(/Progress isn't being saved/)).toBeTruthy();
   });
 });

@@ -257,6 +257,23 @@ describe('useGameState', () => {
     });
   });
 
+  describe('Steps', () => {
+    it('should add bonus steps without touching the step ledger', async () => {
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.addBonusSteps(1000);
+      });
+
+      expect(result.current.state.availableSteps).toBe(1000);
+      expect(result.current.state.stepLedger).toBeNull();
+    });
+  });
+
   describe('Tool inventory', () => {
     it('should check tool ownership', async () => {
       const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
@@ -402,8 +419,39 @@ describe('useGameState', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Should fall back to initial state
+      // Should fall back to initial state, flagged so it is never saved over the stored game
       expect(result.current.state.explorationPoints).toBe(0);
+      expect(result.current.loadFailed).toBe(true);
+
+      act(() => {
+        result.current.addExplorationPoints(5);
+      });
+      await act(async () => {
+        await result.current.saveGame();
+      });
+      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('resumes saving after a reset deletes the unreadable save', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockAsyncStorage.getItem.mockRejectedValueOnce(new Error('Storage error'));
+
+      const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(result.current.loadFailed).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.resetGame();
+      });
+      expect(result.current.loadFailed).toBe(false);
+
+      await act(async () => {
+        await result.current.saveGame();
+      });
+      expect(mockAsyncStorage.setItem).toHaveBeenCalled();
+      consoleError.mockRestore();
     });
   });
 
@@ -427,7 +475,9 @@ describe('useGameState', () => {
       });
 
       const written = JSON.parse(mockAsyncStorage.setItem.mock.calls[0][1]);
-      expect(written.schemaVersion).toBe(1);
+      expect(written.schemaVersion).toBe(2);
+      expect(written.stepLedger).toBeNull();
+      expect(written).not.toHaveProperty('lastSyncTimestamp');
     });
 
     it('falls back to INITIAL_STATE on corrupt JSON', async () => {
@@ -442,6 +492,7 @@ describe('useGameState', () => {
       expect(result.current.state.explorationPoints).toBe(0);
       expect(result.current.state.unlockedTechs).toEqual([]);
       expect(result.current.state.inventory.stone).toEqual([]);
+      expect(result.current.loadFailed).toBe(true);
     });
 
     it('sanitises non-finite and negative numeric fields to safe defaults', async () => {

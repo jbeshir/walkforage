@@ -109,6 +109,13 @@ jest.mock('expo-file-system', () => ({
   },
 }));
 
+// Mock expo-application. Before each test the app was installed long before any save (no
+// reinstall); a test simulates a reinstall with
+// jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(installedAt)).
+jest.mock('expo-application', () => ({
+  getInstallationTimeAsync: jest.fn(),
+}));
+
 // Mock AppState subscription
 const mockAppStateSubscription = {
   remove: jest.fn(),
@@ -137,11 +144,14 @@ jest.mock('react-native', () => ({
     flatten: jest.fn((style: unknown) => style),
     hairlineWidth: 1,
   },
+  useColorScheme: jest.fn(() => 'light'),
   View: 'View',
   Text: 'Text',
+  TextInput: 'TextInput',
   TouchableOpacity: 'TouchableOpacity',
   ScrollView: 'ScrollView',
   Modal: 'Modal',
+  ActivityIndicator: 'ActivityIndicator',
   Animated: {
     View: 'Animated.View',
     Text: 'Animated.Text',
@@ -172,12 +182,20 @@ jest.mock('react-native-maps', () => ({
 // Export mocks for test files to access
 export const mockAsyncStorage = jest.requireMock('@react-native-async-storage/async-storage');
 export const mockExpoLocation = jest.requireMock('expo-location');
+const mockApplication: { getInstallationTimeAsync: jest.Mock<Promise<Date>> } =
+  jest.requireMock('expo-application');
 export { mockLocationSubscription };
 
 // Reset all mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
-  useGameStore.setState({ ...createInitialGameData(), isLoading: true, saveError: false });
+  mockApplication.getInstallationTimeAsync.mockResolvedValue(new Date(0));
+  useGameStore.setState({
+    ...createInitialGameData(),
+    isLoading: true,
+    saveError: false,
+    loadFailed: false,
+  });
   __resetPersistenceForTests();
   __resetCanCraftCache();
 });

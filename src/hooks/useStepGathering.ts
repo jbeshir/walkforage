@@ -1,11 +1,19 @@
 // useStepGathering - Hook for step-based resource gathering
-// Syncs steps from HealthConnect/HealthKit and allows spending steps for resources
-// Uses useGameStore for persistence across screen changes
+// Wires the step sync (src/services/stepSync.ts) to the screen lifecycle and allows spending
+// steps for resources. Uses useGameStore for persistence across screen changes
 
 import { useState, useCallback, useEffect } from 'react';
+import { AppState } from 'react-native';
 import { healthService } from '../services/HealthService';
+import { syncSteps } from '../services/stepSync';
 import { useGameStore } from '../store/gameStore';
-import { HealthPermissionStatus, GatherResult, StepSyncResult } from '../types/health';
+import {
+  HealthPermissionStatus,
+  GatherResult,
+  StepSyncMode,
+  StepSyncResult,
+} from '../types/health';
+import { FOREGROUND_RECONCILE_MS } from '../config/stepSync';
 import { LocationGeoData } from '../types/gis';
 import { MaterialType, getMaterialConfig, getGatherableMaterialTypes } from '../config/materials';
 import {
@@ -18,15 +26,11 @@ import {
 export interface UseStepGatheringOptions {
   /** Callback when resources are gathered - receives category, resourceId, quantity */
   onGather?: (category: MaterialType, resourceId: string, quantity: number) => void;
-  /** Auto-sync interval in milliseconds (0 to disable) */
-  autoSyncInterval?: number;
 }
 
 export interface UseStepGatheringReturn {
   /** Steps available for gathering (reactive - use for render) */
   availableSteps: number;
-  /** Timestamp of last step sync */
-  lastSyncTimestamp: number;
   /** Total steps ever used for gathering */
   totalStepsGathered: number;
   /** Current health permission status */
@@ -48,6 +52,8 @@ export interface UseStepGatheringReturn {
   isAvailable: boolean;
   /** Whether Health Connect needs to be installed (Android) */
   needsInstall: boolean;
+  /** Whether the device can't run Health Connect at all (Android) */
+  unsupported: boolean;
   /** Open health settings to manage permissions */
   openHealthSettings: () => Promise<boolean>;
   /** Open Play Store to install Health Connect (Android) */
@@ -57,158 +63,114 @@ export interface UseStepGatheringReturn {
 }
 
 export function useStepGathering(options: UseStepGatheringOptions = {}): UseStepGatheringReturn {
-  const { onGather, autoSyncInterval = 0 } = options;
+  const { onGather } = options;
 
   const ownedTools = useGameStore((s) => s.ownedTools);
   const availableSteps = useGameStore((s) => s.availableSteps);
-  const lastSyncTimestamp = useGameStore((s) => s.lastSyncTimestamp);
   const totalStepsGathered = useGameStore((s) => s.totalStepsGathered);
   const getStepGatheringState = useGameStore((s) => s.getStepGatheringState);
-  const persistSyncSteps = useGameStore((s) => s.syncSteps);
+  const gameLoaded = useGameStore((s) => !s.isLoading && !s.loadFailed);
   const persistSpendSteps = useGameStore((s) => s.spendSteps);
 
-  // Permission status is ephemeral - checked with health service on each init
+  // Health status is ephemeral: shown as the last health service refresh found it
   const [permissionStatus, setPermissionStatus] =
     useState<HealthPermissionStatus>('not_determined');
+  const [needsInstall, setNeedsInstall] = useState(false);
+  const [unsupported, setUnsupported] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize health service on mount
+  const showHealthStatus = useCallback(() => {
+    setPermissionStatus(healthService.getPermissionStatus());
+    setNeedsInstall(healthService.needsHealthConnectInstall());
+    setUnsupported(healthService.isHealthConnectUnsupported());
+  }, []);
+
+  // Every sync refreshes the health status first, so show what it found
+  const sync = useCallback(
+    async (mode: StepSyncMode): Promise<StepSyncResult> => {
+      const result = await syncSteps(mode);
+      showHealthStatus();
+      return result;
+    },
+    [showHealthStatus]
+  );
+
+  const syncAndLog = useCallback(
+    async (mode: StepSyncMode): Promise<void> => {
+      const result = await sync(mode);
+      // No grant yet and a save still loading (or failed to) are states the UI already shows, and
+      // the interval would repeat them every few minutes.
+      if (
+        result.status === 'error' &&
+        result.code !== 'not_authorized' &&
+        result.code !== 'not_loaded'
+      ) {
+        console.warn('step sync failed:', result.code, result.message);
+      }
+    },
+    [sync]
+  );
+
+  // Check the health service on mount
   useEffect(() => {
     let mounted = true;
-
-    async function init() {
-      const available = healthService.isAvailable();
-      if (!available) {
-        if (mounted) {
-          setPermissionStatus('unavailable');
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      const initialized = await healthService.initialize();
-      if (!initialized) {
-        if (mounted) {
-          setPermissionStatus(healthService.getPermissionStatus());
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // Check if we already have permission
-      const status = await healthService.checkPermission();
+    void healthService.refreshStatus().then(() => {
       if (mounted) {
-        setPermissionStatus(status);
+        showHealthStatus();
         setIsLoading(false);
-
-        // If already authorized, sync (debounce will prevent rapid re-syncs)
-        if (status === 'authorized') {
-          void doSyncSteps().then((r) => {
-            if (!r.success) console.warn('step sync failed:', r.error);
-          });
-        }
       }
-    }
-
-    void init();
+    });
     return () => {
       mounted = false;
     };
-    // Mount-only init: doSyncSteps reads live state via getStepGatheringState() and live
-    // permission via healthService, so an empty dep array can't capture stale step data.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showHealthStatus]);
 
-  // Auto-sync interval
+  // Once the saved game has loaded: a full sync now and whenever the app returns to the
+  // foreground, and a recent sync every FOREGROUND_RECONCILE_MS while it stays there. Nothing is
+  // listened to before the load, so returning to the app can never sync against initial state.
   useEffect(() => {
-    if (autoSyncInterval <= 0) return;
-    if (permissionStatus !== 'authorized') return;
+    if (!gameLoaded) return;
 
-    const interval = setInterval(() => {
-      void doSyncSteps().then((r) => {
-        if (!r.success) console.warn('step sync failed:', r.error);
-      });
-    }, autoSyncInterval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const startInterval = () => {
+      interval ??= setInterval(() => void syncAndLog('recent'), FOREGROUND_RECONCILE_MS);
+    };
+    const stopInterval = () => {
+      if (interval) clearInterval(interval);
+      interval = null;
+    };
 
-    return () => clearInterval(interval);
-    // doSyncSteps reads live state via getStepGatheringState()/healthService each tick,
-    // so omitting it from deps can't read stale step data; re-run only on the listed deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSyncInterval, permissionStatus]);
-
-  // Internal sync function that uses persisted state
-  const doSyncSteps = useCallback(async (): Promise<StepSyncResult> => {
-    // Get fresh state to avoid stale closure issues
-    const currentState = getStepGatheringState();
-
-    // Check permission via service to avoid stale closure issues
-    // (permissionStatus from closure may be stale when called from init effect)
-    const currentPermission = healthService.getPermissionStatus();
-    if (currentPermission !== 'authorized') {
-      return {
-        newSteps: 0,
-        totalAvailable: currentState.availableSteps,
-        success: false,
-        error: 'Permission not granted',
-      };
-    }
-
-    // Debounce: don't re-sync within 30 seconds (persists across app restarts)
-    const MIN_SYNC_INTERVAL_MS = 30000;
-    if (currentState.lastSyncTimestamp > 0) {
-      const timeSinceLastSync = Date.now() - currentState.lastSyncTimestamp;
-      if (timeSinceLastSync < MIN_SYNC_INTERVAL_MS) {
-        return {
-          newSteps: 0,
-          totalAvailable: currentState.availableSteps,
-          success: true,
-        };
+    void syncAndLog('full');
+    if (AppState.currentState === 'active') startInterval();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void syncAndLog('full');
+        startInterval();
+      } else {
+        stopInterval();
       }
-    }
+    });
+    return () => {
+      subscription.remove();
+      stopInterval();
+    };
+  }, [gameLoaded, syncAndLog]);
 
-    try {
-      // Get steps since last sync
-      // On first launch (no timestamp), start fresh - don't credit historical steps
-      const isFirstSync = !currentState.lastSyncTimestamp;
-      const syncSince = currentState.lastSyncTimestamp || Date.now();
-      const newSteps = isFirstSync ? 0 : await healthService.getStepsSince(syncSince);
-
-      // Persist the new steps to game state (also updates lastSyncTimestamp)
-      persistSyncSteps(newSteps);
-
-      return {
-        newSteps,
-        totalAvailable: currentState.availableSteps + newSteps,
-        success: true,
-      };
-    } catch (error) {
-      return {
-        newSteps: 0,
-        totalAvailable: currentState.availableSteps,
-        success: false,
-        error: error instanceof Error ? error.message : 'Sync failed',
-      };
-    }
-  }, [getStepGatheringState, persistSyncSteps]);
+  const syncNow = useCallback(() => sync('full'), [sync]);
 
   const requestPermission = useCallback(async (): Promise<HealthPermissionStatus> => {
     setIsLoading(true);
     try {
       const status = await healthService.requestPermission();
-      setPermissionStatus(status);
-
-      // If permission granted, sync (debounce will prevent rapid re-syncs)
-      if (status === 'authorized') {
-        void doSyncSteps().then((r) => {
-          if (!r.success) console.warn('step sync failed:', r.error);
-        });
-      }
-
+      showHealthStatus();
+      // Before the load completes, the load's own sync credits the grant.
+      const { isLoading: loading, loadFailed } = useGameStore.getState();
+      if (status === 'authorized' && !loading && !loadFailed) void syncAndLog('full');
       return status;
     } finally {
       setIsLoading(false);
     }
-  }, [doSyncSteps]);
+  }, [showHealthStatus, syncAndLog]);
 
   const spendSteps = useCallback(
     (amount: number) => {
@@ -282,16 +244,16 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
 
   return {
     availableSteps,
-    lastSyncTimestamp,
     totalStepsGathered,
     permissionStatus,
     isLoading,
-    syncSteps: doSyncSteps,
+    syncSteps: syncNow,
     requestPermission,
     gatherMaterial,
     spendSteps,
     isAvailable: healthService.isAvailable(),
-    needsInstall: healthService.needsHealthConnectInstall(),
+    needsInstall,
+    unsupported,
     openHealthSettings,
     openPlayStore,
     gatherableMaterialTypes: getGatherableMaterialTypes(),

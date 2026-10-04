@@ -59,6 +59,7 @@ export default {
         },
       ],
       './plugins/withHealthConnectRationale',
+      './plugins/withGameStateBackup',
       // Sentry for error tracking (requires SENTRY_DSN env var for production)
       [
         '@sentry/react-native/expo',
@@ -89,6 +90,8 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
+      // Auto Backup is limited to the game save by plugins/withGameStateBackup.
+      allowBackup: true,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: `com.jbeshir.walkforageapp${appSuffix}`,
