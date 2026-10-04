@@ -27,6 +27,8 @@
 // - aggregateRecord de-duplicates by origin priority: at every instant only the highest-priority
 //   origin with a record covering it counts, and each record is pro-rated linearly by the part
 //   of its duration that is inside the query window and not covered by a higher-priority origin.
+//   A record's share is rounded on its cumulative count from its start, so the totals of
+//   adjacent windows (ledger buckets) add up to exactly the record's count, with no ±1 drift.
 // - Reads and aggregates ignore records starting before `firstGrantAt - 30 days`.
 // - Without the Steps read grant, reads reject with PERMISSION_ERROR.
 // - Rejections carry the RNHC `code` (ExceptionsUtils.kt mapping of the Kotlin exception).
@@ -40,6 +42,7 @@ import type {
   ReadRecordsResult,
   RecordType,
 } from 'react-native-health-connect';
+import { DAY_MS, MINUTE_MS, nextLocalMidnight } from '../../src/utils/time';
 
 type HealthConnectModule = typeof import('react-native-health-connect');
 type TimeRangeFilter = ReadRecordsOptions['timeRangeFilter'];
@@ -48,9 +51,8 @@ export const FITBIT_ORIGIN = 'com.fitbit.FitbitMobile';
 /** HC attributes phone on-device steps to the platform. */
 export const ON_DEVICE_ORIGIN = 'android';
 
-const MINUTE_MS = 60_000;
 const FITBIT_RECORD_MS = 15 * MINUTE_MS;
-const HISTORY_WINDOW_MS = 30 * 24 * 60 * MINUTE_MS;
+const HISTORY_WINDOW_MS = 30 * DAY_MS;
 const DEFAULT_PAGE_SIZE = 1000;
 const SDK_AVAILABLE = 3;
 const STEPS_READ: Permission = { recordType: 'Steps', accessType: 'read' };
@@ -290,6 +292,9 @@ class FakeHealthConnect {
       ])
       .sort((a, b) => a.at - b.at);
 
+    // Steps of `r` from its start to `t`, rounded: a share is the difference of two of these.
+    const countTo = (r: FakeStepRecord, t: number) =>
+      Math.round((r.count * (t - r.start)) / (r.end - r.start));
     const active = new Set<FakeStepRecord>();
     const contributing = new Set<string>();
     let total = 0;
@@ -299,7 +304,7 @@ class FakeHealthConnect {
         const best = Math.min(...[...active].map((r) => rank(r.origin)));
         for (const r of active) {
           if (rank(r.origin) === best) {
-            total += (r.count * (event.at - previous)) / (r.end - r.start);
+            total += countTo(r, event.at) - countTo(r, previous);
             contributing.add(r.origin);
           }
         }
@@ -309,7 +314,7 @@ class FakeHealthConnect {
       else active.delete(event.record);
     }
     return {
-      total: Math.round(total),
+      total,
       origins: [...contributing].sort((a, b) => rank(a) - rank(b)),
     };
   }
@@ -410,9 +415,7 @@ export function dayRecord(
   count: number,
   origin = ON_DEVICE_ORIGIN
 ): FakeStepRecordInput {
-  const end = new Date(dayStart);
-  end.setHours(24, 0, 0, 0);
-  return { start: dayStart, end: end.getTime(), count, origin };
+  return { start: dayStart, end: nextLocalMidnight(dayStart), count, origin };
 }
 
 /**

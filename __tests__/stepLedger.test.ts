@@ -3,24 +3,20 @@
 // October) unless a test switches zone.
 
 import {
+  alignToClock,
   bucketsToRead,
-  extendBuckets,
   ledgerSince,
-  localDayStart,
-  nextLocalMidnight,
   prune,
   reconcile,
   reconcileFrom,
   welcomeBuckets,
 } from '../src/services/stepLedger';
 import { StepBucket } from '../src/types/health';
+import { DAY_MS, HOUR_MS, localDayStart, nextLocalMidnight } from '../src/utils/time';
 import { setTimeZone } from './helpers/timeZone';
 
 // Set before the describe bodies run, since they build fixtures in local time.
 setTimeZone('Europe/London');
-
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
 
 /** Epoch ms of a wall-clock time in the current zone. */
 function local(year: number, month: number, day: number, hour = 0, minute = 0): number {
@@ -91,12 +87,17 @@ describe('stepLedger', () => {
     });
   });
 
-  describe('extendBuckets', () => {
+  describe('alignToClock', () => {
+    /** The buckets a sync at `nowMs` uses for a ledger last synced at `lastSyncedAt`. */
+    function extend(buckets: StepBucket[], nowMs: number, lastSyncedAt = buckets[0].startMs) {
+      return alignToClock({ buckets, lastSyncedAt }, nowMs).buckets;
+    }
+
     it('appends whole local days until now is covered, without touching existing buckets', () => {
       const first = bucket(local(2026, 9, 25, 14, 30), local(2026, 9, 26), 1234);
       const input = frozen([first]);
 
-      const extended = extendBuckets(input, local(2026, 9, 28, 9));
+      const extended = extend(input, local(2026, 9, 28, 9));
 
       expect(extended).toEqual([
         first,
@@ -110,7 +111,7 @@ describe('stepLedger', () => {
     it('adds a bucket when now is exactly the end of the last one', () => {
       const input = [bucket(local(2026, 9, 25), local(2026, 9, 26))];
 
-      expect(extendBuckets(input, local(2026, 9, 26))).toEqual([
+      expect(extend(input, local(2026, 9, 26))).toEqual([
         ...input,
         bucket(local(2026, 9, 26), local(2026, 9, 27)),
       ]);
@@ -119,21 +120,84 @@ describe('stepLedger', () => {
     it('adds nothing while the last bucket still covers now', () => {
       const input = frozen([bucket(local(2026, 9, 25), local(2026, 9, 26))]);
 
-      expect(extendBuckets(input, local(2026, 9, 25, 23, 59))).toBe(input);
+      expect(extend(input, local(2026, 9, 25, 23, 59))).toBe(input);
     });
 
-    it('adds nothing when the clock is set back before the last bucket', () => {
-      const input = frozen([bucket(local(2026, 9, 25), local(2026, 9, 26))]);
+    it('keeps the lastSyncedAt of a sync before now', () => {
+      const ledger = { buckets: [bucket(local(2026, 9, 25), local(2026, 9, 26))], lastSyncedAt: 5 };
 
-      expect(extendBuckets(input, local(2026, 9, 20))).toBe(input);
+      expect(alignToClock(ledger, local(2026, 9, 27)).lastSyncedAt).toBe(5);
+    });
+
+    it('keeps credited buckets after now when the clock is set back, reading none of them', () => {
+      const input = frozen([
+        bucket(local(2026, 9, 24), local(2026, 9, 25), 300),
+        bucket(local(2026, 9, 25), local(2026, 9, 26), 500),
+      ]);
+      const now = local(2026, 9, 24, 12);
+
+      const aligned = alignToClock({ buckets: input, lastSyncedAt: local(2026, 9, 25, 20) }, now);
+
+      expect(aligned.buckets).toBe(input);
+      // Read again from the start of the bucket holding now, never from a time after now
+      expect(aligned.lastSyncedAt).toBe(local(2026, 9, 24));
+    });
+
+    it('drops uncredited buckets after a clock that was ahead, back to the bucket holding now', () => {
+      const today = bucket(local(2026, 10, 4), local(2026, 10, 5), 2000);
+      const input = frozen([
+        bucket(local(2026, 10, 3), local(2026, 10, 4), 8000),
+        today,
+        bucket(local(2026, 10, 5), local(2026, 10, 6)),
+        bucket(local(2026, 10, 6), local(2026, 10, 7)),
+      ]);
+      const now = local(2026, 10, 4, 18);
+
+      const aligned = alignToClock({ buckets: input, lastSyncedAt: local(2026, 10, 6, 9) }, now);
+
+      expect(aligned).toEqual({ buckets: input.slice(0, 2), lastSyncedAt: today.startMs });
+      expect(input).toHaveLength(4);
+    });
+
+    it('restarts at local midnight when every bucket is an uncredited one after now', () => {
+      const ahead = [
+        bucket(local(2026, 10, 30), local(2026, 10, 31)),
+        bucket(local(2026, 10, 31), local(2026, 11, 1)),
+      ];
+      const now = local(2026, 10, 4, 18);
+
+      expect(
+        alignToClock({ buckets: frozen(ahead), lastSyncedAt: local(2026, 10, 31, 9) }, now)
+      ).toEqual({
+        buckets: [bucket(local(2026, 10, 4), local(2026, 10, 5))],
+        lastSyncedAt: local(2026, 10, 4),
+      });
+    });
+
+    it('fills from local midnight up to credited buckets that are all after now', () => {
+      const ahead = bucket(local(2026, 10, 6, 9), local(2026, 10, 7), 700);
+      const now = local(2026, 10, 4, 18);
+
+      const aligned = alignToClock(
+        { buckets: frozen([ahead]), lastSyncedAt: local(2026, 10, 6, 20) },
+        now
+      );
+
+      expect(aligned.buckets).toEqual([
+        bucket(local(2026, 10, 4), local(2026, 10, 5)),
+        bucket(local(2026, 10, 5), local(2026, 10, 6)),
+        bucket(local(2026, 10, 6), local(2026, 10, 6, 9)),
+        ahead,
+      ]);
+      expect(aligned.lastSyncedAt).toBe(local(2026, 10, 4));
     });
 
     it('keeps 23 h and 25 h DST days contiguous', () => {
-      const spring = extendBuckets(
+      const spring = extend(
         [bucket(local(2026, 3, 27), local(2026, 3, 28))],
         local(2026, 3, 30, 12)
       );
-      const autumn = extendBuckets(
+      const autumn = extend(
         [bucket(local(2026, 10, 23), local(2026, 10, 24))],
         local(2026, 10, 26, 12)
       );
@@ -149,7 +213,7 @@ describe('stepLedger', () => {
       expect(londonDay.endMs).toBe(Date.UTC(2026, 8, 25, 23)); // London midnight
 
       setTimeZone('America/New_York');
-      const extended = extendBuckets([londonDay], Date.UTC(2026, 8, 27, 12));
+      const extended = extend([londonDay], Date.UTC(2026, 8, 27, 12));
 
       expect(extended[0]).toEqual(londonDay);
       expectContiguous(extended);
@@ -302,7 +366,10 @@ describe('stepLedger', () => {
     const now = local(2026, 10, 20, 12);
 
     it('drops buckets that ended before the reconcile window, keeping the rest contiguous', () => {
-      const days = extendBuckets([bucket(local(2026, 9, 30), local(2026, 10, 1))], now);
+      const days = alignToClock(
+        { buckets: [bucket(local(2026, 9, 30), local(2026, 10, 1))], lastSyncedAt: 0 },
+        now
+      ).buckets;
 
       const pruned = prune(frozen(days), now);
 

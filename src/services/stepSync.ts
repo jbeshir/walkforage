@@ -11,8 +11,8 @@ import { healthService } from './HealthService';
 import { useGameStore } from '../store/gameStore';
 import { saveGame } from '../store/persistence';
 import {
+  alignToClock,
   bucketsToRead,
-  extendBuckets,
   prune,
   reconcile,
   reconcileFrom,
@@ -27,7 +27,10 @@ interface StepSyncStatus {
   lastResult: StepSyncResult | null;
   /** Health Connect's total for each ledger bucket (by `startMs`) when a sync last read it. */
   lastTotals: ReadonlyMap<number, number>;
-  /** What syncs credited since the player last dismissed the summary, merged into one result. */
+  /**
+   * What syncs credited since the player last dismissed the summary, merged into one result. A
+   * welcome is kept even if it credited nothing, so a new player is greeted.
+   */
   unseenCredit: SyncedResult | null;
 }
 
@@ -87,18 +90,25 @@ export function syncSteps(mode: StepSyncMode = 'full'): Promise<StepSyncResult> 
 
 function startSync(mode: StepSyncMode): Promise<StepSyncResult> {
   useStepSyncStatus.setState({ syncing: true });
-  const result = runSync(mode).then((synced) => {
-    inFlight = null;
-    useStepSyncStatus.setState(({ unseenCredit }) => ({
-      syncing: false,
-      lastResult: synced,
-      unseenCredit:
-        synced.status === 'synced' && synced.credited > 0
-          ? mergeCredits(unseenCredit, synced)
-          : unseenCredit,
-    }));
-    return synced;
-  });
+  // Never rejects: a sync that throws is an error result, so the next trigger starts a new sync
+  // rather than joining a rejected one, and the Sync button comes back.
+  const result = runSync(mode)
+    .catch((error: unknown): StepSyncResult => {
+      console.error('Step sync failed:', error);
+      return { status: 'error', code: 'unknown', message: String(error) };
+    })
+    .then((synced) => {
+      inFlight = null;
+      useStepSyncStatus.setState(({ unseenCredit }) => ({
+        syncing: false,
+        lastResult: synced,
+        unseenCredit:
+          synced.status === 'synced' && (synced.credited > 0 || synced.welcome)
+            ? mergeCredits(unseenCredit, synced)
+            : unseenCredit,
+      }));
+      return synced;
+    });
   inFlight = { mode, result };
   return result;
 }
@@ -123,17 +133,24 @@ async function runSync(mode: StepSyncMode): Promise<StepSyncResult> {
   }
 
   const now = Date.now();
-  const ledger = useGameStore.getState().stepLedger;
+  const stored = useGameStore.getState().stepLedger;
+  if (stored && now < stored.lastSyncedAt) {
+    console.warn(
+      `Step sync: the clock (${new Date(now).toISOString()}) is before the last sync ` +
+        `(${new Date(stored.lastSyncedAt).toISOString()}); it was ahead then or is behind now`
+    );
+  }
+  const ledger = stored && alignToClock(stored, now);
   // A restored or migrated save always has a ledger, so no ledger means a new game: its first
   // sync credits the last week as a welcome.
-  const buckets = ledger ? extendBuckets(ledger.buckets, now) : welcomeBuckets(now);
+  const buckets = ledger ? ledger.buckets : welcomeBuckets(now);
   const toRead = bucketsToRead(
     buckets,
     now,
     ledger ? reconcileFrom(ledger.lastSyncedAt, now, mode) : -Infinity
   );
   const historyStart = ledger
-    ? await healthService.historyStartAfterReinstall(ledger.lastSyncedAt)
+    ? await healthService.historyStartAfterReinstall(ledger.lastSyncedAt, now)
     : undefined;
 
   // Read every bucket before crediting any: one failure commits nothing.
@@ -145,6 +162,10 @@ async function runSync(mode: StepSyncMode): Promise<StepSyncResult> {
     }
     totals.set(bucket.startMs, read.steps);
   }
+
+  // The game was reset or reloaded during the reads, which were for a ledger that is gone:
+  // crediting them would put the old game's ledger into the new one. Sync the current game.
+  if (useGameStore.getState().stepLedger !== stored) return runSync(mode);
 
   const {
     buckets: reconciled,
@@ -171,7 +192,7 @@ async function runSync(mode: StepSyncMode): Promise<StepSyncResult> {
     status: 'synced',
     credited,
     perDay,
-    welcome: ledger === null,
+    welcome: stored === null,
     ...(historyLimitedBefore !== undefined && { historyLimitedBefore }),
     syncedAt: now,
   };

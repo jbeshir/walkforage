@@ -91,16 +91,21 @@ function sanitiseBuckets(x: unknown): StepBucket[] | null {
 
 /**
  * A stored ledger, or null if there is none. Null means a new game whose first sync credits the
- * welcome week, so a malformed ledger that still has a valid `lastSyncedAt` does not become null:
- * it restarts from `lastSyncedAt`, crediting the steps since then (never twice, but late data for
- * days before it is lost). Only a ledger with no usable `lastSyncedAt` is dropped.
+ * welcome week, so a ledger with either part still usable does not become null:
+ * - Valid buckets with a bad `lastSyncedAt` keep their high-water marks and take `lastSyncedAt`
+ *   from the first bucket's start, the earliest the last sync could have been. Every bucket is
+ *   then re-read, which credits only above the marks, so no day is skipped or credited twice.
+ * - Bad buckets with a valid `lastSyncedAt` restart from `lastSyncedAt`, crediting the steps
+ *   since then (never twice, but late data for days before it is lost).
+ * Only a ledger with neither is dropped.
  */
 function sanitiseLedger(x: unknown): StepLedger | null {
   if (x === null || typeof x !== 'object' || Array.isArray(x)) return null;
   const { buckets, lastSyncedAt } = x as Record<string, unknown>;
-  if (!isTime(lastSyncedAt) || lastSyncedAt === 0) return null;
   const sanitised = sanitiseBuckets(buckets);
-  return sanitised ? { buckets: sanitised, lastSyncedAt } : ledgerSince(lastSyncedAt);
+  const syncedAt = isTime(lastSyncedAt) && lastSyncedAt > 0 ? lastSyncedAt : undefined;
+  if (sanitised) return { buckets: sanitised, lastSyncedAt: syncedAt ?? sanitised[0].startMs };
+  return syncedAt === undefined ? null : ledgerSince(syncedAt);
 }
 
 export async function loadGame(): Promise<void> {

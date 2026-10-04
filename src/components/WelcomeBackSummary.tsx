@@ -4,11 +4,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { dismissCreditSummary, useStepSyncStatus } from '../services/stepSync';
-import { DayCredit } from '../types/health';
+import { DayCredit, StepSyncResult } from '../types/health';
 import { WELCOME_DAYS } from '../config/stepSync';
 import { useTheme } from '../hooks/useTheme';
 import { useNow } from '../hooks/useNow';
-import { formatDay, relativeDay } from '../utils/time';
+import { MINUTE_MS, formatDay, relativeDay } from '../utils/time';
 
 /** "+1,900 steps today", "+1,900 steps on Mon 28 Sep", or "+1,900 late steps from yesterday" */
 function dayLine({ startMs, steps, late }: DayCredit, nowMs: number): string {
@@ -20,7 +20,25 @@ function dayLine({ startMs, steps, late }: DayCredit, nowMs: number): string {
     : `${count} steps on ${day}`;
 }
 
-const DAY_REFRESH_MS = 60_000;
+/**
+ * The headline. A welcome that found no steps yet says they are coming. Otherwise "since" the
+ * first day only when steps were walked since then: all-late credits are steps that arrived late,
+ * not a walk.
+ */
+function headline(credit: Extract<StepSyncResult, { status: 'synced' }>, nowMs: number): string {
+  if (credit.welcome && credit.credited === 0) {
+    return `Welcome to WalkForage! Steps from the last ${WELCOME_DAYS} days will appear here as your watch syncs.`;
+  }
+  const total = `+${credit.credited.toLocaleString()}`;
+  if (credit.welcome) {
+    return `Welcome to WalkForage! We've added ${total} steps from your last ${WELCOME_DAYS} days`;
+  }
+  if (credit.perDay.every((day) => day.late)) return `${total} late steps added`;
+  const first = relativeDay(credit.perDay[0].startMs, nowMs);
+  return first === 'today' ? `${total} steps today` : `${total} steps since ${first}`;
+}
+
+const DAY_REFRESH_MS = MINUTE_MS;
 
 export function WelcomeBackSummary() {
   const credit = useStepSyncStatus((s) => s.unseenCredit);
@@ -28,10 +46,7 @@ export function WelcomeBackSummary() {
   const { colors } = useTheme().theme;
   if (!credit) return null;
 
-  const total = `+${credit.credited.toLocaleString()} steps`;
-  const title = credit.welcome
-    ? `Welcome to WalkForage! We've added ${total} from your last ${WELCOME_DAYS} days`
-    : `${total} since ${relativeDay(credit.perDay[0].startMs, now)}`;
+  const title = headline(credit, now);
 
   return (
     <View
@@ -57,12 +72,14 @@ export function WelcomeBackSummary() {
           {dayLine(day, now)}
         </Text>
       ))}
-      <Text style={[styles.note, { color: colors.textTertiary }]}>
-        Recent days may still update as your watch syncs
-      </Text>
+      {credit.credited > 0 && (
+        <Text style={[styles.note, { color: colors.textTertiary }]}>
+          Recent days may still update as your watch syncs
+        </Text>
+      )}
       {credit.historyLimitedBefore !== undefined && (
         <Text style={[styles.notice, { color: colors.warningText }]}>
-          {`Health Connect only shares steps from ${formatDay(credit.historyLimitedBefore)} onward after a reinstall; earlier steps couldn't be imported.`}
+          {`After a reinstall, Health Connect may only share steps from ${formatDay(credit.historyLimitedBefore)} onward; earlier steps may be missing.`}
         </Text>
       )}
     </View>

@@ -30,7 +30,8 @@ import {
 import { setTimeZone } from './helpers/timeZone';
 import { healthService } from '../src/services/HealthService';
 import { syncSteps } from '../src/services/stepSync';
-import { ledgerSince, localDayStart } from '../src/services/stepLedger';
+import { ledgerSince } from '../src/services/stepLedger';
+import { DAY_MS, HOUR_MS, MINUTE_MS, localDayStart } from '../src/utils/time';
 import { useGameStore } from '../src/store/gameStore';
 import { loadGame } from '../src/store/persistence';
 import { StepBucket, StepSyncResult } from '../src/types/health';
@@ -44,9 +45,6 @@ jest.mock(
 // Set before the describe bodies run, since they build fixtures in local time.
 setTimeZone('Europe/London');
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
-const DAY_MS = 24 * HOUR_MS;
 const NOW = local(2026, 10, 4, 18);
 
 async function syncAt(ms: number): Promise<StepSyncResult> {
@@ -293,6 +291,44 @@ describe('step sync scenarios', () => {
     expect(availableSteps()).toBe(total);
   });
 
+  it('records straddling midnight and the DST hour: the day buckets add up to exactly each record', async () => {
+    const lastSync = local(2026, 10, 24, 20);
+    // 15-minute Fitbit records split between two buckets (or across the clocks going back at
+    // 02:00 BST = 01:00 UTC), with counts whose split is not a whole number of steps.
+    const records = [
+      { start: local(2026, 10, 24, 23, 52) + 30_000, count: 1001 }, // half before midnight
+      { start: Date.UTC(2026, 9, 25, 0, 52, 30), count: 333 }, // the DST change
+      { start: local(2026, 10, 25, 23, 55), count: 7 }, // a third before midnight
+    ].map(({ start, count }) => ({
+      start,
+      end: start + 15 * MINUTE_MS,
+      count,
+      origin: FITBIT_ORIGIN,
+    }));
+    fakeHC.upsert(records);
+    seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
+    await loadGame();
+
+    // One sync partway through the first record, then after each of the others
+    const credits = [
+      credited(await syncAt(local(2026, 10, 25, 0, 3))),
+      credited(await syncAt(local(2026, 10, 25, 12))),
+      credited(await syncAt(local(2026, 10, 26, 8))),
+    ];
+
+    expect(credits[0]).toBeGreaterThan(0);
+    expect(credits.reduce((sum, c) => sum + c, 0)).toBe(sumCounts(records));
+    const buckets = ledger().buckets;
+    expect(buckets.map((b) => b.startMs)).toEqual([
+      lastSync,
+      local(2026, 10, 25),
+      local(2026, 10, 26),
+    ]);
+    expect(buckets.reduce((sum, b) => sum + b.credited, 0)).toBe(1001 + 333 + 7);
+    expect(buckets[0].credited + buckets[1].credited).toBeGreaterThanOrEqual(1001 + 333);
+    expect(availableSteps()).toBe(1341);
+  });
+
   it('45-day absence: credits all 45 days once', async () => {
     const lastSync = NOW - 45 * DAY_MS;
     fakeHC.firstGrantAt = lastSync - 10 * DAY_MS; // history floor 40 days before the absence
@@ -349,7 +385,7 @@ describe('step sync scenarios', () => {
         status: 'synced',
         credited: readable,
         welcome: false,
-        historyLimitedBefore: installedAt - 30 * DAY_MS,
+        historyLimitedBefore: NOW - 30 * DAY_MS,
       });
       expect(availableSteps()).toBe(1234 + readable);
 
@@ -357,6 +393,31 @@ describe('step sync scenarios', () => {
       const again = await syncSteps();
       expect(again).toMatchObject({ credited: 0 });
       expect(again).not.toHaveProperty('historyLimitedBefore');
+    });
+
+    it('of a 35-day-old backup, with access granted days after the install: says the earliest days may be missing', async () => {
+      const lastSync = NOW - 35 * DAY_MS;
+      jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(NOW - 10 * DAY_MS));
+      fakeHC.firstGrantAt = NOW - MINUTE_MS; // the player reconnected only today
+      const history = daily(localDayStart(lastSync), local(2026, 10, 4), (day) =>
+        fitbitBatch(day + 12 * HOUR_MS, day + 13 * HOUR_MS, 250)
+      );
+      fakeHC.upsert(history);
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
+      await loadGame();
+
+      const result = await syncSteps();
+
+      // Health Connect hides the days before the grant - 30 days, which install - 30 days (40
+      // days ago) would not have flagged.
+      const readable = startingIn(history, fakeHC.historyFloor());
+      expect(readable).toBeLessThan(sumCounts(history));
+      expect(result).toMatchObject({
+        status: 'synced',
+        credited: readable,
+        historyLimitedBefore: NOW - 30 * DAY_MS,
+      });
+      expect(fakeHC.historyFloor()).toBeLessThanOrEqual(NOW - 30 * DAY_MS);
     });
 
     it('of a 1-day-old backup onto a new phone: credits only steps above the backed-up marks', async () => {
@@ -427,8 +488,8 @@ describe('step sync scenarios', () => {
 
       // The restored ledger predates the install, so this is a reinstall; every bucket the sync
       // reads is still inside the history Health Connect shares, so there is no notice.
-      expect(await healthService.historyStartAfterReinstall(ledger().lastSyncedAt)).toBe(
-        installedAt - 30 * DAY_MS
+      expect(await healthService.historyStartAfterReinstall(ledger().lastSyncedAt, NOW)).toBe(
+        NOW - 30 * DAY_MS
       );
       const result = await syncSteps();
 
@@ -482,6 +543,30 @@ describe('step sync scenarios', () => {
 
       expect(credited(await syncSteps())).toBe(3 * 60 * 2);
       expect(storedGame()).toMatchObject({ schemaVersion: 2, availableSteps: 370 });
+    });
+
+    it('migrates a watermark in the future (a clock that was ahead) and credits today from midnight', async () => {
+      const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const today = walk(local(2026, 10, 4, 9), local(2026, 10, 4, 10), 20);
+      fakeHC.upsert([...walk(local(2026, 10, 3, 9), local(2026, 10, 3, 10), 20), ...today]);
+      seedSave({ availableSteps: 500, lastSyncTimestamp: NOW + 20 * DAY_MS }, 1);
+      await loadGame();
+
+      const result = await syncSteps();
+
+      expect(result).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(today),
+        welcome: false,
+        perDay: [{ startMs: local(2026, 10, 4), steps: 1200, late: false }],
+      });
+      expect(ledger()).toMatchObject({
+        buckets: [{ startMs: local(2026, 10, 4), endMs: local(2026, 10, 5), credited: 1200 }],
+        lastSyncedAt: NOW,
+      });
+      expect(availableSteps()).toBe(500 + 1200);
+      expect(consoleWarn).toHaveBeenCalledTimes(1);
+      consoleWarn.mockRestore();
     });
 
     it('treats a v1 save that never synced as a new game and gives the welcome credit', async () => {
@@ -539,12 +624,36 @@ describe('step sync scenarios', () => {
 
     it.each([
       ['missing', undefined],
-      ['a string', { buckets: valid.buckets, lastSyncedAt: String(lastSyncedAt) }],
-      ['negative', { buckets: valid.buckets, lastSyncedAt: -1 }],
-      ['zero', { buckets: valid.buckets, lastSyncedAt: 0 }],
-      ['null', { buckets: valid.buckets, lastSyncedAt: null }],
-    ])('drops a ledger whose lastSyncedAt is %s', async (_label, stepLedger) => {
-      seedSave({ availableSteps: 0, stepLedger });
+      ['a string', String(lastSyncedAt)],
+      ['negative', -1],
+      ['zero', 0],
+      ['null', null],
+    ])(
+      'keeps the buckets of a ledger whose lastSyncedAt is %s, re-reading them without a second welcome',
+      async (_label, badSyncedAt) => {
+        // The marks match Health Connect: everything up to the last sync was credited.
+        const walked = [
+          ...walk(day - DAY_MS + 9 * HOUR_MS, day - DAY_MS + 9 * HOUR_MS + 40 * MINUTE_MS, 100),
+          ...walk(day + 9 * HOUR_MS, day + 9 * HOUR_MS + 7 * MINUTE_MS, 100),
+        ];
+        const since = walk(NOW - HOUR_MS, NOW - 30 * MINUTE_MS, 10);
+        fakeHC.upsert([...walked, ...since]);
+        seedSave({ availableSteps: 4700, stepLedger: { ...valid, lastSyncedAt: badSyncedAt } });
+        await loadGame();
+
+        // lastSyncedAt is the earliest the last sync could have been: the first bucket's start.
+        expect(useGameStore.getState().stepLedger).toEqual({
+          buckets: valid.buckets,
+          lastSyncedAt: day - DAY_MS,
+        });
+        expect(await syncSteps()).toMatchObject({ credited: sumCounts(since), welcome: false });
+        expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(2);
+        expect(availableSteps()).toBe(4700 + 300);
+      }
+    );
+
+    it('drops a ledger with neither usable buckets nor lastSyncedAt', async () => {
+      seedSave({ availableSteps: 0, stepLedger: { buckets: [], lastSyncedAt: 'x' } });
       await loadGame();
 
       expect(useGameStore.getState().stepLedger).toBeNull();

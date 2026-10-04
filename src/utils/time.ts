@@ -1,9 +1,22 @@
-// Time formatting for step sync messages (local time)
+// Local-time helpers: day boundaries for the step ledger and formatting for step sync messages.
 
-import { localDayStart } from '../services/stepLedger';
+export const MINUTE_MS = 60_000;
+export const HOUR_MS = 60 * MINUTE_MS;
+export const DAY_MS = 24 * HOUR_MS;
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
+/** Local midnight at the start of the day containing `ms`. */
+export function localDayStart(ms: number): number {
+  const date = new Date(ms);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/** The first local midnight after `ms` (23 or 25 hours after the previous one across DST). */
+export function nextLocalMidnight(ms: number): number {
+  const date = new Date(ms);
+  date.setHours(24, 0, 0, 0);
+  return date.getTime();
+}
 
 /** "14:05" */
 export function formatTime(ms: number): string {
@@ -13,6 +26,11 @@ export function formatTime(ms: number): string {
 /** "Mon 28 Sep" (word order follows the locale) */
 export function formatDay(ms: number): string {
   return new Date(ms).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/** "Mon 28 Sep 14:05" */
+export function formatDayTime(ms: number): string {
+  return `${formatDay(ms)} ${formatTime(ms)}`;
 }
 
 /** "today", "yesterday" or the day, for the local day containing `ms`. */
@@ -31,5 +49,5 @@ export function formatSyncAge(syncedAt: number, nowMs: number): string {
   if (age < MINUTE_MS) return 'just now';
   if (age < HOUR_MS) return `${Math.floor(age / MINUTE_MS)} min ago`;
   if (localDayStart(syncedAt) === localDayStart(nowMs)) return `at ${formatTime(syncedAt)}`;
-  return `${formatDay(syncedAt)} ${formatTime(syncedAt)}`;
+  return formatDayTime(syncedAt);
 }

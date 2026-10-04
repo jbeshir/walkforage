@@ -39,9 +39,13 @@ function appConfig() {
   return getConfig(REPO_ROOT, { skipSDKVersionRequirement: true, isModdedConfig: true }).exp;
 }
 
+/** Scratch projects created by the current test, removed after it. */
+const scratchRoots: string[] = [];
+
 /** Writes a manifest shaped like the Expo template's into a fresh scratch project. */
 async function scratchProject(): Promise<{ projectRoot: string; manifestPath: string }> {
   const projectRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'backup-plugin-'));
+  scratchRoots.push(projectRoot);
   const manifestPath = path.join(projectRoot, 'android/app/src/main/AndroidManifest.xml');
   await fs.promises.mkdir(path.dirname(manifestPath), { recursive: true });
   await fs.promises.writeFile(
@@ -57,6 +61,10 @@ async function scratchProject(): Promise<{ projectRoot: string; manifestPath: st
 }
 
 describe('withGameStateBackup', () => {
+  afterEach(() => {
+    for (const root of scratchRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
+  });
+
   it('backs up only the AsyncStorage database and its journal files on Android 11 and lower', () => {
     const xml = buildBackupRulesXml();
 

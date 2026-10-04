@@ -21,6 +21,7 @@ import { useStepGathering } from '../src/hooks/useStepGathering';
 import { GameStateProvider } from '../src/hooks/useGameState';
 import { useStepSyncStatus } from '../src/services/stepSync';
 import { ledgerSince } from '../src/services/stepLedger';
+import { HOUR_MS, MINUTE_MS } from '../src/utils/time';
 import { STEPS_PER_GATHER } from '../src/config/gathering';
 import { STORAGE_KEY, useGameStore } from '../src/store/gameStore';
 import { FOREGROUND_RECONCILE_MS } from '../src/config/stepSync';
@@ -34,8 +35,6 @@ const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
 setTimeZone('Europe/London');
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
 const NOW = local(2026, 10, 4, 18);
 
 /** Stores a saved game whose last sync was at `lastSyncedAt`. */

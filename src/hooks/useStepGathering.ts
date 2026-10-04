@@ -52,6 +52,8 @@ export interface UseStepGatheringReturn {
   isAvailable: boolean;
   /** Whether Health Connect needs to be installed (Android) */
   needsInstall: boolean;
+  /** Whether the device can't run Health Connect at all (Android) */
+  unsupported: boolean;
   /** Open health settings to manage permissions */
   openHealthSettings: () => Promise<boolean>;
   /** Open Play Store to install Health Connect (Android) */
@@ -74,11 +76,13 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
   const [permissionStatus, setPermissionStatus] =
     useState<HealthPermissionStatus>('not_determined');
   const [needsInstall, setNeedsInstall] = useState(false);
+  const [unsupported, setUnsupported] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const showHealthStatus = useCallback(() => {
     setPermissionStatus(healthService.getPermissionStatus());
     setNeedsInstall(healthService.needsHealthConnectInstall());
+    setUnsupported(healthService.isHealthConnectUnsupported());
   }, []);
 
   // Every sync refreshes the health status first, so show what it found
@@ -249,6 +253,7 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
     spendSteps,
     isAvailable: healthService.isAvailable(),
     needsInstall,
+    unsupported,
     openHealthSettings,
     openPlayStore,
     gatherableMaterialTypes: getGatherableMaterialTypes(),

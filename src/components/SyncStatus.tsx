@@ -36,11 +36,19 @@ const SYNC_ERRORS: Record<StepSyncErrorCode, { text: string; retry: boolean }> =
   unknown: { text: 'Sync failed. Your steps are safe; try again.', retry: true },
 };
 
+const UNSUPPORTED = {
+  text: "Health Connect isn't supported on this device, so steps can't be synced.",
+  retry: false,
+};
+
 const AGE_REFRESH_MS = 30_000;
 
 export interface SyncStatusProps {
-  /** The health platform can't be used right now (e.g. Health Connect is updating). */
-  healthUnavailable: boolean;
+  /**
+   * Why the health platform can't be used, if it can't: `unsupported` on this device for good,
+   * or `unavailable` for now (e.g. Health Connect is updating).
+   */
+  healthUnavailable: 'unsupported' | 'unavailable' | null;
   onRetry: () => void;
 }
 
@@ -55,11 +63,14 @@ export function SyncStatus({ healthUnavailable, onRetry }: SyncStatusProps) {
     return <Text style={[styles.line, { color: colors.textTertiary }]}>Syncing…</Text>;
   }
 
-  const error = healthUnavailable
-    ? SYNC_ERRORS.unavailable
-    : lastResult?.status === 'error'
-      ? SYNC_ERRORS[lastResult.code]
-      : null;
+  const error =
+    healthUnavailable === 'unsupported'
+      ? UNSUPPORTED
+      : healthUnavailable === 'unavailable'
+        ? SYNC_ERRORS.unavailable
+        : lastResult?.status === 'error'
+          ? SYNC_ERRORS[lastResult.code]
+          : null;
   if (error) {
     return (
       <View style={styles.error}>

@@ -18,7 +18,7 @@ import { ThemeProvider } from '../src/hooks/useTheme';
 import { useStepSyncStatus } from '../src/services/stepSync';
 import { ledgerSince } from '../src/services/stepLedger';
 import { FOREGROUND_RECONCILE_MS } from '../src/config/stepSync';
-import { formatDay, formatTime } from '../src/utils/time';
+import { DAY_MS, HOUR_MS, formatDay, formatTime } from '../src/utils/time';
 
 jest.mock(
   'react-native-health-connect',
@@ -27,12 +27,11 @@ jest.mock(
 
 setTimeZone('Europe/London');
 
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
 const NOW = local(2026, 10, 4, 18); // Sunday
 
 const UNAVAILABLE_TEXT =
   'Health Connect is updating or unavailable. Your steps are safe and will be added next time.';
+const UNSUPPORTED_TEXT = "Health Connect isn't supported on this device, so steps can't be synced.";
 
 function ForagePanel() {
   const stepGathering = useStepGathering();
@@ -123,7 +122,7 @@ describe('StepGatherPanel sync UI', () => {
       expect(screen.getByText('+2,000 steps today')).toBeTruthy();
       expect(screen.getByText('Recent days may still update as your watch syncs')).toBeTruthy();
       expect(screen.getByText('3,800 steps')).toBeTruthy();
-      expect(screen.queryByText(/Health Connect only shares steps/)).toBeNull();
+      expect(screen.queryByText(/may only share steps/)).toBeNull();
     });
 
     it('adds automatic syncs to the summary until it is dismissed', async () => {
@@ -143,9 +142,53 @@ describe('StepGatherPanel sync UI', () => {
       fakeHC.upsert(walk(local(2026, 10, 4, 18, 6), local(2026, 10, 4, 18, 7), 100)); // +100
       await advance(FOREGROUND_RECONCILE_MS);
 
-      expect(screen.getByText('+100 steps since today')).toBeTruthy();
-      expect(screen.getByText('+100 steps today')).toBeTruthy();
+      // The headline and the day line: only today was credited, so not "since today"
+      expect(screen.getAllByText('+100 steps today')).toHaveLength(2);
+      expect(screen.queryByText(/since/)).toBeNull();
       expect(screen.queryByText(/late steps/)).toBeNull();
+    });
+
+    it('does not say "since" a past day when every credit is late data', async () => {
+      seedSave({
+        availableSteps: 100,
+        stepLedger: {
+          buckets: [
+            { startMs: local(2026, 10, 2), endMs: local(2026, 10, 3), credited: 3000 },
+            { startMs: local(2026, 10, 3), endMs: local(2026, 10, 4), credited: 4000 },
+          ],
+          lastSyncedAt: local(2026, 10, 4, 9),
+        },
+      });
+      fakeHC.upsert([dayRecord(local(2026, 10, 2), 3500), dayRecord(local(2026, 10, 3), 4000)]);
+
+      await renderAfterStartSync();
+
+      expect(screen.getByText('+500 late steps added')).toBeTruthy();
+      expect(
+        screen.getByText(`+500 late steps from ${formatDay(local(2026, 10, 2))}`)
+      ).toBeTruthy();
+      expect(screen.queryByText(/since/)).toBeNull();
+    });
+
+    it('welcomes a new game whose health data has no steps yet', async () => {
+      await renderAfterStartSync();
+
+      expect(useStepSyncStatus.getState().lastResult).toMatchObject({ welcome: true, credited: 0 });
+      expect(
+        screen.getByText(
+          'Welcome to WalkForage! Steps from the last 7 days will appear here as your watch syncs.'
+        )
+      ).toBeTruthy();
+      expect(screen.queryByText(/Recent days may still update/)).toBeNull();
+
+      // The watch catches up: the next sync's steps join the welcome.
+      fakeHC.upsert(fitbitBatch(local(2026, 10, 4, 9), local(2026, 10, 4, 10), 500));
+      await advance(FOREGROUND_RECONCILE_MS);
+
+      expect(
+        screen.getByText("Welcome to WalkForage! We've added +2,000 steps from your last 7 days")
+      ).toBeTruthy();
+      expect(screen.getByText('+2,000 steps today')).toBeTruthy();
     });
 
     it('welcomes a new game with the steps of the last 7 days', async () => {
@@ -171,11 +214,11 @@ describe('StepGatherPanel sync UI', () => {
       expect(availableSteps()).toBe(7500);
     });
 
-    it('says when Health Connect could not share older steps after a reinstall', async () => {
-      const installedAt = NOW - 2 * HOUR_MS;
-      jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(installedAt));
+    it('says Health Connect may not share older steps when access is granted days after a reinstall', async () => {
+      // A 35-day-old backup restored onto an install 10 days ago, reconnected only today
+      jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(NOW - 10 * DAY_MS));
       fakeHC.firstGrantAt = NOW - HOUR_MS;
-      seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - 40 * DAY_MS) });
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - 35 * DAY_MS) });
       fakeHC.upsert([dayRecord(local(2026, 10, 1), 2000)]);
 
       await renderAfterStartSync();
@@ -183,7 +226,7 @@ describe('StepGatherPanel sync UI', () => {
       expect(screen.getByText('+2,000 steps on ' + formatDay(local(2026, 10, 1)))).toBeTruthy();
       expect(
         screen.getByText(
-          `Health Connect only shares steps from ${formatDay(installedAt - 30 * DAY_MS)} onward after a reinstall; earlier steps couldn't be imported.`
+          `After a reinstall, Health Connect may only share steps from ${formatDay(NOW - 30 * DAY_MS)} onward; earlier steps may be missing.`
         )
       ).toBeTruthy();
     });
@@ -212,7 +255,7 @@ describe('StepGatherPanel sync UI', () => {
       fakeHC.clearFailures();
       fireEvent.press(screen.getByText('Retry'));
 
-      await eventually(() => expect(screen.getByText('+500 steps since today')).toBeTruthy());
+      await eventually(() => expect(screen.getAllByText('+500 steps today')).toHaveLength(2));
       expect(screen.getByText('Synced just now')).toBeTruthy();
       expect(screen.queryByText('Retry')).toBeNull();
       expect(availableSteps()).toBe(1734);
@@ -221,7 +264,7 @@ describe('StepGatherPanel sync UI', () => {
     });
 
     it('explains that Health Connect is unavailable instead of hiding the panel', async () => {
-      fakeHC.sdkStatus = 1; // SDK_UNAVAILABLE, e.g. while Health Connect updates
+      fakeHC.initializeResult = false; // e.g. while Health Connect updates
       const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
       await renderAfterStartSync();
@@ -231,11 +274,24 @@ describe('StepGatherPanel sync UI', () => {
       expect(screen.getByText('1,234 steps')).toBeTruthy();
       expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
 
-      fakeHC.sdkStatus = 3;
+      fakeHC.initializeResult = true;
       fireEvent.press(screen.getByText('Retry'));
 
-      await eventually(() => expect(screen.getByText('+500 steps since today')).toBeTruthy());
+      await eventually(() => expect(screen.getAllByText('+500 steps today')).toHaveLength(2));
       expect(screen.queryByText(UNAVAILABLE_TEXT)).toBeNull();
+      consoleWarn.mockRestore();
+    });
+
+    it('says when the device does not support Health Connect, without promising a later sync', async () => {
+      fakeHC.sdkStatus = 1; // SDK_UNAVAILABLE: e.g. an Android version that is too old
+      const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await renderAfterStartSync();
+
+      expect(screen.getByText(UNSUPPORTED_TEXT)).toBeTruthy();
+      expect(screen.queryByText(UNAVAILABLE_TEXT)).toBeNull();
+      expect(screen.queryByText('Retry')).toBeNull();
+      expect(screen.getByText('1,234 steps')).toBeTruthy();
       consoleWarn.mockRestore();
     });
 

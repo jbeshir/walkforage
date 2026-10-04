@@ -10,6 +10,7 @@ import {
   StepReadResult,
 } from '../types/health';
 import { HISTORY_WINDOW_DAYS } from '../config/stepSync';
+import { DAY_MS } from '../utils/time';
 
 // Conditional imports - these will be resolved at build time
 let HealthConnect: typeof import('react-native-health-connect') | null = null;
@@ -21,8 +22,6 @@ const SDK_STATUS = {
   SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED: 2,
   SDK_AVAILABLE: 3,
 } as const;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Lazy load platform-specific health modules
 async function loadHealthModule(): Promise<void> {
@@ -65,7 +64,8 @@ export class HealthService {
   // be installed, updated or have its grant revoked while the app runs.
   private initialized = false;
   private permissionStatus: HealthPermissionStatus = 'not_determined';
-  private sdkStatus: number = SDK_STATUS.SDK_UNAVAILABLE;
+  /** Null until the SDK answers (or on iOS). */
+  private sdkStatus: number | null = null;
 
   /**
    * Re-check SDK availability, initialize the client and re-read the step grant. Every sync
@@ -82,7 +82,7 @@ export class HealthService {
 
     try {
       if (Platform.OS === 'android' && HealthConnect) {
-        this.sdkStatus = SDK_STATUS.SDK_UNAVAILABLE; // until the SDK answers
+        this.sdkStatus = null;
         this.sdkStatus = await HealthConnect.getSdkStatus();
         // Unavailable, or Health Connect needs to be installed/updated
         if (this.sdkStatus !== SDK_STATUS.SDK_AVAILABLE) return false;
@@ -203,6 +203,9 @@ export class HealthService {
             date: {
               startDate,
               endDate,
+              // Only samples starting in the window: one crossing midnight counts in one day's
+              // bucket, not in both.
+              strictStartDate: true,
             },
           },
           unit: 'count',
@@ -269,14 +272,20 @@ export class HealthService {
   /**
    * Health Connect shares only HISTORY_WINDOW_DAYS before the app's first grant, and a reinstalled
    * app needs a new grant. If the app was installed after `lastSyncedAt` (a save restored onto a
-   * reinstall or a new phone), returns the earliest time Health Connect will share; otherwise
-   * undefined.
+   * reinstall or a new phone), returns the time from which Health Connect certainly shares steps;
+   * otherwise undefined. The grant time itself is not available, and it may be long after the
+   * install (the player reconnects later), but it is no later than `nowMs` since syncing needs
+   * the grant. So `nowMs - HISTORY_WINDOW_DAYS` is the latest the hidden history can end: steps
+   * before it may be hidden, steps from it onward are not.
    */
-  async historyStartAfterReinstall(lastSyncedAt: number): Promise<number | undefined> {
+  async historyStartAfterReinstall(
+    lastSyncedAt: number,
+    nowMs: number
+  ): Promise<number | undefined> {
     if (Platform.OS !== 'android') return undefined;
     try {
       const installedAt = (await getInstallationTimeAsync()).getTime();
-      return installedAt > lastSyncedAt ? installedAt - HISTORY_WINDOW_DAYS * DAY_MS : undefined;
+      return installedAt > lastSyncedAt ? nowMs - HISTORY_WINDOW_DAYS * DAY_MS : undefined;
     } catch (error) {
       console.warn('Could not read the app install time:', error);
       return undefined;
@@ -295,6 +304,14 @@ export class HealthService {
    */
   isAvailable(): boolean {
     return Platform.OS === 'android' || Platform.OS === 'ios';
+  }
+
+  /**
+   * Whether the device can't run Health Connect at all (e.g. an Android version that is too old),
+   * as opposed to Health Connect being unavailable for now.
+   */
+  isHealthConnectUnsupported(): boolean {
+    return Platform.OS === 'android' && this.sdkStatus === SDK_STATUS.SDK_UNAVAILABLE;
   }
 
   /**

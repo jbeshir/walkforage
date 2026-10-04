@@ -9,22 +9,7 @@
 
 import { DayCredit, StepBucket, StepLedger, StepSyncMode } from '../types/health';
 import { RECENT_RECONCILE_DAYS, RECONCILE_DAYS, WELCOME_DAYS } from '../config/stepSync';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Local midnight at the start of the day containing `ms`. */
-export function localDayStart(ms: number): number {
-  const date = new Date(ms);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-/** The first local midnight after `ms` (23 or 25 hours after the previous one across DST). */
-export function nextLocalMidnight(ms: number): number {
-  const date = new Date(ms);
-  date.setHours(24, 0, 0, 0);
-  return date.getTime();
-}
+import { DAY_MS, localDayStart, nextLocalMidnight } from '../utils/time';
 
 /** Uncredited day buckets from `startMs` until one covers `nowMs`. */
 function dayBucketsFrom(startMs: number, nowMs: number): StepBucket[] {
@@ -38,6 +23,17 @@ function dayBucketsFrom(startMs: number, nowMs: number): StepBucket[] {
   return buckets;
 }
 
+/** Uncredited day buckets from `startMs` up to `endMs`, the last one cut short to end there. */
+function dayBucketsUntil(startMs: number, endMs: number): StepBucket[] {
+  const buckets: StepBucket[] = [];
+  for (let start = startMs; start < endMs; ) {
+    const end = Math.min(nextLocalMidnight(start), endMs);
+    buckets.push({ startMs: start, endMs: end, credited: 0 });
+    start = end;
+  }
+  return buckets;
+}
+
 /** A ledger that has credited nothing after `ms`: one bucket from `ms` to the next midnight. */
 export function ledgerSince(ms: number): StepLedger {
   return {
@@ -46,10 +42,49 @@ export function ledgerSince(ms: number): StepLedger {
   };
 }
 
-/** Appends day buckets after the last one until `nowMs` is covered. A clock behind adds none. */
-export function extendBuckets(buckets: StepBucket[], nowMs: number): StepBucket[] {
-  const last = buckets[buckets.length - 1];
-  return last.endMs > nowMs ? buckets : [...buckets, ...dayBucketsFrom(last.endMs, nowMs)];
+/**
+ * The ledger as a sync at `nowMs` sees it: its buckets cover `nowMs`, and `lastSyncedAt` is not
+ * after it. Normally this only appends day buckets after the last one until `nowMs` is covered.
+ *
+ * A clock that was ahead at the last sync (set wrong, then corrected) left buckets after `nowMs`,
+ * and that sync's prune may have dropped the real days before them:
+ * - Trailing buckets after `nowMs` that credited nothing are dropped. That loses no high-water
+ *   mark, and their days are added again when the clock reaches them.
+ * - Credited buckets after `nowMs` are kept, unread until the clock reaches them: Health Connect
+ *   holds those steps at those times (counted under the wrong clock), so they must not be
+ *   credited again then. This is also a clock set back below the last bucket.
+ * - If no bucket is left at or before `nowMs`, the real days' marks were pruned: buckets start
+ *   again at today's local midnight. Earlier days are not read again (that could credit them
+ *   twice); steps from earlier today that the skewed sync already credited are credited again.
+ * - A `lastSyncedAt` after `nowMs` is moved back to the start of the bucket holding `nowMs`. The
+ *   skewed sync read real time only up to when it really ran, so that bucket is read again (its
+ *   mark prevents a double credit) and nothing in it counts as late.
+ */
+export function alignToClock(ledger: StepLedger, nowMs: number): StepLedger {
+  let kept = ledger.buckets.length;
+  while (
+    kept > 0 &&
+    ledger.buckets[kept - 1].startMs > nowMs &&
+    ledger.buckets[kept - 1].credited === 0
+  ) {
+    kept--;
+  }
+  const remaining = kept === ledger.buckets.length ? ledger.buckets : ledger.buckets.slice(0, kept);
+  const first = remaining[0];
+  const last = remaining[remaining.length - 1];
+  const buckets =
+    remaining.length === 0
+      ? dayBucketsFrom(localDayStart(nowMs), nowMs)
+      : first.startMs > nowMs
+        ? [...dayBucketsUntil(localDayStart(nowMs), first.startMs), ...remaining]
+        : last.endMs > nowMs
+          ? remaining
+          : [...remaining, ...dayBucketsFrom(last.endMs, nowMs)];
+  const lastSyncedAt =
+    ledger.lastSyncedAt <= nowMs
+      ? ledger.lastSyncedAt
+      : Math.max(...buckets.filter((b) => b.startMs <= nowMs).map((b) => b.startMs));
+  return { buckets, lastSyncedAt };
 }
 
 /** The first ledger of a new game: the WELCOME_DAYS full local days before today, and today. */

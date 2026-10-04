@@ -30,9 +30,7 @@ jest.mock('@kingstinct/react-native-healthkit', () => ({
 
 // Import after mocks are set up
 import { HealthService, healthService } from '../src/services/HealthService';
-
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
+import { DAY_MS, HOUR_MS } from '../src/utils/time';
 
 describe('HealthService', () => {
   beforeEach(() => {
@@ -71,6 +69,7 @@ describe('HealthService', () => {
         expect(await svc.refreshStatus()).toBe('unavailable');
         expect(svc.getPermissionStatus()).toBe('unavailable');
         expect(svc.needsHealthConnectInstall()).toBe(false);
+        expect(svc.isHealthConnectUnsupported()).toBe(true);
       });
 
       it('should flag an install when the provider needs an update', async () => {
@@ -80,12 +79,25 @@ describe('HealthService', () => {
 
         expect(await svc.refreshStatus()).toBe('unavailable');
         expect(svc.needsHealthConnectInstall()).toBe(true);
+        expect(svc.isHealthConnectUnsupported()).toBe(false);
       });
 
-      it('should report unavailable when the client does not initialize', async () => {
+      it('should report unavailable, but not unsupported, when the client does not initialize', async () => {
         fakeHC.initializeResult = false;
+        const svc = new HealthService();
 
-        expect(await new HealthService().refreshStatus()).toBe('unavailable');
+        expect(await svc.refreshStatus()).toBe('unavailable');
+        expect(svc.isHealthConnectUnsupported()).toBe(false);
+      });
+
+      it('should not call a device unsupported when the SDK status cannot be read', async () => {
+        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        fakeHC.failNext('getSdkStatus', hcErrors.serviceUnavailable());
+        const svc = new HealthService();
+
+        expect(await svc.refreshStatus()).toBe('unavailable');
+        expect(svc.isHealthConnectUnsupported()).toBe(false);
+        consoleError.mockRestore();
       });
 
       it('should report authorized when step access is granted', async () => {
@@ -332,27 +344,32 @@ describe('HealthService', () => {
 
     describe('historyStartAfterReinstall', () => {
       const lastSyncedAt = Date.UTC(2026, 8, 1);
+      const now = Date.UTC(2026, 9, 4, 18);
 
-      it('should return 30 days before the install time when installed after the last sync', async () => {
-        const installedAt = Date.UTC(2026, 9, 4);
-        jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(installedAt));
+      it('should return 30 days before now when installed after the last sync', async () => {
+        // The grant may be long after the install; it is no later than now.
+        jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(now - 10 * DAY_MS));
 
-        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBe(
-          installedAt - 30 * DAY_MS
+        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt, now)).toBe(
+          now - 30 * DAY_MS
         );
       });
 
       it('should return undefined when the app was installed before the last sync', async () => {
         jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(lastSyncedAt - DAY_MS));
 
-        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBeUndefined();
+        expect(
+          await new HealthService().historyStartAfterReinstall(lastSyncedAt, now)
+        ).toBeUndefined();
       });
 
       it('should return undefined when the install time cannot be read', async () => {
         const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
         jest.mocked(getInstallationTimeAsync).mockRejectedValue(new Error('unavailable'));
 
-        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBeUndefined();
+        expect(
+          await new HealthService().historyStartAfterReinstall(lastSyncedAt, now)
+        ).toBeUndefined();
         expect(consoleWarn).toHaveBeenCalled();
         consoleWarn.mockRestore();
       });
@@ -422,7 +439,7 @@ describe('HealthService', () => {
         mockIsHealthDataAvailable.mockResolvedValue(true);
       });
 
-      it('should query samples over [startMs, endMs] and floor fractional sums', async () => {
+      it('should query samples starting in [startMs, endMs] and floor fractional sums', async () => {
         mockQueryQuantitySamples.mockResolvedValue([
           { quantity: 150.5 },
           { quantity: 200.3 },
@@ -438,7 +455,14 @@ describe('HealthService', () => {
         expect(mockQueryQuantitySamples).toHaveBeenCalledWith(
           'HKQuantityTypeIdentifierStepCount',
           expect.objectContaining({
-            filter: { date: { startDate: new Date(startMs), endDate: new Date(endMs) } },
+            // strictStartDate: a sample crossing a bucket boundary counts in one bucket only
+            filter: {
+              date: {
+                startDate: new Date(startMs),
+                endDate: new Date(endMs),
+                strictStartDate: true,
+              },
+            },
           })
         );
       });
@@ -475,7 +499,10 @@ describe('HealthService', () => {
       jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(Date.UTC(2026, 9, 4)));
 
       expect(
-        await new HealthService().historyStartAfterReinstall(Date.UTC(2026, 8, 1))
+        await new HealthService().historyStartAfterReinstall(
+          Date.UTC(2026, 8, 1),
+          Date.UTC(2026, 9, 5)
+        )
       ).toBeUndefined();
       expect(getInstallationTimeAsync).not.toHaveBeenCalled();
     });

@@ -6,14 +6,9 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useGameStore } from '../store/gameStore';
 import { useStepSyncStatus } from '../services/stepSync';
 import { healthService } from '../services/HealthService';
-import { localDayStart } from '../services/stepLedger';
 import { SourceStepsResult, StepSyncResult } from '../types/health';
 import { ThemeColors } from '../config/theme';
-import { formatDay, formatTime } from '../utils/time';
-
-function formatMoment(ms: number): string {
-  return `${formatDay(ms)} ${formatTime(ms)}`;
-}
+import { formatDay, formatDayTime, localDayStart } from '../utils/time';
 
 function describeResult(result: StepSyncResult | null): string {
   if (!result) return 'none since the app started';
@@ -21,9 +16,9 @@ function describeResult(result: StepSyncResult | null): string {
   const flags = [
     result.welcome && 'welcome',
     result.historyLimitedBefore !== undefined &&
-      `history from ${formatMoment(result.historyLimitedBefore)}`,
+      `history from ${formatDayTime(result.historyLimitedBefore)}`,
   ].filter(Boolean);
-  return `synced +${result.credited} at ${formatMoment(result.syncedAt)}${
+  return `synced +${result.credited} at ${formatDayTime(result.syncedAt)}${
     flags.length > 0 ? ` (${flags.join(', ')})` : ''
   }`;
 }
@@ -49,7 +44,7 @@ export function StepSyncDiagnostics({ colors }: { colors: ThemeColors }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Step Sync</Text>
       <Text style={label}>Last synced</Text>
-      <Text style={value}>{stepLedger ? formatMoment(stepLedger.lastSyncedAt) : 'never'}</Text>
+      <Text style={value}>{stepLedger ? formatDayTime(stepLedger.lastSyncedAt) : 'never'}</Text>
       <Text style={label}>Last result</Text>
       <Text style={value}>{describeResult(lastResult)}</Text>
 
@@ -62,7 +57,7 @@ export function StepSyncDiagnostics({ colors }: { colors: ThemeColors }) {
           >
             <Text style={value}>{formatDay(bucket.startMs)}</Text>
             <Text style={label}>
-              {formatMoment(bucket.startMs)} → {formatMoment(bucket.endMs)}
+              {formatDayTime(bucket.startMs)} → {formatDayTime(bucket.endMs)}
             </Text>
             <Text style={value}>
               credited {bucket.credited} · Health Connect{' '}

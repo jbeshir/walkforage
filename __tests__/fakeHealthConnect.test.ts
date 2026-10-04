@@ -18,15 +18,13 @@ import {
   sumCounts,
   walk,
 } from './helpers/fakeHealthConnect';
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '../src/utils/time';
 
 jest.mock(
   'react-native-health-connect',
   () => jest.requireActual('./helpers/fakeHealthConnect').fakeHealthConnectModule
 );
 
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 const DAY_START = new Date(2026, 5, 15).getTime();
 const NEXT_DAY_START = new Date(2026, 5, 16).getTime();
 
@@ -66,8 +64,8 @@ describe('fake Health Connect', () => {
   });
 
   describe('aggregateRecord', () => {
-    const walkStart = DAY_START + 10 * HOUR;
-    const walkEnd = walkStart + HOUR;
+    const walkStart = DAY_START + 10 * HOUR_MS;
+    const walkEnd = walkStart + HOUR_MS;
 
     it('de-duplicates two origins covering the same time by priority', async () => {
       fakeHC.upsert(walk(walkStart, walkEnd, 10));
@@ -86,7 +84,7 @@ describe('fake Health Connect', () => {
     });
 
     it('counts a lower-priority origin only where no higher-priority record covers', async () => {
-      fakeHC.upsert(walk(walkStart, walkEnd + HOUR, 10));
+      fakeHC.upsert(walk(walkStart, walkEnd + HOUR_MS, 10));
       fakeHC.upsert(fitbitBatch(walkStart, walkEnd, 100));
 
       await expect(aggregate(DAY_START, NEXT_DAY_START)).resolves.toEqual({
@@ -110,7 +108,7 @@ describe('fake Health Connect', () => {
     it('pro-rates a whole-day record over [12:00, 24:00) to half', async () => {
       fakeHC.upsert([dayRecord(DAY_START, 10_000)]);
 
-      const result = await aggregate(DAY_START + 12 * HOUR, NEXT_DAY_START);
+      const result = await aggregate(DAY_START + 12 * HOUR_MS, NEXT_DAY_START);
 
       expect(result.COUNT_TOTAL).toBe(5_000);
     });
@@ -118,8 +116,8 @@ describe('fake Health Connect', () => {
     it('pro-rates a straddling record by its overlap with the window', async () => {
       fakeHC.upsert([
         {
-          start: walkStart - 10 * MINUTE,
-          end: walkStart + 10 * MINUTE,
+          start: walkStart - 10 * MINUTE_MS,
+          end: walkStart + 10 * MINUTE_MS,
           count: 200,
           origin: ON_DEVICE_ORIGIN,
         },
@@ -128,6 +126,23 @@ describe('fake Health Connect', () => {
       const result = await aggregate(walkStart, walkEnd);
 
       expect(result.COUNT_TOTAL).toBe(100);
+    });
+
+    it('splits a straddling record between adjacent windows without rounding drift', async () => {
+      // 15 steps over 10 minutes: 7.5 on each side of the boundary
+      fakeHC.upsert([
+        {
+          start: walkStart - 5 * MINUTE_MS,
+          end: walkStart + 5 * MINUTE_MS,
+          count: 15,
+          origin: ON_DEVICE_ORIGIN,
+        },
+      ]);
+
+      const before = await aggregate(walkStart - HOUR_MS, walkStart);
+      const after = await aggregate(walkStart, walkEnd);
+
+      expect(before.COUNT_TOTAL + after.COUNT_TOTAL).toBe(15);
     });
 
     it('rejects a non-Steps record type', async () => {
@@ -142,16 +157,16 @@ describe('fake Health Connect', () => {
 
   describe('readRecords', () => {
     it('returns every record across pages, ending with an empty pageToken', async () => {
-      const records = walk(DAY_START, DAY_START + 2_500 * MINUTE, 3);
+      const records = walk(DAY_START, DAY_START + 2_500 * MINUTE_MS, 3);
       fakeHC.upsert(records);
 
       const first = await readRecords('Steps', {
-        timeRangeFilter: between(DAY_START, DAY_START + 3 * DAY),
+        timeRangeFilter: between(DAY_START, DAY_START + 3 * DAY_MS),
       });
       expect(first.records).toHaveLength(1000);
       expect(first.pageToken).toBeTruthy();
 
-      const { records: all, pages } = await readAll(DAY_START, DAY_START + 3 * DAY);
+      const { records: all, pages } = await readAll(DAY_START, DAY_START + 3 * DAY_MS);
       expect(pages).toBe(3);
       expect(all).toHaveLength(2_500);
       expect(new Set(all.map((r) => r.metadata?.id)).size).toBe(2_500);
@@ -164,7 +179,7 @@ describe('fake Health Connect', () => {
 
     it('can end paging with an undefined pageToken', async () => {
       fakeHC.lastPageToken = undefined;
-      fakeHC.upsert(walk(DAY_START, DAY_START + 30 * MINUTE, 3));
+      fakeHC.upsert(walk(DAY_START, DAY_START + 30 * MINUTE_MS, 3));
 
       const result = await readRecords('Steps', {
         timeRangeFilter: between(DAY_START, NEXT_DAY_START),
@@ -177,39 +192,39 @@ describe('fake Health Connect', () => {
     });
 
     it('filters by start time, missing a record that starts before the window', async () => {
-      const windowStart = DAY_START + 10 * HOUR;
+      const windowStart = DAY_START + 10 * HOUR_MS;
       fakeHC.upsert([
         {
-          start: windowStart - 10 * MINUTE,
-          end: windowStart + 10 * MINUTE,
+          start: windowStart - 10 * MINUTE_MS,
+          end: windowStart + 10 * MINUTE_MS,
           count: 200,
           origin: ON_DEVICE_ORIGIN,
         },
         {
-          start: windowStart + 30 * MINUTE,
-          end: windowStart + 31 * MINUTE,
+          start: windowStart + 30 * MINUTE_MS,
+          end: windowStart + 31 * MINUTE_MS,
           count: 50,
           origin: ON_DEVICE_ORIGIN,
         },
       ]);
 
-      const { records } = await readAll(windowStart, windowStart + HOUR);
+      const { records } = await readAll(windowStart, windowStart + HOUR_MS);
 
       expect(records).toEqual([
         {
           recordType: 'Steps',
           count: 50,
-          startTime: iso(windowStart + 30 * MINUTE),
-          endTime: iso(windowStart + 31 * MINUTE),
+          startTime: iso(windowStart + 30 * MINUTE_MS),
+          endTime: iso(windowStart + 31 * MINUTE_MS),
           metadata: { id: expect.any(String), dataOrigin: ON_DEVICE_ORIGIN },
         },
       ]);
-      expect((await aggregate(windowStart, windowStart + HOUR)).COUNT_TOTAL).toBe(150);
+      expect((await aggregate(windowStart, windowStart + HOUR_MS)).COUNT_TOTAL).toBe(150);
     });
 
     it('orders ascending by default and descending on request, with origin filter', async () => {
-      fakeHC.upsert(walk(DAY_START, DAY_START + 3 * MINUTE, 1));
-      fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 15 * MINUTE, 9));
+      fakeHC.upsert(walk(DAY_START, DAY_START + 3 * MINUTE_MS, 1));
+      fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 15 * MINUTE_MS, 9));
       const timeRangeFilter = between(DAY_START, NEXT_DAY_START);
 
       const ascending = await readRecords('Steps', {
@@ -223,28 +238,28 @@ describe('fake Health Connect', () => {
       });
 
       expect(ascending.records.map((r) => r.startTime)).toEqual(
-        [0, 1, 2].map((m) => iso(DAY_START + m * MINUTE))
+        [0, 1, 2].map((m) => iso(DAY_START + m * MINUTE_MS))
       );
       expect(descending.records.map((r) => r.startTime)).toEqual(
-        [2, 1, 0].map((m) => iso(DAY_START + m * MINUTE))
+        [2, 1, 0].map((m) => iso(DAY_START + m * MINUTE_MS))
       );
     });
   });
 
   describe('record store', () => {
     it('upserts in place by id, accepts late inserts and deletes', async () => {
-      const [first] = fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 30 * MINUTE, 100));
-      fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 15 * MINUTE, 250));
+      const [first] = fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 30 * MINUTE_MS, 100));
+      fakeHC.upsert(fitbitBatch(DAY_START, DAY_START + 15 * MINUTE_MS, 250));
 
       expect(fakeHC.records).toHaveLength(2);
       expect(fakeHC.records[0]).toMatchObject({ id: first, count: 250 });
       expect((await aggregate(DAY_START, NEXT_DAY_START)).COUNT_TOTAL).toBe(350);
 
-      const [late] = fakeHC.upsert([dayRecord(DAY_START - DAY, 4_000)]);
-      expect((await aggregate(DAY_START - DAY, NEXT_DAY_START)).COUNT_TOTAL).toBe(4_350);
+      const [late] = fakeHC.upsert([dayRecord(DAY_START - DAY_MS, 4_000)]);
+      expect((await aggregate(DAY_START - DAY_MS, NEXT_DAY_START)).COUNT_TOTAL).toBe(4_350);
 
       fakeHC.delete([late, first]);
-      expect((await aggregate(DAY_START - DAY, NEXT_DAY_START)).COUNT_TOTAL).toBe(100);
+      expect((await aggregate(DAY_START - DAY_MS, NEXT_DAY_START)).COUNT_TOTAL).toBe(100);
     });
 
     it('rejects records that do not end after they start', () => {
@@ -266,32 +281,32 @@ describe('fake Health Connect', () => {
 
   describe('history floor', () => {
     it('hides data starting before firstGrantAt - 30 days', async () => {
-      const now = DAY_START + 12 * HOUR;
+      const now = DAY_START + 12 * HOUR_MS;
       fakeHC.upsert([
-        dayRecord(DAY_START - 40 * DAY, 1_000),
-        dayRecord(DAY_START - 20 * DAY, 2_000),
+        dayRecord(DAY_START - 40 * DAY_MS, 1_000),
+        dayRecord(DAY_START - 20 * DAY_MS, 2_000),
       ]);
       fakeHC.firstGrantAt = now;
 
-      const { records } = await readAll(DAY_START - 60 * DAY, now);
+      const { records } = await readAll(DAY_START - 60 * DAY_MS, now);
       expect(records.map((r) => r.count)).toEqual([2_000]);
-      expect((await aggregate(DAY_START - 60 * DAY, now)).COUNT_TOTAL).toBe(2_000);
+      expect((await aggregate(DAY_START - 60 * DAY_MS, now)).COUNT_TOTAL).toBe(2_000);
 
-      fakeHC.firstGrantAt = now - 30 * DAY;
-      expect((await aggregate(DAY_START - 60 * DAY, now)).COUNT_TOTAL).toBe(3_000);
+      fakeHC.firstGrantAt = now - 30 * DAY_MS;
+      expect((await aggregate(DAY_START - 60 * DAY_MS, now)).COUNT_TOTAL).toBe(3_000);
     });
 
     it('anchors the floor at the first grant after a reinstall', async () => {
-      const now = DAY_START + 12 * HOUR;
+      const now = DAY_START + 12 * HOUR_MS;
       jest.useFakeTimers({ now });
-      fakeHC.upsert([dayRecord(DAY_START - 40 * DAY, 1_000)]);
+      fakeHC.upsert([dayRecord(DAY_START - 40 * DAY_MS, 1_000)]);
       fakeHC.granted = false;
       fakeHC.firstGrantAt = null;
 
       await requestPermission([{ accessType: 'read', recordType: 'Steps' }]);
 
       expect(fakeHC.firstGrantAt).toBe(now);
-      expect((await aggregate(DAY_START - 60 * DAY, now)).COUNT_TOTAL).toBe(0);
+      expect((await aggregate(DAY_START - 60 * DAY_MS, now)).COUNT_TOTAL).toBe(0);
     });
   });
 
@@ -404,7 +419,7 @@ describe('fake Health Connect', () => {
     });
 
     it('reset restores defaults and clears records, failures and calls', async () => {
-      fakeHC.upsert(walk(DAY_START, DAY_START + HOUR, 5));
+      fakeHC.upsert(walk(DAY_START, DAY_START + HOUR_MS, 5));
       fakeHC.failAlways('getSdkStatus', hcErrors.remote());
       fakeHC.granted = false;
       fakeHC.priority = [];

@@ -57,6 +57,7 @@ export function StepGatherPanel({
     gatherMaterial,
     isAvailable,
     needsInstall,
+    unsupported,
     openHealthSettings,
     openPlayStore,
   } = stepGathering;
@@ -294,9 +295,10 @@ export function StepGatherPanel({
     );
   }
 
-  // Health Connect unavailable (e.g. updating): saved steps can still be spent, and SyncStatus
-  // explains why nothing syncs.
-  const healthUnavailable = permissionStatus === 'unavailable';
+  // Health Connect unavailable (e.g. updating, or not supported here): saved steps can still be
+  // spent, and SyncStatus explains why nothing syncs.
+  const healthUnavailable =
+    permissionStatus !== 'unavailable' ? null : unsupported ? 'unsupported' : 'unavailable';
 
   // Compact mode for overlay
   if (compact) {

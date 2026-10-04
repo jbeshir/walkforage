@@ -20,8 +20,9 @@ import {
 import { setTimeZone } from './helpers/timeZone';
 import { syncSteps, useStepSyncStatus } from '../src/services/stepSync';
 import { ledgerSince } from '../src/services/stepLedger';
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '../src/utils/time';
 import { useGameStore } from '../src/store/gameStore';
-import { loadGame, saveGame, startPersistence } from '../src/store/persistence';
+import { loadGame, resetGame, saveGame, startPersistence } from '../src/store/persistence';
 import type { FakeStepRecordInput } from './helpers/fakeHealthConnect';
 
 jest.mock(
@@ -33,9 +34,6 @@ setTimeZone('Europe/London');
 
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
-const DAY_MS = 24 * HOUR_MS;
 const NOW = local(2026, 10, 4, 18);
 
 /** Half-hour records, one per hour, `perHour` steps each, starting in [from, to). */
@@ -399,6 +397,7 @@ describe('stepSync', () => {
   });
 
   it('never reads an empty or inverted window when the clock is set back, and catches up after', async () => {
+    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const lastSync = NOW - 2 * DAY_MS;
     fakeHC.upsert(hourly(lastSync, NOW, 100));
     seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
@@ -426,6 +425,141 @@ describe('stepSync', () => {
     fakeHC.upsert(later);
     expect(await syncSteps()).toMatchObject({ status: 'synced', credited: sumCounts(later) });
     expect(availableSteps()).toBe(4800 + 200);
+    expect(consoleWarn).toHaveBeenCalledTimes(1); // the sync while the clock was back
+    consoleWarn.mockRestore();
+  });
+
+  describe('a clock that was ahead', () => {
+    it('credits steps walked after a clock 30 days ahead is corrected', async () => {
+      const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - HOUR_MS) });
+      await loadGame();
+      expect(await syncSteps()).toMatchObject({ status: 'synced', credited: 0 });
+
+      // The clock is set 30 days ahead and the app syncs; then the clock is corrected.
+      jest.setSystemTime(NOW + 30 * DAY_MS);
+      expect(await syncSteps()).toMatchObject({ status: 'synced', credited: 0 });
+      expect(ledger().buckets[0].startMs).toBeGreaterThan(NOW + DAY_MS);
+      expect(consoleWarn).not.toHaveBeenCalled();
+
+      // Back to real time: 3 000 steps today, then 3 000 tomorrow.
+      const today = walk(NOW + 10 * MINUTE_MS, NOW + 40 * MINUTE_MS, 100);
+      const tomorrow = walk(NOW + 20 * HOUR_MS, NOW + 20.5 * HOUR_MS, 100);
+      fakeHC.upsert(today);
+      jest.setSystemTime(NOW + 2 * HOUR_MS);
+      const corrected = await syncSteps();
+      expect(corrected).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(today),
+        perDay: [{ startMs: local(2026, 10, 4), steps: 3000, late: false }],
+      });
+      expect(consoleWarn).toHaveBeenCalledTimes(1);
+      expect(ledger().lastSyncedAt).toBe(NOW + 2 * HOUR_MS);
+      expect(ledger().buckets.every((b) => b.startMs <= NOW + 2 * HOUR_MS)).toBe(true);
+
+      fakeHC.upsert(tomorrow);
+      jest.setSystemTime(NOW + DAY_MS);
+      expect(await syncSteps()).toMatchObject({ credited: sumCounts(tomorrow) });
+      expect(await syncSteps()).toMatchObject({ credited: 0 });
+      expect(availableSteps()).toBe(6000);
+      consoleWarn.mockRestore();
+    });
+
+    it('keeps the marks of real days through a clock 5 days ahead, crediting no day twice', async () => {
+      const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const lastSync = NOW - DAY_MS;
+      const before = hourly(lastSync, NOW, 100);
+      fakeHC.upsert(before);
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(lastSync) });
+      await loadGame();
+
+      jest.setSystemTime(NOW + 5 * DAY_MS);
+      expect(await syncSteps()).toMatchObject({ credited: sumCounts(before) });
+      jest.setSystemTime(NOW + 5 * DAY_MS + HOUR_MS); // the foreground interval, still ahead
+      expect(await syncSteps('recent')).toMatchObject({ credited: 0 });
+
+      // Corrected: today's bucket kept its mark, so only the steps walked since are credited.
+      const after = hourly(NOW, NOW + 3 * HOUR_MS, 100);
+      fakeHC.upsert(after);
+      jest.setSystemTime(NOW + 3 * HOUR_MS);
+      expect(await syncSteps('recent')).toMatchObject({
+        status: 'synced',
+        credited: sumCounts(after),
+        perDay: [{ startMs: local(2026, 10, 4), steps: 300, late: false }],
+      });
+      expect(ledger().buckets[ledger().buckets.length - 1].endMs).toBe(local(2026, 10, 5));
+      expect(availableSteps()).toBe(hcTotal(lastSync, NOW + 3 * HOUR_MS));
+      expect(consoleWarn).toHaveBeenCalledTimes(1);
+      consoleWarn.mockRestore();
+    });
+  });
+
+  it('turns a sync that throws into an unknown error, and later syncs (also one queued behind it) run afresh', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    seedSave({ availableSteps: 0, stepLedger: ledgerSince(NOW - 2 * HOUR_MS) });
+    await loadGame();
+    const first = hourly(NOW - 2 * HOUR_MS, NOW, 300);
+    fakeHC.upsert(first);
+    // A store listener that throws once, when the sync commits its credit
+    let throws = true;
+    const unsubscribe = useGameStore.subscribe(() => {
+      if (!throws) return;
+      throws = false;
+      throw new Error('listener failed');
+    });
+    fakeHC.latencyMs = 1000;
+
+    const recent = syncSteps('recent');
+    const full = syncSteps('full');
+    await jest.advanceTimersByTimeAsync(MINUTE_MS);
+
+    expect(await recent).toEqual({
+      status: 'error',
+      code: 'unknown',
+      message: 'Error: listener failed',
+    });
+    // The commit is one store update, so the queued full sync sees it and credits nothing again.
+    expect(await full).toMatchObject({ status: 'synced', credited: 0 });
+    expect(useStepSyncStatus.getState().syncing).toBe(false);
+
+    const later = hourly(NOW, NOW + HOUR_MS, 300);
+    fakeHC.upsert(later);
+    jest.setSystemTime(NOW + HOUR_MS);
+    const next = syncSteps('recent');
+    await jest.advanceTimersByTimeAsync(MINUTE_MS);
+    expect(await next).toMatchObject({ status: 'synced', credited: sumCounts(later) });
+    expect(availableSteps()).toBe(sumCounts([...first, ...later]));
+    expect(useStepSyncStatus.getState()).toMatchObject({
+      syncing: false,
+      lastResult: { status: 'synced' },
+    });
+    unsubscribe();
+    consoleError.mockRestore();
+  });
+
+  it('syncs the new game, not the old ledger, when the game is reset during the reads', async () => {
+    const walked = walk(NOW - 2 * HOUR_MS, NOW - HOUR_MS, 50);
+    fakeHC.upsert(walked);
+    seedSave({ availableSteps: 5000, stepLedger: ledgerSince(NOW - 3 * HOUR_MS) });
+    await loadGame();
+    fakeHC.latencyMs = 1000;
+
+    const pending = syncSteps();
+    await jest.advanceTimersByTimeAsync(3500); // status refreshed, the read in flight
+    expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(1);
+    await resetGame();
+    await jest.advanceTimersByTimeAsync(MINUTE_MS);
+
+    // The new game gets its welcome week; the old game's ledger and credit are gone.
+    expect(await pending).toMatchObject({
+      status: 'synced',
+      welcome: true,
+      credited: sumCounts(walked),
+    });
+    expect(ledger().buckets[0].startMs).toBe(local(2026, 9, 27));
+    expect(ledger().buckets).toHaveLength(8);
+    expect(availableSteps()).toBe(sumCounts(walked));
+    expect(storedGame()).toMatchObject({ availableSteps: sumCounts(walked) });
   });
 
   describe('hydration gate', () => {
