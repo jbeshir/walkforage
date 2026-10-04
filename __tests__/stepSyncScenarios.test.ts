@@ -28,6 +28,7 @@ import {
   useMemoryStorage,
 } from './helpers/stepSyncHarness';
 import { setTimeZone } from './helpers/timeZone';
+import { healthService } from '../src/services/HealthService';
 import { syncSteps } from '../src/services/stepSync';
 import { ledgerSince, localDayStart } from '../src/services/stepLedger';
 import { useGameStore } from '../src/store/gameStore';
@@ -400,6 +401,46 @@ describe('step sync scenarios', () => {
       expect(result).not.toHaveProperty('historyLimitedBefore');
       expect(startingIn(history, backupAt)).toBe(6000);
       expect(availableSteps()).toBe(backedUp + 6000);
+    });
+
+    it("of last night's backup after a reinstall on the same phone: credits only the steps since the backup", async () => {
+      const backupAt = local(2026, 10, 3, 23);
+      const installedAt = NOW - 15 * MINUTE_MS;
+      const walks = [
+        ...walk(local(2026, 10, 3, 10), local(2026, 10, 3, 11), 20),
+        ...walk(local(2026, 10, 3, 23, 30), local(2026, 10, 4, 0, 30), 10), // after the backup
+        ...walk(local(2026, 10, 4, 9), local(2026, 10, 4, 10), 30),
+      ];
+      fakeHC.upsert(walks);
+      seedSave({ availableSteps: 0, stepLedger: ledgerSince(local(2026, 10, 3)) });
+      await loadGame();
+      jest.setSystemTime(backupAt);
+      const backedUp = credited(await syncSteps());
+      const backup = storedBlob();
+
+      // Uninstall, reinstall and restore: Health Connect keeps the records, the grant is new.
+      fakeHC.firstGrantAt = NOW - 10 * MINUTE_MS;
+      jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(installedAt));
+      jest.setSystemTime(NOW);
+      await restartApp();
+      expect(storedBlob()).toBe(backup);
+
+      // The restored ledger predates the install, so this is a reinstall; every bucket the sync
+      // reads is still inside the history Health Connect shares, so there is no notice.
+      expect(await healthService.historyStartAfterReinstall(ledger().lastSyncedAt)).toBe(
+        installedAt - 30 * DAY_MS
+      );
+      const result = await syncSteps();
+
+      expect(result).toMatchObject({
+        status: 'synced',
+        credited: startingIn(walks, backupAt),
+        welcome: false,
+      });
+      expect(result).not.toHaveProperty('historyLimitedBefore');
+      expect(availableSteps()).toBe(backedUp + startingIn(walks, backupAt));
+      expect(backedUp + credited(result)).toBe(sumCounts(walks));
+      expect(await syncSteps()).toMatchObject({ credited: 0 });
     });
   });
 
