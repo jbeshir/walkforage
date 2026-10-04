@@ -5,7 +5,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useLocation } from '../hooks/useLocation';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 import { useStepGathering } from '../hooks/useStepGathering';
 import { useMapOverlay } from '../hooks/useMapOverlay';
@@ -44,7 +44,7 @@ const MAP_STYLE = [
 ];
 
 export default function ForageScreen() {
-  const { addResource } = useGameState();
+  const addResource = useGameStore((s) => s.addResource);
   const { theme } = useTheme();
   const { colors } = theme;
   const insets = useSafeAreaInsets();

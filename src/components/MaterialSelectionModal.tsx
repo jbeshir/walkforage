@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { OwnedComponent, Craftable, getQualityTier, getUsedMaterialId } from '../types/tools';
 import { MaterialType, getMaterialConfig, getAllMaterialTypes } from '../config/materials';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 import {
   calculateCraftableQuality,
@@ -293,7 +293,9 @@ export default function MaterialSelectionModal({
   availableMaterials,
   availableComponentIds = [],
 }: MaterialSelectionModalProps) {
-  const { getResourceCount, state } = useGameState();
+  const getResourceCount = useGameStore((s) => s.getResourceCount);
+  const ownedComponents = useGameStore((s) => s.ownedComponents);
+  const inventory = useGameStore((s) => s.inventory);
   const { theme } = useTheme();
   const { colors } = theme;
 
@@ -355,7 +357,7 @@ export default function MaterialSelectionModal({
       const autoSelectedComponents: string[] = [];
       for (const req of requiredComponents) {
         const available = availableComponentIds.filter((id) => {
-          const comp = state.ownedComponents.find((c) => c.instanceId === id);
+          const comp = ownedComponents.find((c) => c.instanceId === id);
           return comp?.componentId === req.componentId;
         });
         for (let i = 0; i < req.quantity && i < available.length; i++) {
@@ -376,7 +378,7 @@ export default function MaterialSelectionModal({
     availableMaterials,
     availableComponentIds,
     requiredComponents,
-    state.ownedComponents,
+    ownedComponents,
     qualityWeights,
     requiredMaterialTypes,
   ]);
@@ -420,7 +422,7 @@ export default function MaterialSelectionModal({
     if (needsComponents) {
       for (const req of requiredComponents) {
         const selectedOfType = selectedComponentIds.filter((id) => {
-          const comp = state.ownedComponents.find((c) => c.instanceId === id);
+          const comp = ownedComponents.find((c) => c.instanceId === id);
           return comp?.componentId === req.componentId;
         });
         if (selectedOfType.length < req.quantity) return false;
@@ -602,7 +604,7 @@ export default function MaterialSelectionModal({
                 {requiredComponents.map((req) => {
                   const compDef = getComponentById(req.componentId);
                   const availableForType = availableComponentIds
-                    .map((id) => state.ownedComponents.find((c) => c.instanceId === id))
+                    .map((id) => ownedComponents.find((c) => c.instanceId === id))
                     .filter((c) => c?.componentId === req.componentId) as OwnedComponent[];
 
                   return (
@@ -642,12 +644,12 @@ export default function MaterialSelectionModal({
                     🍎 Food sustains you during the time spent crafting
                   </Text>
                 </View>
-                {state.inventory.food.length === 0 ? (
+                {inventory.food.length === 0 ? (
                   <Text style={[styles.noOptionsText, { color: colors.textTertiary }]}>
                     No food available
                   </Text>
                 ) : (
-                  state.inventory.food.map((stack) => {
+                  inventory.food.map((stack) => {
                     // Calculate remaining needed, excluding this food's contribution
                     const otherFoodTotal = Object.entries(selectedFoods)
                       .filter(([id]) => id !== stack.resourceId)

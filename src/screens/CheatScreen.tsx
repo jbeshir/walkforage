@@ -6,7 +6,8 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { TECHNOLOGIES } from '../data/techTree';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
+import { resetGame } from '../store/persistence';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialType, getAllMaterialTypes, getMaterialConfig } from '../config/materials';
 import { getResourceIcon } from '../utils/icons';
@@ -66,7 +67,11 @@ const MaterialResourceRow = React.memo(function MaterialResourceRow({
 });
 
 export default function CheatScreen() {
-  const { addResource, syncSteps, unlockTech, resetGame, state } = useGameState();
+  const addResource = useGameStore((s) => s.addResource);
+  const syncSteps = useGameStore((s) => s.syncSteps);
+  const unlockTech = useGameStore((s) => s.unlockTech);
+  const availableSteps = useGameStore((s) => s.availableSteps);
+  const unlockedTechs = useGameStore((s) => s.unlockedTechs);
   const { theme } = useTheme();
   const { colors } = theme;
   const [activeTab, setActiveTab] = useState<ResourceTab>('steps');
@@ -88,7 +93,7 @@ export default function CheatScreen() {
 
   const handleUnlockAllTech = () => {
     for (const tech of TECHNOLOGIES) {
-      if (!state.unlockedTechs.includes(tech.id)) {
+      if (!unlockedTechs.includes(tech.id)) {
         unlockTech(tech.id);
       }
     }
@@ -157,7 +162,7 @@ export default function CheatScreen() {
         ))}
       </View>
       <Text style={[styles.currentValue, { color: colors.textTertiary }]}>
-        Current: {state.availableSteps} steps available
+        Current: {availableSteps} steps available
       </Text>
     </View>
   );
@@ -198,7 +203,7 @@ export default function CheatScreen() {
         <Text style={styles.unlockAllButtonText}>Unlock All Technologies</Text>
       </TouchableOpacity>
       <Text style={[styles.currentValue, { color: colors.textTertiary }]}>
-        Currently unlocked: {state.unlockedTechs.length} technologies
+        Currently unlocked: {unlockedTechs.length} technologies
       </Text>
 
       <Text style={[styles.sectionTitle, styles.dangerZoneTitle, { color: colors.textPrimary }]}>

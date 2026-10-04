@@ -3,11 +3,11 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 
 export function PersistenceErrorBanner(): React.ReactElement | null {
-  const { saveError } = useGameState();
+  const saveError = useGameStore((s) => s.saveError);
   const { theme } = useTheme();
   const { colors } = theme;
   const insets = useSafeAreaInsets();

@@ -2,6 +2,8 @@
 // Mocks for React Native and Expo modules
 
 import '@testing-library/jest-dom';
+import { useGameStore, createInitialGameData, __resetCanCraftCache } from './src/store/gameStore';
+import { __resetPersistenceForTests } from './src/store/persistence';
 
 // React Native injects __DEV__ as a global at runtime; define it for the test env.
 (globalThis as unknown as { __DEV__: boolean }).__DEV__ = true;
@@ -175,4 +177,7 @@ export { mockLocationSubscription };
 // Reset all mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
+  useGameStore.setState({ ...createInitialGameData(), isLoading: true, saveError: false });
+  __resetPersistenceForTests();
+  __resetCanCraftCache();
 });

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGameState } from '../hooks/useGameState';
+import { useGameStore } from '../store/gameStore';
 import { useTheme } from '../hooks/useTheme';
 import { TECHNOLOGIES, TECH_BY_ID, getAvailableTechs, getTechsByEra } from '../data/techTree';
 import { Technology, LITHIC_ERAS, ERA_COLORS, ERA_NAMES, TechResourceCost } from '../types/tech';
@@ -67,7 +67,11 @@ interface TechTreeScreenProps {
 }
 
 export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProps) {
-  const { state, hasTech, unlockTech, removeResource } = useGameState();
+  const unlockedTechs = useGameStore((s) => s.unlockedTechs);
+  const inventory = useGameStore((s) => s.inventory);
+  const hasTech = useGameStore((s) => s.hasTech);
+  const unlockTech = useGameStore((s) => s.unlockTech);
+  const removeResource = useGameStore((s) => s.removeResource);
   const { theme } = useTheme();
   const { colors } = theme;
 
@@ -95,17 +99,17 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
   }, [onEnableCheatMode]);
 
   const availableTechIds = useMemo(
-    () => new Set(getAvailableTechs(state.unlockedTechs).map((t) => t.id)),
-    [state.unlockedTechs]
+    () => new Set(getAvailableTechs(unlockedTechs).map((t) => t.id)),
+    [unlockedTechs]
   );
 
   // Get total count of a resource type across all specific resources
   const getTotalResourceCount = useCallback(
     (resourceType: MaterialType): number => {
-      const stacks = state.inventory[resourceType];
+      const stacks = inventory[resourceType];
       return stacks.reduce((sum, stack) => sum + stack.quantity, 0);
     },
-    [state.inventory]
+    [inventory]
   );
 
   const handleTechPress = useCallback(
@@ -182,7 +186,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Technology Tree</Text>
           </TouchableOpacity>
           <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>
-            {state.unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
+            {unlockedTechs.length} / {TECHNOLOGIES.length} unlocked
           </Text>
         </View>
 
@@ -227,7 +231,7 @@ export default function TechTreeScreen({ onEnableCheatMode }: TechTreeScreenProp
             onConfirm={handleModalConfirm}
             techName={selectedTech.name}
             resourceCosts={selectedTech.resourceCost}
-            availableMaterials={state.inventory}
+            availableMaterials={inventory}
           />
         )}
 
