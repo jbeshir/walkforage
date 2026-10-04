@@ -3,7 +3,12 @@
 
 import { Platform, Linking } from 'react-native';
 import { getInstallationTimeAsync } from 'expo-application';
-import { HealthPermissionStatus, StepReadResult } from '../types/health';
+import {
+  HealthPermissionStatus,
+  SourceSteps,
+  SourceStepsResult,
+  StepReadResult,
+} from '../types/health';
 import { HISTORY_WINDOW_DAYS } from '../config/stepSync';
 
 // Conditional imports - these will be resolved at build time
@@ -216,6 +221,49 @@ export class HealthService {
       console.error('Failed to read steps:', error);
       return toStepReadError(error);
     }
+  }
+
+  /**
+   * Raw step records starting in [startMs, endMs), summed per data origin, most steps first. For
+   * diagnostics only: origins overlap (a watch and the phone count the same walk), so the sum of
+   * all origins is more than the steps a sync credits. Android only.
+   */
+  async readStepsBySource(startMs: number, endMs: number): Promise<SourceStepsResult> {
+    if (Platform.OS !== 'android' || !HealthConnect) {
+      return { ok: false, code: 'unavailable', message: 'Steps by source need Health Connect' };
+    }
+    if (!this.initialized) {
+      return { ok: false, code: 'not_initialized', message: 'Health service is not available' };
+    }
+
+    const sources = new Map<string, SourceSteps>();
+    let pageToken: string | undefined;
+    try {
+      do {
+        const page = await HealthConnect.readRecords('Steps', {
+          timeRangeFilter: {
+            operator: 'between',
+            startTime: new Date(startMs).toISOString(),
+            endTime: new Date(endMs).toISOString(),
+          },
+          pageToken,
+        });
+        for (const record of page.records) {
+          const origin = record.metadata?.dataOrigin ?? 'unknown';
+          const source = sources.get(origin) ?? { origin, records: 0, steps: 0 };
+          sources.set(origin, {
+            origin,
+            records: source.records + 1,
+            steps: source.steps + (Number(record.count) || 0),
+          });
+        }
+        // The last page's token may be '' rather than absent.
+        pageToken = page.pageToken || undefined;
+      } while (pageToken);
+    } catch (error) {
+      return toStepReadError(error);
+    }
+    return { ok: true, sources: [...sources.values()].sort((a, b) => b.steps - a.steps) };
   }
 
   /**

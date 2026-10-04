@@ -98,6 +98,7 @@ describe('stepSync', () => {
         Array.from({ length: 8 }, (_, i) => ({
           startMs: local(2026, 9, 27 + i),
           steps: (i < 7 ? 24 : 18) * 300,
+          late: false,
         }))
       );
       expect(aggregateWindows()).toHaveLength(8);

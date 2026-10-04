@@ -94,7 +94,15 @@ export function useStepGathering(options: UseStepGatheringOptions = {}): UseStep
   const syncAndLog = useCallback(
     async (mode: StepSyncMode): Promise<void> => {
       const result = await sync(mode);
-      if (result.status === 'error') console.warn('step sync failed:', result.code, result.message);
+      // No grant yet and a save still loading (or failed to) are states the UI already shows, and
+      // the interval would repeat them every few minutes.
+      if (
+        result.status === 'error' &&
+        result.code !== 'not_authorized' &&
+        result.code !== 'not_loaded'
+      ) {
+        console.warn('step sync failed:', result.code, result.message);
+      }
     },
     [sync]
   );

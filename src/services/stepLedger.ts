@@ -82,17 +82,24 @@ export function bucketsToRead(buckets: StepBucket[], nowMs: number, sinceMs: num
 
 /**
  * Credits each bucket's total (keyed by `startMs`) above its high-water mark. Buckets without a
- * total, or whose total is not above the mark, are unchanged.
+ * total, or whose total is not above the mark, are unchanged. A credit is `late` when its bucket
+ * ended by `lastSyncedAt` (-Infinity if nothing was synced before): that sync read the whole
+ * bucket, so anything above the mark arrived after it.
  */
 export function reconcile(
   buckets: StepBucket[],
-  totals: ReadonlyMap<number, number>
+  totals: ReadonlyMap<number, number>,
+  lastSyncedAt: number
 ): { buckets: StepBucket[]; perDay: DayCredit[]; credited: number } {
   const perDay: DayCredit[] = [];
   const reconciled = buckets.map((bucket) => {
     const total = totals.get(bucket.startMs);
     if (total === undefined || total <= bucket.credited) return bucket;
-    perDay.push({ startMs: bucket.startMs, steps: total - bucket.credited });
+    perDay.push({
+      startMs: bucket.startMs,
+      steps: total - bucket.credited,
+      late: bucket.endMs <= lastSyncedAt,
+    });
     return { ...bucket, credited: total };
   });
   return {

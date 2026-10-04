@@ -25,7 +25,7 @@ export function useMemoryStorage(): void {
   mockAsyncStorage.setItem.mockImplementation(async (key, value) => {
     storage.set(key, value);
   });
-  useStepSyncStatus.setState({ syncing: false, lastResult: null });
+  useStepSyncStatus.setState(useStepSyncStatus.getInitialState(), true);
 }
 
 /** Stores a saved game (current schema unless given) and returns the stored blob. */

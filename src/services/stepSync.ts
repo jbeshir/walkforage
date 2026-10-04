@@ -18,18 +18,54 @@ import {
   reconcileFrom,
   welcomeBuckets,
 } from './stepLedger';
-import { StepSyncMode, StepSyncResult } from '../types/health';
+import { DayCredit, StepSyncMode, StepSyncResult } from '../types/health';
+
+type SyncedResult = Extract<StepSyncResult, { status: 'synced' }>;
 
 interface StepSyncStatus {
   syncing: boolean;
   lastResult: StepSyncResult | null;
+  /** Health Connect's total for each ledger bucket (by `startMs`) when a sync last read it. */
+  lastTotals: ReadonlyMap<number, number>;
+  /** What syncs credited since the player last dismissed the summary, merged into one result. */
+  unseenCredit: SyncedResult | null;
 }
 
 /** Ephemeral sync state for the UI. */
 export const useStepSyncStatus = create<StepSyncStatus>()(() => ({
   syncing: false,
   lastResult: null,
+  lastTotals: new Map(),
+  unseenCredit: null,
 }));
+
+export function dismissCreditSummary(): void {
+  useStepSyncStatus.setState({ unseenCredit: null });
+}
+
+/** Both credits as one: steps summed per day, late only if every credit for the day was late. */
+function mergeCredits(seen: SyncedResult | null, next: SyncedResult): SyncedResult {
+  if (!seen) return next;
+  const days = new Map<number, DayCredit>(seen.perDay.map((day) => [day.startMs, day]));
+  for (const day of next.perDay) {
+    const earlier = days.get(day.startMs);
+    days.set(
+      day.startMs,
+      earlier
+        ? { startMs: day.startMs, steps: earlier.steps + day.steps, late: earlier.late && day.late }
+        : day
+    );
+  }
+  const historyLimitedBefore = next.historyLimitedBefore ?? seen.historyLimitedBefore;
+  return {
+    status: 'synced',
+    credited: seen.credited + next.credited,
+    perDay: [...days.values()].sort((a, b) => a.startMs - b.startMs),
+    welcome: seen.welcome || next.welcome,
+    ...(historyLimitedBefore !== undefined && { historyLimitedBefore }),
+    syncedAt: next.syncedAt,
+  };
+}
 
 let inFlight: { mode: StepSyncMode; result: Promise<StepSyncResult> } | null = null;
 let fullAfterRecent: Promise<StepSyncResult> | null = null;
@@ -53,7 +89,14 @@ function startSync(mode: StepSyncMode): Promise<StepSyncResult> {
   useStepSyncStatus.setState({ syncing: true });
   const result = runSync(mode).then((synced) => {
     inFlight = null;
-    useStepSyncStatus.setState({ syncing: false, lastResult: synced });
+    useStepSyncStatus.setState(({ unseenCredit }) => ({
+      syncing: false,
+      lastResult: synced,
+      unseenCredit:
+        synced.status === 'synced' && synced.credited > 0
+          ? mergeCredits(unseenCredit, synced)
+          : unseenCredit,
+    }));
     return synced;
   });
   inFlight = { mode, result };
@@ -103,10 +146,22 @@ async function runSync(mode: StepSyncMode): Promise<StepSyncResult> {
     totals.set(bucket.startMs, read.steps);
   }
 
-  const { buckets: reconciled, perDay, credited } = reconcile(buckets, totals);
-  useGameStore
-    .getState()
-    .applyStepSync(credited, { buckets: prune(reconciled, now), lastSyncedAt: now });
+  const {
+    buckets: reconciled,
+    perDay,
+    credited,
+  } = reconcile(buckets, totals, ledger ? ledger.lastSyncedAt : -Infinity);
+  const kept = prune(reconciled, now);
+  useGameStore.getState().applyStepSync(credited, { buckets: kept, lastSyncedAt: now });
+  // A recent sync reads only the last days; earlier buckets keep the total read before.
+  useStepSyncStatus.setState(({ lastTotals }) => ({
+    lastTotals: new Map(
+      kept.flatMap(({ startMs }) => {
+        const total = totals.get(startMs) ?? lastTotals.get(startMs);
+        return total === undefined ? [] : [[startMs, total] as const];
+      })
+    ),
+  }));
   await saveGame();
   const historyLimitedBefore =
     historyStart !== undefined && toRead.some((bucket) => bucket.startMs < historyStart)

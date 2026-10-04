@@ -39,10 +39,15 @@ export interface StepLedger {
   lastSyncedAt: number;
 }
 
-/** Steps credited by one sync for the bucket starting at `startMs`. */
+/**
+ * Steps credited by one sync for the bucket starting at `startMs`. `late`: the bucket had ended
+ * before the previous sync, which read all of it, so these steps reached the health platform
+ * after that sync (a watch or fitness app syncing late).
+ */
 export interface DayCredit {
   startMs: number;
   steps: number;
+  late: boolean;
 }
 
 /**
@@ -70,6 +75,18 @@ export type StepSyncResult =
       code: StepReadErrorCode | 'not_authorized' | 'not_loaded';
       message: string;
     };
+
+/** Raw step records from one data origin (app), not de-duplicated against other origins. */
+export interface SourceSteps {
+  origin: string;
+  records: number;
+  steps: number;
+}
+
+/** Raw steps per data origin for a time window, for diagnostics. */
+export type SourceStepsResult =
+  | { ok: true; sources: SourceSteps[] }
+  | { ok: false; code: StepReadErrorCode; message: string };
 
 /**
  * Result from a gather action

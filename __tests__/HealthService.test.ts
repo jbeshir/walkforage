@@ -9,6 +9,7 @@ import {
   walk,
   sumCounts,
   fitbitBatch,
+  FITBIT_ORIGIN,
   ON_DEVICE_ORIGIN,
 } from './helpers/fakeHealthConnect';
 
@@ -282,6 +283,53 @@ describe('HealthService', () => {
       });
     });
 
+    describe('readStepsBySource', () => {
+      const now = Date.UTC(2026, 9, 4, 20);
+
+      async function connected(): Promise<HealthService> {
+        const svc = new HealthService();
+        await svc.refreshStatus();
+        return svc;
+      }
+
+      it('should sum raw records per origin across pages, most steps first, without de-duplicating', async () => {
+        const onDevice = walk(now - 20 * HOUR_MS, now, 1, ON_DEVICE_ORIGIN); // 1200 records
+        const fitbit = fitbitBatch(now - 2 * HOUR_MS, now, 400); // overlaps the phone's last 2 h
+        fakeHC.upsert([...onDevice, ...fitbit]);
+
+        const result = await (await connected()).readStepsBySource(now - 20 * HOUR_MS, now);
+
+        expect(result).toEqual({
+          ok: true,
+          sources: [
+            { origin: FITBIT_ORIGIN, records: 8, steps: 3200 },
+            { origin: ON_DEVICE_ORIGIN, records: 1200, steps: 1200 },
+          ],
+        });
+        expect(fakeHC.callsTo('readRecords')).toHaveLength(2);
+        expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
+      });
+
+      it('should return an error code when a page fails', async () => {
+        fakeHC.upsert(walk(now - 20 * HOUR_MS, now, 1));
+        const svc = await connected();
+        fakeHC.failNext('readRecords', hcErrors.serviceUnavailable(), 1, 1);
+
+        expect(await svc.readStepsBySource(now - 20 * HOUR_MS, now)).toMatchObject({
+          ok: false,
+          code: 'unavailable',
+        });
+      });
+
+      it('should not read before the client is initialized', async () => {
+        expect(await new HealthService().readStepsBySource(now - HOUR_MS, now)).toMatchObject({
+          ok: false,
+          code: 'not_initialized',
+        });
+        expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+      });
+    });
+
     describe('historyStartAfterReinstall', () => {
       const lastSyncedAt = Date.UTC(2026, 8, 1);
 
@@ -430,6 +478,17 @@ describe('HealthService', () => {
         await new HealthService().historyStartAfterReinstall(Date.UTC(2026, 8, 1))
       ).toBeUndefined();
       expect(getInstallationTimeAsync).not.toHaveBeenCalled();
+    });
+
+    it('should not read steps by source (Health Connect only)', async () => {
+      mockIsHealthDataAvailable.mockResolvedValue(true);
+      const svc = new HealthService();
+      await svc.refreshStatus();
+
+      expect(await svc.readStepsBySource(Date.now() - HOUR_MS, Date.now())).toMatchObject({
+        ok: false,
+        code: 'unavailable',
+      });
     });
   });
 

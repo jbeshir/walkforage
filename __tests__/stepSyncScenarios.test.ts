@@ -157,8 +157,9 @@ describe('step sync scenarios', () => {
         status: 'synced',
         credited: 12 * 250 + 12 * 200,
         perDay: [
-          { startMs: local(2026, 10, 3, 8), steps: 12 * 200 }, // the ledger's first bucket
-          { startMs: local(2026, 10, 4), steps: 12 * 250 },
+          // the ledger's first bucket, fully read by the 18:00 sync: late
+          { startMs: local(2026, 10, 3, 8), steps: 12 * 200, late: true },
+          { startMs: local(2026, 10, 4), steps: 12 * 250, late: false },
         ],
       });
       expect(availableSteps()).toBe(1200 + sumCounts(today) + sumCounts(lastNight));

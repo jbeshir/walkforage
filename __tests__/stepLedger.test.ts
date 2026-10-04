@@ -256,27 +256,42 @@ describe('stepLedger', () => {
           [a.startMs, 5200],
           [b.startMs, 3000],
           [c.startMs, 800],
-        ])
+        ]),
+        -Infinity
       );
 
       expect(result.credited).toBe(200 + 3000);
       expect(result.perDay).toEqual([
-        { startMs: a.startMs, steps: 200 },
-        { startMs: b.startMs, steps: 3000 },
+        { startMs: a.startMs, steps: 200, late: false },
+        { startMs: b.startMs, steps: 3000, late: false },
       ]);
       expect(result.buckets).toEqual([{ ...a, credited: 5200 }, { ...b, credited: 3000 }, c]);
       expect(result.buckets[2]).toBe(input[2]);
       expect(input[0].credited).toBe(5000);
     });
 
+    it('marks credits late only for buckets that ended by the last sync', () => {
+      const result = reconcile(
+        [a, b, c],
+        new Map([
+          [a.startMs, 5100],
+          [b.startMs, 10],
+          [c.startMs, 900],
+        ]),
+        b.endMs
+      );
+
+      expect(result.perDay.map((day) => day.late)).toEqual([true, true, false]);
+    });
+
     it('never claws back: a lower total credits nothing and keeps the mark', () => {
-      const result = reconcile([a], new Map([[a.startMs, 4200]]));
+      const result = reconcile([a], new Map([[a.startMs, 4200]]), -Infinity);
 
       expect(result).toEqual({ buckets: [a], perDay: [], credited: 0 });
     });
 
     it('leaves buckets without a total unchanged', () => {
-      const result = reconcile([a, b], new Map([[b.startMs, 10]]));
+      const result = reconcile([a, b], new Map([[b.startMs, 10]]), -Infinity);
 
       expect(result.buckets).toEqual([a, { ...b, credited: 10 }]);
       expect(result.credited).toBe(10);
