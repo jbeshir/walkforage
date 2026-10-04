@@ -307,6 +307,17 @@ describe('fake Health Connect', () => {
       await expect(readRecords('Steps', options)).resolves.toEqual({ records: [], pageToken: '' });
     });
 
+    it('lets a number of calls through before failing', async () => {
+      fakeHC.failNext('aggregateRecord', hcErrors.remote(), 1, 2);
+
+      await expect(aggregate(DAY_START, NEXT_DAY_START)).resolves.toMatchObject({ COUNT_TOTAL: 0 });
+      await expect(aggregate(DAY_START, NEXT_DAY_START)).resolves.toMatchObject({ COUNT_TOTAL: 0 });
+      await expect(aggregate(DAY_START, NEXT_DAY_START)).rejects.toMatchObject({
+        code: 'UNDERLYING_ERROR',
+      });
+      await expect(aggregate(DAY_START, NEXT_DAY_START)).resolves.toMatchObject({ COUNT_TOTAL: 0 });
+    });
+
     it('rejects every call with a persistent error until cleared', async () => {
       fakeHC.failAlways('aggregateRecord', hcErrors.serviceUnavailable());
 

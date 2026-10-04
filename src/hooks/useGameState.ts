@@ -42,7 +42,6 @@ export interface GameStateHook {
   spendSteps: (amount: number) => void;
   getStepGatheringState: () => {
     availableSteps: number;
-    lastSyncTimestamp: number;
     totalStepsGathered: number;
   };
 
@@ -73,8 +72,8 @@ export function useGameState(): GameStateHook {
       craftingQueue: s.craftingQueue,
       explorationPoints: s.explorationPoints,
       availableSteps: s.availableSteps,
-      lastSyncTimestamp: s.lastSyncTimestamp,
       totalStepsGathered: s.totalStepsGathered,
+      stepLedger: s.stepLedger,
     },
     isLoading: s.isLoading,
     saveError: s.saveError,

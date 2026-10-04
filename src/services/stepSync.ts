@@ -1,11 +1,22 @@
 // stepSync - The one place steps are credited from Health Connect/HealthKit into the game.
 // Every trigger (mount, permission grant, interval, Sync button) shares a single in-flight sync,
 // so overlapping triggers can never read and credit the same window twice.
+// Steps are credited per local-day bucket of the step ledger (src/services/stepLedger.ts): every
+// sync re-reads recent buckets and credits only what is above each bucket's high-water mark, so
+// late data is credited once and a crash before the save can be re-synced without double credit.
 
 import { create } from 'zustand';
 import { healthService } from './HealthService';
 import { useGameStore } from '../store/gameStore';
 import { saveGame } from '../store/persistence';
+import {
+  bucketsToRead,
+  extendBuckets,
+  prune,
+  reconcile,
+  reconcileFrom,
+  welcomeBuckets,
+} from './stepLedger';
 import { StepSyncResult } from '../types/health';
 
 interface StepSyncStatus {
@@ -49,29 +60,45 @@ async function runSync(): Promise<StepSyncResult> {
     return { status: 'error', code: 'not_authorized', message: 'Step access not granted' };
   }
 
-  const { lastSyncTimestamp } = store.getStepGatheringState();
   const now = Date.now();
+  const ledger = store.stepLedger;
+  // A restored or migrated save always has a ledger, so no ledger means a new game: its first
+  // sync credits the last week as a welcome.
+  const buckets = ledger ? extendBuckets(ledger.buckets, now) : welcomeBuckets(now);
+  const toRead = bucketsToRead(
+    buckets,
+    now,
+    ledger ? reconcileFrom(ledger.lastSyncedAt, now) : -Infinity
+  );
+  const historyStart = ledger
+    ? await healthService.historyStartAfterReinstall(ledger.lastSyncedAt)
+    : undefined;
 
-  if (lastSyncTimestamp === 0) {
-    // First sync ever: start counting from now rather than crediting history.
-    store.applyStepSync(0, now);
-    await saveGame();
-    return { status: 'synced', credited: 0 };
+  // Read every bucket before crediting any: one failure commits nothing.
+  const totals = new Map<number, number>();
+  for (const bucket of toRead) {
+    const read = await healthService.readSteps(bucket.startMs, Math.min(bucket.endMs, now));
+    if (!read.ok) {
+      return { status: 'error', code: read.code, message: read.message };
+    }
+    totals.set(bucket.startMs, read.steps);
   }
 
-  if (now <= lastSyncTimestamp) {
-    // Clock is at or behind the sync position: nothing to read until time catches up.
-    return { status: 'synced', credited: 0 };
-  }
-
-  const read = await healthService.readSteps(lastSyncTimestamp, now);
-  if (!read.ok) {
-    return { status: 'error', code: read.code, message: read.message };
-  }
-
-  // The position moves to the end of the window actually read, not to the time the read returned,
-  // so steps starting while the read was in flight are picked up next time.
-  useGameStore.getState().applyStepSync(read.steps, now);
+  const { buckets: reconciled, perDay, credited } = reconcile(buckets, totals);
+  useGameStore
+    .getState()
+    .applyStepSync(credited, { buckets: prune(reconciled, now), lastSyncedAt: now });
   await saveGame();
-  return { status: 'synced', credited: read.steps };
+  const historyLimitedBefore =
+    historyStart !== undefined && toRead.some((bucket) => bucket.startMs < historyStart)
+      ? historyStart
+      : undefined;
+  return {
+    status: 'synced',
+    credited,
+    perDay,
+    welcome: ledger === null,
+    ...(historyLimitedBefore !== undefined && { historyLimitedBefore }),
+    syncedAt: now,
+  };
 }

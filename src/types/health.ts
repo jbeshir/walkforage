@@ -24,10 +24,41 @@ export type StepReadResult =
   | { ok: false; code: StepReadErrorCode; message: string };
 
 /**
- * Result of a step sync. On error nothing was credited and the sync position did not move.
+ * One local calendar day, or the part of one that a ledger started in. The bounds are fixed when
+ * the bucket is created; `credited` is the highest Health Connect total ever credited for it.
+ */
+export interface StepBucket {
+  startMs: number;
+  endMs: number;
+  credited: number;
+}
+
+/** What has been credited from the health platform. Buckets are contiguous, ascending, non-empty. */
+export interface StepLedger {
+  buckets: StepBucket[];
+  lastSyncedAt: number;
+}
+
+/** Steps credited by one sync for the bucket starting at `startMs`. */
+export interface DayCredit {
+  startMs: number;
+  steps: number;
+}
+
+/**
+ * Result of a step sync. On error nothing was credited and the ledger did not change.
+ * `welcome`: the first sync of a new game, which also credited the last week.
+ * `historyLimitedBefore`: after a reinstall, steps before this time could not be read.
  */
 export type StepSyncResult =
-  | { status: 'synced'; credited: number }
+  | {
+      status: 'synced';
+      credited: number;
+      perDay: DayCredit[];
+      welcome: boolean;
+      historyLimitedBefore?: number;
+      syncedAt: number;
+    }
   | {
       status: 'error';
       code: StepReadErrorCode | 'not_authorized' | 'not_loaded';

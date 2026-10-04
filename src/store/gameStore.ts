@@ -11,17 +11,32 @@ import {
   getResourceCount as getResourceCountPure,
 } from '../services/InventoryService';
 import { hasTech as hasTechPure } from '../services/TechService';
+import { ledgerSince } from '../services/stepLedger';
+import { StepLedger } from '../types/health';
 
 export const STORAGE_KEY = 'walkforage_gamestate';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export type PersistedObject = Record<string, unknown>;
 export type Migration = (obj: PersistedObject) => PersistedObject;
 
 // Ordered migrations keyed by the version they migrate FROM.
 // v0 = unversioned legacy save. Identity/tag migration -> v1.
+// v1 -> v2: the step watermark `lastSyncTimestamp` becomes the step ledger. A save that synced
+// starts its ledger at the watermark, so the next sync credits exactly the steps since then; one
+// that never synced (0) has no ledger, so its first sync is a new game's welcome credit.
 export const migrations: Record<number, Migration> = {
   0: (obj) => ({ ...obj, schemaVersion: 1 }),
+  1: ({ lastSyncTimestamp, ...obj }) => ({
+    ...obj,
+    stepLedger:
+      typeof lastSyncTimestamp === 'number' &&
+      Number.isFinite(lastSyncTimestamp) &&
+      lastSyncTimestamp > 0
+        ? ledgerSince(lastSyncTimestamp)
+        : null,
+    schemaVersion: 2,
+  }),
 };
 
 export function toPersisted(s: GameData): GameData & { schemaVersion: number } {
@@ -84,8 +99,9 @@ export interface GameData {
   craftingQueue: CraftingJob[];
   explorationPoints: number;
   availableSteps: number;
-  lastSyncTimestamp: number;
   totalStepsGathered: number;
+  /** What has been credited from the health platform; null until a new game's first sync. */
+  stepLedger: StepLedger | null;
 }
 
 // Alias for backward compatibility
@@ -100,8 +116,8 @@ export function createInitialGameData(): GameData {
     craftingQueue: [],
     explorationPoints: 0,
     availableSteps: 0,
-    lastSyncTimestamp: 0,
     totalStepsGathered: 0,
+    stepLedger: null,
   };
 }
 
@@ -117,9 +133,9 @@ export interface GameStore extends GameData {
   unlockTech: (techId: string) => void;
   craft: (params: CraftItemParams) => { success: boolean; error?: string };
   addExplorationPoints: (points: number) => void;
-  /** Credit synced steps and move the sync position to the end of the window read. */
-  applyStepSync: (credited: number, lastSyncTimestamp: number) => void;
-  /** Add steps without touching the sync position (cheat screen). */
+  /** Credit synced steps and store the ledger they were credited against, in one update. */
+  applyStepSync: (credited: number, stepLedger: StepLedger) => void;
+  /** Add steps without touching the step ledger (cheat screen). */
   addBonusSteps: (amount: number) => void;
   spendSteps: (amount: number) => void;
 
@@ -133,7 +149,6 @@ export interface GameStore extends GameData {
   getOwnedComponents: (componentId: string) => OwnedComponent[];
   getStepGatheringState: () => {
     availableSteps: number;
-    lastSyncTimestamp: number;
     totalStepsGathered: number;
   };
   canCraft: (craftable: Tool | CraftedComponent) => CraftCheckResult;
@@ -154,8 +169,8 @@ export const selectData = (s: GameStore): GameData => ({
   craftingQueue: s.craftingQueue,
   explorationPoints: s.explorationPoints,
   availableSteps: s.availableSteps,
-  lastSyncTimestamp: s.lastSyncTimestamp,
   totalStepsGathered: s.totalStepsGathered,
+  stepLedger: s.stepLedger,
 });
 
 // Module-level canCraft memo cache — keyed by craftable, invalidated when any
@@ -223,10 +238,10 @@ export const useGameStore = create<GameStore>()(
     addExplorationPoints: (points) =>
       set((s) => ({ explorationPoints: s.explorationPoints + points })),
 
-    applyStepSync: (credited, lastSyncTimestamp) =>
+    applyStepSync: (credited, stepLedger) =>
       set((s) => ({
         availableSteps: s.availableSteps + credited,
-        lastSyncTimestamp,
+        stepLedger,
       })),
 
     addBonusSteps: (amount) => set((s) => ({ availableSteps: s.availableSteps + amount })),
@@ -262,7 +277,6 @@ export const useGameStore = create<GameStore>()(
       const s = get();
       return {
         availableSteps: s.availableSteps,
-        lastSyncTimestamp: s.lastSyncTimestamp,
         totalStepsGathered: s.totalStepsGathered,
       };
     },

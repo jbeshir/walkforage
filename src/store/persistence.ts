@@ -14,6 +14,8 @@ import {
 } from './gameStore';
 import { getAllMaterialTypes } from '../config/materials';
 import { createEmptyInventory } from '../types/resources';
+import { StepBucket, StepLedger } from '../types/health';
+import { ledgerSince } from '../services/stepLedger';
 
 const SAVE_THROTTLE_MS = 3000;
 const SAVE_FAILURE_THRESHOLD = 3;
@@ -69,6 +71,38 @@ function throttledSave(): void {
   }
 }
 
+function isTime(x: unknown): x is number {
+  return typeof x === 'number' && Number.isFinite(x) && x >= 0;
+}
+
+function sanitiseBuckets(x: unknown): StepBucket[] | null {
+  if (!Array.isArray(x) || x.length === 0) return null;
+  const buckets: StepBucket[] = [];
+  for (const el of x) {
+    if (el === null || typeof el !== 'object') return null;
+    const { startMs, endMs, credited } = el as Record<string, unknown>;
+    if (!isTime(startMs) || !isTime(endMs) || !isTime(credited) || endMs <= startMs) return null;
+    const previous = buckets[buckets.length - 1];
+    if (previous && previous.endMs !== startMs) return null;
+    buckets.push({ startMs, endMs, credited });
+  }
+  return buckets;
+}
+
+/**
+ * A stored ledger, or null if there is none. Null means a new game whose first sync credits the
+ * welcome week, so a malformed ledger that still has a valid `lastSyncedAt` does not become null:
+ * it restarts from `lastSyncedAt`, crediting the steps since then (never twice, but late data for
+ * days before it is lost). Only a ledger with no usable `lastSyncedAt` is dropped.
+ */
+function sanitiseLedger(x: unknown): StepLedger | null {
+  if (x === null || typeof x !== 'object' || Array.isArray(x)) return null;
+  const { buckets, lastSyncedAt } = x as Record<string, unknown>;
+  if (!isTime(lastSyncedAt) || lastSyncedAt === 0) return null;
+  const sanitised = sanitiseBuckets(buckets);
+  return sanitised ? { buckets: sanitised, lastSyncedAt } : ledgerSince(lastSyncedAt);
+}
+
 export async function loadGame(): Promise<void> {
   try {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
@@ -105,11 +139,7 @@ export async function loadGame(): Promise<void> {
           migrated.totalStepsGathered,
           initialData.totalStepsGathered
         ),
-        lastSyncTimestamp:
-          typeof migrated.lastSyncTimestamp === 'number' &&
-          Number.isFinite(migrated.lastSyncTimestamp)
-            ? Math.max(0, migrated.lastSyncTimestamp)
-            : initialData.lastSyncTimestamp,
+        stepLedger: sanitiseLedger(migrated.stepLedger),
       });
     }
   } catch (error) {

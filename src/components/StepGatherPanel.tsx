@@ -24,6 +24,7 @@ import {
 import { useGameStore } from '../store/gameStore';
 import { useStepSyncStatus } from '../services/stepSync';
 import { StepSyncResult } from '../types/health';
+import { WELCOME_DAYS } from '../config/stepSync';
 import { useTheme } from '../hooks/useTheme';
 
 let toastId = 0;
@@ -39,6 +40,10 @@ const SYNC_ERROR_TEXT: Record<StepSyncErrorCode, string> = {
   not_loaded: "Your saved game hasn't loaded, so steps can't be synced yet.",
   unknown: 'Sync failed. Your steps are safe; try again.',
 };
+
+function formatTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 export interface StepGatherPanelProps {
   /** Step gathering hook return value */
@@ -73,6 +78,7 @@ export function StepGatherPanel({
 
   const ownedTools = useGameStore((s) => s.ownedTools);
   const syncing = useStepSyncStatus((s) => s.syncing);
+  const lastSyncedAt = useGameStore((s) => s.stepLedger?.lastSyncedAt);
   const { colors } = useTheme().theme;
 
   // Calculate directly from reactive availableSteps to ensure UI updates immediately
@@ -170,10 +176,23 @@ export function StepGatherPanel({
     const result = await syncSteps();
     if (result.status === 'error') {
       showToast(SYNC_ERROR_TEXT[result.code], 'error');
+      return;
+    }
+    if (result.welcome) {
+      showToast(
+        `Welcome to WalkForage! +${result.credited.toLocaleString()} steps from your last ${WELCOME_DAYS} days`,
+        'success'
+      );
     } else if (result.credited > 0) {
       showToast(`+${result.credited.toLocaleString()} steps synced!`, 'info');
     } else {
-      showToast('Up to date: no new steps since your last sync', 'info');
+      showToast(`Up to date (synced ${formatTime(result.syncedAt)})`, 'info');
+    }
+    if (result.historyLimitedBefore !== undefined) {
+      showToast(
+        `Health Connect only shares steps from ${new Date(result.historyLimitedBefore).toLocaleDateString()} onward after a reinstall; earlier steps couldn't be imported.`,
+        'info'
+      );
     }
   }, [syncSteps, showToast]);
 
@@ -395,6 +414,11 @@ export function StepGatherPanel({
               <Text style={[styles.syncButtonText, { color: colors.info }]}>Sync Steps</Text>
             )}
           </TouchableOpacity>
+          {lastSyncedAt !== undefined && (
+            <Text style={[styles.lastSynced, { color: colors.textTertiary }]}>
+              Last synced {formatTime(lastSyncedAt)}
+            </Text>
+          )}
         </View>
 
         <View style={styles.gatherSection}>
@@ -494,6 +518,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
+  },
+  lastSynced: {
+    fontSize: 11,
+    marginTop: 4,
   },
   syncButtonText: {
     fontSize: 12,

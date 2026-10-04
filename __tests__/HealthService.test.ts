@@ -2,7 +2,15 @@
 // Android runs against the fake Health Connect; iOS against a mocked HealthKit module.
 
 import { Platform } from 'react-native';
-import { fakeHC, hcErrors, walk, sumCounts } from './helpers/fakeHealthConnect';
+import { getInstallationTimeAsync } from 'expo-application';
+import {
+  fakeHC,
+  hcErrors,
+  walk,
+  sumCounts,
+  fitbitBatch,
+  ON_DEVICE_ORIGIN,
+} from './helpers/fakeHealthConnect';
 
 jest.mock(
   'react-native-health-connect',
@@ -23,6 +31,7 @@ jest.mock('@kingstinct/react-native-healthkit', () => ({
 import { HealthService, healthService } from '../src/services/HealthService';
 
 const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
 
 describe('HealthService', () => {
   beforeEach(() => {
@@ -135,7 +144,7 @@ describe('HealthService', () => {
     describe('readSteps', () => {
       const now = Date.UTC(2026, 9, 4, 12);
 
-      it('should return the step total for the window', async () => {
+      it('should return the aggregate step total for the window, with no origin filter', async () => {
         const records = walk(now - HOUR_MS, now, 25);
         fakeHC.upsert(records);
 
@@ -145,35 +154,46 @@ describe('HealthService', () => {
           ok: true,
           steps: sumCounts(records),
         });
+        expect(fakeHC.callsTo('aggregateRecord').map((c) => c.args[0])).toEqual([
+          {
+            recordType: 'Steps',
+            timeRangeFilter: {
+              operator: 'between',
+              startTime: new Date(now - HOUR_MS).toISOString(),
+              endTime: new Date(now).toISOString(),
+            },
+          },
+        ]);
+        expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
       });
 
-      it('should only count records starting inside [startMs, endMs)', async () => {
-        fakeHC.upsert(walk(now - 2 * HOUR_MS, now + HOUR_MS, 10));
+      it('should de-duplicate sources by Health Connect priority', async () => {
+        fakeHC.upsert(walk(now - HOUR_MS, now, 30, ON_DEVICE_ORIGIN)); // 1800 on-device
+        fakeHC.upsert(fitbitBatch(now - HOUR_MS, now, 400)); // 1600 Fitbit, higher priority
 
         const svc = new HealthService();
 
-        expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 600 });
+        expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 1600 });
       });
 
-      it('should follow pageToken past 1000 records, ending on an empty token', async () => {
+      it('should count the overlapping part of records straddling the window', async () => {
+        fakeHC.upsert([
+          { start: now - 2 * HOUR_MS, end: now, count: 1000, origin: ON_DEVICE_ORIGIN },
+        ]);
+
+        const svc = new HealthService();
+
+        expect(await svc.readSteps(now - HOUR_MS, now + HOUR_MS)).toEqual({ ok: true, steps: 500 });
+      });
+
+      it('should read more than 1000 records in one call', async () => {
         const records = walk(now - 25 * HOUR_MS, now, 3); // 1500 per-minute records
         fakeHC.upsert(records);
 
         const svc = new HealthService();
-        const result = await svc.readSteps(now - 25 * HOUR_MS, now);
 
-        expect(result).toEqual({ ok: true, steps: 4500 });
-        expect(fakeHC.callsTo('readRecords')).toHaveLength(2);
-      });
-
-      it('should stop paging on an undefined last pageToken', async () => {
-        fakeHC.lastPageToken = undefined;
-        fakeHC.upsert(walk(now - 20 * HOUR_MS, now, 2)); // 1200 records
-
-        const svc = new HealthService();
-
-        expect(await svc.readSteps(now - 20 * HOUR_MS, now)).toEqual({ ok: true, steps: 2400 });
-        expect(fakeHC.callsTo('readRecords')).toHaveLength(2);
+        expect(await svc.readSteps(now - 25 * HOUR_MS, now)).toEqual({ ok: true, steps: 4500 });
+        expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(1);
       });
 
       it('should return 0 steps when there are no records', async () => {
@@ -182,15 +202,14 @@ describe('HealthService', () => {
         expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 0 });
       });
 
-      it('should coerce NaN step counts to 0', async () => {
+      it('should coerce a NaN total to 0', async () => {
         fakeHC.upsert([
-          { start: now - HOUR_MS, end: now - HOUR_MS + 60_000, count: 100, origin: 'android' },
           { start: now - 30 * 60_000, end: now - 29 * 60_000, count: NaN, origin: 'android' },
         ]);
 
         const svc = new HealthService();
 
-        expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 100 });
+        expect(await svc.readSteps(now - HOUR_MS, now)).toEqual({ ok: true, steps: 0 });
       });
 
       it.each([
@@ -203,7 +222,7 @@ describe('HealthService', () => {
       ])('should report %s for %s instead of 0 steps', async (code, _label, error) => {
         const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
         fakeHC.upsert(walk(now - HOUR_MS, now, 10));
-        fakeHC.failNext('readRecords', error);
+        fakeHC.failNext('aggregateRecord', error);
 
         const svc = new HealthService();
 
@@ -215,28 +234,6 @@ describe('HealthService', () => {
         consoleError.mockRestore();
       });
 
-      it('should fail the whole read when a later page fails', async () => {
-        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-        jest.useFakeTimers();
-        try {
-          fakeHC.upsert(walk(now - 25 * HOUR_MS, now, 3));
-          const svc = new HealthService();
-          await svc.initialize();
-          fakeHC.latencyMs = 10;
-
-          const pending = svc.readSteps(now - 25 * HOUR_MS, now);
-          await jest.advanceTimersByTimeAsync(10); // first page returns, second is in flight
-          expect(fakeHC.callsTo('readRecords')).toHaveLength(2);
-          fakeHC.failNext('readRecords', hcErrors.serviceUnavailable());
-          await jest.advanceTimersByTimeAsync(10);
-
-          expect(await pending).toMatchObject({ ok: false, code: 'unavailable' });
-        } finally {
-          jest.useRealTimers();
-          consoleError.mockRestore();
-        }
-      });
-
       it('should report not_initialized when Health Connect cannot initialize', async () => {
         fakeHC.sdkStatus = 1;
 
@@ -246,7 +243,35 @@ describe('HealthService', () => {
           ok: false,
           code: 'not_initialized',
         });
-        expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+        expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
+      });
+    });
+
+    describe('historyStartAfterReinstall', () => {
+      const lastSyncedAt = Date.UTC(2026, 8, 1);
+
+      it('should return 30 days before the install time when installed after the last sync', async () => {
+        const installedAt = Date.UTC(2026, 9, 4);
+        jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(installedAt));
+
+        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBe(
+          installedAt - 30 * DAY_MS
+        );
+      });
+
+      it('should return undefined when the app was installed before the last sync', async () => {
+        jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(lastSyncedAt - DAY_MS));
+
+        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBeUndefined();
+      });
+
+      it('should return undefined when the install time cannot be read', async () => {
+        const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        jest.mocked(getInstallationTimeAsync).mockRejectedValue(new Error('unavailable'));
+
+        expect(await new HealthService().historyStartAfterReinstall(lastSyncedAt)).toBeUndefined();
+        expect(consoleWarn).toHaveBeenCalled();
+        consoleWarn.mockRestore();
       });
     });
 
@@ -359,6 +384,15 @@ describe('HealthService', () => {
         });
         consoleError.mockRestore();
       });
+    });
+
+    it('should not limit history after a reinstall (HealthKit has no grant window)', async () => {
+      jest.mocked(getInstallationTimeAsync).mockResolvedValue(new Date(Date.UTC(2026, 9, 4)));
+
+      expect(
+        await new HealthService().historyStartAfterReinstall(Date.UTC(2026, 8, 1))
+      ).toBeUndefined();
+      expect(getInstallationTimeAsync).not.toHaveBeenCalled();
     });
   });
 

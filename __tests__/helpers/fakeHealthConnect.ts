@@ -111,6 +111,8 @@ export const hcErrors = {
 interface Failure {
   method: FakeMethod;
   error: Error;
+  /** Calls to let through before failing. */
+  skip: number;
   remaining: number;
 }
 
@@ -188,9 +190,9 @@ class FakeHealthConnect {
     this.store = this.store.filter((r) => !ids.includes(r.id));
   }
 
-  /** The next `times` calls to `method` reject with `error`. */
-  failNext(method: FakeMethod, error: Error, times = 1): void {
-    this.failures = [...this.failures, { method, error, remaining: times }];
+  /** After `after` more calls succeed, the next `times` calls to `method` reject with `error`. */
+  failNext(method: FakeMethod, error: Error, times = 1, after = 0): void {
+    this.failures = [...this.failures, { method, error, skip: after, remaining: times }];
   }
 
   /** Every call to `method` rejects with `error` until clearFailures(). */
@@ -219,9 +221,13 @@ class FakeHealthConnect {
     if (index >= 0) {
       const failure = this.failures[index];
       this.failures = this.failures.map((f, i) =>
-        i === index ? { ...f, remaining: f.remaining - 1 } : f
+        i !== index
+          ? f
+          : f.skip > 0
+            ? { ...f, skip: f.skip - 1 }
+            : { ...f, remaining: f.remaining - 1 }
       );
-      throw failure.error;
+      if (failure.skip === 0) throw failure.error;
     }
   }
 

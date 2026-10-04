@@ -258,7 +258,7 @@ describe('useGameState', () => {
   });
 
   describe('Steps', () => {
-    it('should add bonus steps without moving the sync position', async () => {
+    it('should add bonus steps without touching the step ledger', async () => {
       const { result } = renderHook(() => useGameState(), { wrapper: TestWrapper });
 
       await waitFor(() => {
@@ -270,7 +270,7 @@ describe('useGameState', () => {
       });
 
       expect(result.current.state.availableSteps).toBe(1000);
-      expect(result.current.state.lastSyncTimestamp).toBe(0);
+      expect(result.current.state.stepLedger).toBeNull();
     });
   });
 
@@ -475,7 +475,9 @@ describe('useGameState', () => {
       });
 
       const written = JSON.parse(mockAsyncStorage.setItem.mock.calls[0][1]);
-      expect(written.schemaVersion).toBe(1);
+      expect(written.schemaVersion).toBe(2);
+      expect(written.stepLedger).toBeNull();
+      expect(written).not.toHaveProperty('lastSyncTimestamp');
     });
 
     it('falls back to INITIAL_STATE on corrupt JSON', async () => {

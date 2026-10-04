@@ -34,7 +34,7 @@ describe('useStepGathering without a usable Health Connect', () => {
     });
     expect(result.current.permissionStatus).toBe('unavailable');
     expect(result.current.needsInstall).toBe(false);
-    expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+    expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
   });
 
   it('asks for an install when the provider needs an update', async () => {
@@ -46,6 +46,6 @@ describe('useStepGathering without a usable Health Connect', () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.needsInstall).toBe(true);
-    expect(fakeHC.callsTo('readRecords')).toHaveLength(0);
+    expect(fakeHC.callsTo('aggregateRecord')).toHaveLength(0);
   });
 });

@@ -2,7 +2,9 @@
 // Uses HealthConnect on Android and HealthKit on iOS
 
 import { Platform, Linking } from 'react-native';
+import { getInstallationTimeAsync } from 'expo-application';
 import { HealthPermissionStatus, StepReadResult } from '../types/health';
+import { HISTORY_WINDOW_DAYS } from '../config/stepSync';
 
 // Conditional imports - these will be resolved at build time
 let HealthConnect: typeof import('react-native-health-connect') | null = null;
@@ -14,6 +16,8 @@ const SDK_STATUS = {
   SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED: 2,
   SDK_AVAILABLE: 3,
 } as const;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Lazy load platform-specific health modules
 async function loadHealthModule(): Promise<void> {
@@ -218,26 +222,18 @@ export class HealthService {
 
     try {
       if (Platform.OS === 'android' && HealthConnect) {
-        let totalSteps = 0;
-        let pageToken: string | undefined;
-        do {
-          const page = await HealthConnect.readRecords('Steps', {
-            timeRangeFilter: {
-              operator: 'between',
-              startTime: startDate.toISOString(),
-              endTime: endDate.toISOString(),
-            },
-            pageToken,
-          });
-          // Defensive: a NaN count from the bridge counts as 0
-          totalSteps = page.records.reduce(
-            (sum, record) => sum + (Number(record.count) || 0),
-            totalSteps
-          );
-          // Health Connect may end paging with '' rather than undefined
-          pageToken = page.pageToken || undefined;
-        } while (pageToken);
-        return { ok: true, steps: Math.floor(totalSteps) };
+        // The aggregate de-duplicates sources by the user's Health Connect priority and pro-rates
+        // records that straddle the window. No origin filter, so on-device steps count too.
+        const result = await HealthConnect.aggregateRecord({
+          recordType: 'Steps',
+          timeRangeFilter: {
+            operator: 'between',
+            startTime: startDate.toISOString(),
+            endTime: endDate.toISOString(),
+          },
+        });
+        // Defensive: a NaN total from the bridge counts as 0
+        return { ok: true, steps: Math.floor(Number(result.COUNT_TOTAL) || 0) };
       } else if (Platform.OS === 'ios' && HealthKit) {
         // Query step samples from HealthKit
         const samples = await HealthKit.queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
@@ -263,6 +259,23 @@ export class HealthService {
     } catch (error) {
       console.error('Failed to read steps:', error);
       return toStepReadError(error);
+    }
+  }
+
+  /**
+   * Health Connect shares only HISTORY_WINDOW_DAYS before the app's first grant, and a reinstalled
+   * app needs a new grant. If the app was installed after `lastSyncedAt` (a save restored onto a
+   * reinstall or a new phone), returns the earliest time Health Connect will share; otherwise
+   * undefined.
+   */
+  async historyStartAfterReinstall(lastSyncedAt: number): Promise<number | undefined> {
+    if (Platform.OS !== 'android') return undefined;
+    try {
+      const installedAt = (await getInstallationTimeAsync()).getTime();
+      return installedAt > lastSyncedAt ? installedAt - HISTORY_WINDOW_DAYS * DAY_MS : undefined;
+    } catch (error) {
+      console.warn('Could not read the app install time:', error);
+      return undefined;
     }
   }
 
